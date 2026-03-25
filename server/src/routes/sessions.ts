@@ -56,7 +56,10 @@ export function sessionRouter(prisma: PrismaClient): Router {
 
   // GET /api/sessions — list user's practice sessions
   router.get('/', authenticateToken, async (req: AuthRequest, res) => {
-    const { limit = '20', offset = '0', exerciseId, practiceMode } = req.query
+    const limit = (req.query.limit as string) || '20'
+    const offset = (req.query.offset as string) || '0'
+    const exerciseId = req.query.exerciseId as string | undefined
+    const practiceMode = req.query.practiceMode as string | undefined
 
     const where: any = { userId: req.userId! }
     if (exerciseId) where.exerciseId = exerciseId
@@ -65,8 +68,8 @@ export function sessionRouter(prisma: PrismaClient): Router {
     const sessions = await prisma.practiceSession.findMany({
       where,
       orderBy: { startedAt: 'desc' },
-      take: parseInt(limit as string, 10),
-      skip: parseInt(offset as string, 10),
+      take: parseInt(limit, 10),
+      skip: parseInt(offset, 10),
       include: {
         exercise: { select: { id: true, title: true, category: true } },
       },
@@ -111,8 +114,9 @@ export function sessionRouter(prisma: PrismaClient): Router {
 
   // GET /api/sessions/best/:exerciseId — best result for a specific exercise
   router.get('/best/:exerciseId', authenticateToken, async (req: AuthRequest, res) => {
+    const exerciseId = req.params.exerciseId as string
     const best = await prisma.practiceSession.findFirst({
-      where: { userId: req.userId!, exerciseId: req.params.exerciseId },
+      where: { userId: req.userId!, exerciseId },
       orderBy: { score: 'desc' },
     })
 

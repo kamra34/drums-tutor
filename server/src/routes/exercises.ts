@@ -26,7 +26,10 @@ export function exerciseRouter(prisma: PrismaClient): Router {
 
   // GET /api/exercises — list exercises (built-in + user's own)
   router.get('/', authenticateToken, async (req: AuthRequest, res) => {
-    const { category, difficulty, limit = '50', offset = '0' } = req.query
+    const category = req.query.category as string | undefined
+    const difficulty = req.query.difficulty as string | undefined
+    const limit = (req.query.limit as string) || '50'
+    const offset = (req.query.offset as string) || '0'
 
     const where: any = {
       OR: [
@@ -35,13 +38,13 @@ export function exerciseRouter(prisma: PrismaClient): Router {
       ],
     }
     if (category) where.category = category
-    if (difficulty) where.difficulty = parseInt(difficulty as string, 10)
+    if (difficulty) where.difficulty = parseInt(difficulty, 10)
 
     const exercises = await prisma.exercise.findMany({
       where,
       orderBy: [{ isBuiltin: 'desc' }, { createdAt: 'desc' }],
-      take: parseInt(limit as string, 10),
-      skip: parseInt(offset as string, 10),
+      take: parseInt(limit, 10),
+      skip: parseInt(offset, 10),
       select: {
         id: true, title: true, description: true, category: true,
         difficulty: true, bpm: true, timeSignature: true, bars: true,
@@ -56,8 +59,9 @@ export function exerciseRouter(prisma: PrismaClient): Router {
 
   // GET /api/exercises/:id
   router.get('/:id', authenticateToken, async (req: AuthRequest, res) => {
+    const id = req.params.id as string
     const exercise = await prisma.exercise.findUnique({
-      where: { id: req.params.id },
+      where: { id },
       include: {
         sessions: {
           where: { userId: req.userId! },
@@ -105,14 +109,15 @@ export function exerciseRouter(prisma: PrismaClient): Router {
 
   // DELETE /api/exercises/:id
   router.delete('/:id', authenticateToken, async (req: AuthRequest, res) => {
-    const exercise = await prisma.exercise.findUnique({ where: { id: req.params.id } })
+    const id = req.params.id as string
+    const exercise = await prisma.exercise.findUnique({ where: { id } })
     if (!exercise) { res.status(404).json({ error: 'Not found' }); return }
     if (exercise.isBuiltin || exercise.userId !== req.userId) {
       res.status(403).json({ error: 'Cannot delete this exercise' })
       return
     }
 
-    await prisma.exercise.delete({ where: { id: req.params.id } })
+    await prisma.exercise.delete({ where: { id } })
     res.json({ deleted: true })
   })
 
