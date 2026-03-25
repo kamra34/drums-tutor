@@ -1,0 +1,127 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  USERS
+// ═══════════════════════════════════════════════════════════════════════════
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  displayName  String   @map("display_name")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  progress         UserProgress?
+  exercises        Exercise[]
+  practiceSessions PracticeSession[]
+
+  @@map("users")
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  USER PROGRESS — curriculum state and skill profile
+// ═══════════════════════════════════════════════════════════════════════════
+
+model UserProgress {
+  id               String   @id @default(cuid())
+  userId           String   @unique @map("user_id")
+  currentModule    String   @default("module-0") @map("current_module")
+  completedLessons String[] @map("completed_lessons")
+
+  // Skill profile (0-100 each)
+  skillTiming       Int @default(50) @map("skill_timing")
+  skillDynamics     Int @default(50) @map("skill_dynamics")
+  skillIndependence Int @default(50) @map("skill_independence")
+  skillSpeed        Int @default(50) @map("skill_speed")
+  skillMusicality   Int @default(50) @map("skill_musicality")
+
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_progress")
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  EXERCISES — built-in + user-generated + AI-generated
+// ═══════════════════════════════════════════════════════════════════════════
+
+model Exercise {
+  id          String  @id @default(cuid())
+  userId      String? @map("user_id") // null = built-in
+  title       String
+  description String  @default("")
+
+  // Pattern data (the actual notation)
+  patternData Json @map("pattern_data") // { beats, subdivisions, tracks }
+
+  // Exercise config used to generate it
+  config Json? // { noteValues, instruments, difficulty, ... }
+
+  // Metadata
+  category       String   @default("reading") // reading, rock, pop, funk, etc.
+  difficulty     Int      @default(5)
+  bpm            Int      @default(90)
+  timeSignature  Int[]    @default([4, 4]) @map("time_signature")
+  bars           Int      @default(2)
+  tags           String[] @default([])
+  isBuiltin      Boolean  @default(false) @map("is_builtin")
+  isAiGenerated  Boolean  @default(false) @map("is_ai_generated")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  user     User?             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sessions PracticeSession[]
+
+  @@index([userId])
+  @@index([category])
+  @@index([isBuiltin])
+  @@map("exercises")
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  PRACTICE SESSIONS — every attempt with full scoring data
+// ═══════════════════════════════════════════════════════════════════════════
+
+model PracticeSession {
+  id         String   @id @default(cuid())
+  userId     String   @map("user_id")
+  exerciseId String?  @map("exercise_id") // null for free play
+  startedAt  DateTime @default(now()) @map("started_at")
+  completedAt DateTime? @map("completed_at")
+
+  // Scoring
+  bpm       Int
+  score     Int      @default(0)    // 0-100
+  stars     Int      @default(0)    // 0-3
+  accuracy  Float    @default(0)    // 0-1
+
+  // Detailed data (JSONB)
+  timingData   Json? @map("timing_data")    // per-pad timing stats
+  velocityData Json? @map("velocity_data")  // per-pad velocity stats
+  missedNotes  Int   @default(0) @map("missed_notes")
+  totalNotes   Int   @default(0) @map("total_notes")
+  hitNotes     Int   @default(0) @map("hit_notes")
+
+  // What mode was this
+  practiceMode String @default("exercise") @map("practice_mode") // exercise, reading, beats, rudiments, fills, freeplay
+
+  // Relations
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  exercise Exercise? @relation(fields: [exerciseId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([exerciseId])
+  @@index([userId, startedAt])
+  @@map("practice_sessions")
+}
