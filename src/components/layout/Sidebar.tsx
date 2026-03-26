@@ -3,11 +3,12 @@ import { useMidiStore } from '../../stores/useMidiStore'
 import { useAuthStore } from '../../stores/useAuthStore'
 
 const NAV = [
-  { to: '/', label: 'Dashboard', icon: '⬡', end: true },
-  { to: '/curriculum', label: 'Curriculum', icon: '📚', end: false },
-  { to: '/practice', label: 'Practice', icon: '🥁', end: false },
-  { to: '/chat', label: 'AI Tutor', icon: '🤖', end: false },
-  { to: '/settings', label: 'Settings', icon: '⚙', end: false },
+  { to: '/', label: 'Dashboard', icon: '⬡', end: true, adminOnly: false },
+  { to: '/curriculum', label: 'Curriculum', icon: '📚', end: false, adminOnly: false },
+  { to: '/practice', label: 'Practice', icon: '🥁', end: false, adminOnly: false },
+  { to: '/chat', label: 'AI Tutor', icon: '🤖', end: false, adminOnly: false },
+  { to: '/admin', label: 'Admin', icon: '🛡', end: false, adminOnly: true },
+  { to: '/settings', label: 'Settings', icon: '⚙', end: false, adminOnly: false },
 ]
 
 export default function Sidebar() {
@@ -29,7 +30,7 @@ export default function Sidebar() {
 
       {/* Navigation */}
       <nav className="flex-1 px-3 py-4 space-y-1">
-        {NAV.map(({ to, label, icon, end }) => (
+        {NAV.filter(n => !n.adminOnly || user?.role === 'admin').map(({ to, label, icon, end }) => (
           <NavLink
             key={to}
             to={to}
