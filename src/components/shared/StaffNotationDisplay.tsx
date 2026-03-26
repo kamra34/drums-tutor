@@ -81,12 +81,29 @@ function patternToVexNotes(pattern: PatternData): { upNotes: (StaveNote | GhostN
   const upBeamGroups: (StaveNote | GhostNote)[][] = []
   const downBeamGroups: (StaveNote | GhostNote)[][] = []
 
+  // Pre-compute: does slot have a hit in a given voice?
+  function slotHasHit(slot: number, voice: 'up' | 'down'): boolean {
+    for (const [pad, vals] of Object.entries(tracks) as [DrumPad, HitValue[]][]) {
+      const mapping = PAD_TO_VEX[pad]
+      if (!mapping || mapping.voice !== voice) continue
+      if ((vals[slot] ?? 0) > 0) return true
+    }
+    return false
+  }
+
+  // Check if ANY voice has a hit at this slot
+  function slotHasAnyHit(slot: number): boolean {
+    return slotHasHit(slot, 'up') || slotHasHit(slot, 'down')
+  }
+
   // Build notes for a voice
+  // showRests: if true, empty slots where the OTHER voice is also empty get a visible rest
   function buildVoice(
     voice: 'up' | 'down', dur: string, step: number,
     notes: (StaveNote | GhostNote)[], beamGroups: (StaveNote | GhostNote)[][],
-    stemDir: number,
+    stemDir: number, showRests: boolean,
   ) {
+    const otherVoice = voice === 'up' ? 'down' : 'up'
     let currentGroup: (StaveNote | GhostNote)[] = []
 
     for (let slot = 0; slot < totalSlots; slot += step) {
@@ -114,7 +131,7 @@ function patternToVexNotes(pattern: PatternData): { upNotes: (StaveNote | GhostN
           keys, duration: dur, stemDirection: stemDir, clef: 'percussion',
         })
         for (const [idx] of Object.entries(noteHeads)) {
-          note.setKeyStyle(Number(idx), { fillStyle: ghost ? '#555e6b' : '#d8dee6' })
+          note.setKeyStyle(Number(idx), { fillStyle: ghost ? '#999' : '#000' })
         }
         if (accent) {
           try { note.addModifier(new Articulation('a>').setPosition(stemDir === 1 ? 3 : 4)) } catch {}
@@ -122,7 +139,22 @@ function patternToVexNotes(pattern: PatternData): { upNotes: (StaveNote | GhostN
         notes.push(note)
         currentGroup.push(note)
       } else {
-        notes.push(new GhostNote({ duration: dur }))
+        // Empty slot: show a visible rest if this is the primary voice
+        // and the other voice also has no note here
+        const otherHasNote = slotHasHit(slot, otherVoice)
+        if (showRests && !otherHasNote) {
+          // Visible rest — VexFlow uses 'r' suffix on duration
+          const rest = new StaveNote({
+            keys: ['b/4'],
+            duration: dur + 'r',
+            stemDirection: stemDir,
+            clef: 'percussion',
+          })
+          rest.setStyle({ fillStyle: '#4b5563', strokeStyle: '#4b5563' })
+          notes.push(rest)
+        } else {
+          notes.push(new GhostNote({ duration: dur }))
+        }
         if (currentGroup.length >= 2) beamGroups.push(currentGroup)
         currentGroup = []
       }
@@ -138,8 +170,10 @@ function patternToVexNotes(pattern: PatternData): { upNotes: (StaveNote | GhostN
     if (currentGroup.length >= 2) beamGroups.push(currentGroup)
   }
 
-  buildVoice('up', upDur, upStep, upNotes, upBeamGroups, 1)
-  buildVoice('down', downDur, downStep, downNotes, downBeamGroups, -1)
+  // Upper voice (cymbals) is primary — shows visible rests when both voices are silent
+  // Lower voice (drums) uses ghost notes to avoid clutter
+  buildVoice('up', upDur, upStep, upNotes, upBeamGroups, 1, true)
+  buildVoice('down', downDur, downStep, downNotes, downBeamGroups, -1, false)
 
   return { upNotes, downNotes, upBeamGroups, downBeamGroups }
 }

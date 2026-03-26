@@ -10,6 +10,7 @@ const NAV = [
   { to: '/', label: 'Dashboard', icon: DashboardIcon, end: true, adminOnly: false },
   { to: '/curriculum', label: 'Curriculum', icon: CurriculumIcon, end: false, adminOnly: false },
   { to: '/practice', label: 'Practice', icon: PracticeIcon, end: false, adminOnly: false },
+  { to: '/studio', label: 'Studio', icon: StudioIcon, end: false, adminOnly: false },
   { to: '/chat', label: 'AI Tutor', icon: AiTutorIcon, end: false, adminOnly: false },
   { to: '/admin', label: 'Admin', icon: AdminIcon, end: false, adminOnly: true },
   { to: '/settings', label: 'Settings', icon: SettingsIcon, end: false, adminOnly: false },
@@ -222,6 +223,14 @@ function PracticeIcon({ active }: { active: boolean }) {
   return (
     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke={active ? '#f59e0b' : 'currentColor'} strokeWidth={1.8}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+    </svg>
+  )
+}
+
+function StudioIcon({ active }: { active: boolean }) {
+  return (
+    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke={active ? '#f59e0b' : 'currentColor'} strokeWidth={1.8}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zm10.5 0A2.25 2.25 0 0116.5 3.75h1.5A2.25 2.25 0 0120.25 6v2.25a2.25 2.25 0 01-2.25 2.25h-1.5a2.25 2.25 0 01-2.25-2.25V6zm-10.5 10.5A2.25 2.25 0 016 14.25h2.25a2.25 2.25 0 012.25 2.25v1.5a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25v-1.5zm10.5 0a2.25 2.25 0 012.25-2.25h1.5a2.25 2.25 0 012.25 2.25v1.5a2.25 2.25 0 01-2.25 2.25h-1.5a2.25 2.25 0 01-2.25-2.25v-1.5z" />
     </svg>
   )
 }

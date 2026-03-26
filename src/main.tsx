@@ -4,14 +4,15 @@ import './index.css'
 import App from './App.tsx'
 import { loadDrumSamples } from './services/drumSounds'
 
-// Preload drum samples on first user interaction (AudioContext needs gesture)
+// Preload drum samples on first user interaction (AudioContext needs gesture).
+// Awaiting ensures samples are decoded and ready before first playback.
 const preload = () => {
-  loadDrumSamples()
+  loadDrumSamples().catch(() => {})
   document.removeEventListener('click', preload)
   document.removeEventListener('keydown', preload)
 }
-document.addEventListener('click', preload, { once: true })
-document.addEventListener('keydown', preload, { once: true })
+document.addEventListener('click', preload)
+document.addEventListener('keydown', preload)
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

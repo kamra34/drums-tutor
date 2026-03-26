@@ -1,12 +1,13 @@
-import { useEffect, useRef, useState, useCallback } from 'react'
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
-import { getPracticeItemById } from '../../data/practiceLibrary'
+import { getPracticeItemById, PracticeItem } from '../../data/practiceLibrary'
 import { useMetronomeStore } from '../../stores/useMetronomeStore'
 import { usePracticeStore, PracticeStatus } from '../../stores/usePracticeStore'
 import { useMidiStore } from '../../stores/useMidiStore'
 import { useUserStore } from '../../stores/useUserStore'
 import { midiService } from '../../services/midiService'
 import { ScoringEngine } from '../../services/scoringEngine'
+import { apiGetExercise } from '../../services/apiClient'
 import PatternGrid from '../../components/shared/PatternGrid'
 import StaffNotationDisplay from '../../components/shared/StaffNotationDisplay'
 import MetronomeWidget from '../../components/shared/MetronomeWidget'
@@ -16,7 +17,36 @@ import ResultsScreen from '../../components/practice/ResultsScreen'
 export default function PracticePlayerPage() {
   const { itemId } = useParams<{ itemId: string }>()
   const navigate = useNavigate()
-  const item = itemId ? getPracticeItemById(itemId) : undefined
+
+  // Support studio patterns via "studio:<dbId>" prefix
+  const isStudioPattern = itemId?.startsWith('studio:')
+  const libraryItem = !isStudioPattern && itemId ? getPracticeItemById(itemId) : undefined
+
+  const [studioItem, setStudioItem] = useState<PracticeItem | null>(null)
+  const [studioLoading, setStudioLoading] = useState(false)
+
+  useEffect(() => {
+    if (!isStudioPattern || !itemId) return
+    const dbId = itemId.replace('studio:', '')
+    setStudioLoading(true)
+    apiGetExercise(dbId).then(({ exercise }) => {
+      setStudioItem({
+        id: exercise.id,
+        title: exercise.title,
+        description: exercise.description || 'Custom pattern from Studio',
+        category: 'reading',
+        difficulty: exercise.difficulty ?? 5,
+        bpm: exercise.bpm ?? 90,
+        timeSignature: (exercise.timeSignature ?? [4, 4]) as [number, number],
+        bars: exercise.bars ?? 1,
+        patternData: exercise.patternData,
+        tags: exercise.tags ?? ['studio'],
+      })
+    }).catch(() => setStudioItem(null))
+      .finally(() => setStudioLoading(false))
+  }, [itemId, isStudioPattern])
+
+  const item = libraryItem ?? studioItem ?? undefined
 
   const { bpm, setBpm } = useMetronomeStore()
   const practiceStore = usePracticeStore()
@@ -128,6 +158,17 @@ export default function PracticePlayerPage() {
     }
   }, [])
 
+  // For multi-bar patterns, expand beats to cover all bars so notation shows everything
+  const displayPattern = useMemo(() => {
+    if (!item || item.bars <= 1) return item?.patternData
+    const pd = item.patternData
+    return { beats: pd.beats * item.bars, subdivisions: pd.subdivisions, tracks: pd.tracks }
+  }, [item])
+
+  if (studioLoading) {
+    return <div className="p-8 text-center text-[#6b7280]">Loading pattern...</div>
+  }
+
   if (!item) {
     return (
       <div className="p-8 text-center text-[#6b7280]">
@@ -142,7 +183,9 @@ export default function PracticePlayerPage() {
   return (
     <div className="p-6 max-w-4xl mx-auto">
       <nav className="flex items-center gap-2 text-sm text-[#4b5563] mb-6">
-        <Link to="/practice" className="text-amber-500/80 hover:text-amber-400 transition-colors">Practice</Link>
+        <Link to={isStudioPattern ? '/studio' : '/practice'} className="text-amber-500/80 hover:text-amber-400 transition-colors">
+          {isStudioPattern ? 'Studio' : 'Practice'}
+        </Link>
         <svg className="w-3.5 h-3.5 text-[#2d3748]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
         <span className="text-[#94a3b8]">{item.title}</span>
       </nav>
@@ -175,10 +218,10 @@ export default function PracticePlayerPage() {
             <div className="rounded-2xl p-5 border border-white/[0.04]" style={{ background: 'linear-gradient(135deg, rgba(12,14,20,0.7) 0%, rgba(10,12,18,0.8) 100%)' }}>
               <div className="text-[11px] font-semibold text-[#4b5563] uppercase tracking-widest mb-3">Notation</div>
               <StaffNotationDisplay
-                pattern={item.patternData}
+                pattern={displayPattern!}
                 currentStep={status === 'playing' ? currentStep : undefined}
                 bpm={bpm}
-                bars={item.bars}
+                bars={1}
                 onBpmChange={setBpm}
                 metronomeSlot={<MetronomeWidget />}
               />

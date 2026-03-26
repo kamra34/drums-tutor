@@ -62,10 +62,13 @@ export async function loadDrumSamples(): Promise<void> {
 
 // ── Sample playback ─────────────────────────────────────────────────────────
 
-function playSample(name: string, vol: number): void {
+// Track scheduled audio nodes so they can be stopped on cancel
+let _scheduledSources: AudioBufferSourceNode[] = []
+let _scheduledOscillators: OscillatorNode[] = []
+
+function playSample(name: string, vol: number, when?: number): void {
   const buffer = _bufferCache.get(name)
   if (!buffer) {
-    // Trigger lazy load if not loaded yet
     loadDrumSamples()
     return
   }
@@ -76,7 +79,14 @@ function playSample(name: string, vol: number): void {
   gain.gain.value = vol
   source.connect(gain)
   gain.connect(c.destination)
-  source.start()
+  source.start(when ?? 0)
+  if (when !== undefined) {
+    _scheduledSources.push(source)
+    source.onended = () => {
+      const idx = _scheduledSources.indexOf(source)
+      if (idx >= 0) _scheduledSources.splice(idx, 1)
+    }
+  }
 }
 
 // ── Individual drum sound exports ───────────────────────────────────────────
@@ -130,9 +140,9 @@ export function getClickEnabled(): boolean { return _clickEnabled }
 export function setClickVolume(vol: number): void { _clickVolume = Math.max(0, Math.min(1, vol)) }
 export function getClickVolume(): number { return _clickVolume }
 
-function playClick(accent: boolean): void {
+function playClick(accent: boolean, when?: number): void {
   const c = ctx()
-  const now = c.currentTime
+  const t = when ?? c.currentTime
   const osc = c.createOscillator()
   const gain = c.createGain()
   osc.connect(gain)
@@ -140,10 +150,17 @@ function playClick(accent: boolean): void {
   osc.type = 'triangle'
   osc.frequency.value = accent ? 1400 : 900
   const vol = _clickVolume * (accent ? 0.7 : 0.4)
-  gain.gain.setValueAtTime(vol, now)
-  gain.gain.exponentialRampToValueAtTime(0.001, now + 0.04)
-  osc.start(now)
-  osc.stop(now + 0.05)
+  gain.gain.setValueAtTime(vol, t)
+  gain.gain.exponentialRampToValueAtTime(0.001, t + 0.04)
+  osc.start(t)
+  osc.stop(t + 0.05)
+  if (when !== undefined) {
+    _scheduledOscillators.push(osc)
+    osc.onended = () => {
+      const idx = _scheduledOscillators.indexOf(osc)
+      if (idx >= 0) _scheduledOscillators.splice(idx, 1)
+    }
+  }
 }
 
 // ── Pattern playback engine ─────────────────────────────────────────────────
@@ -159,13 +176,22 @@ export function stopPatternPlayback(): void {
   _playbackTimers.forEach(t => clearTimeout(t))
   _playbackTimers = []
   _stepCallback = null
+  // Stop all pre-scheduled audio nodes
+  for (const src of _scheduledSources) {
+    try { src.stop() } catch {}
+  }
+  _scheduledSources = []
+  for (const osc of _scheduledOscillators) {
+    try { osc.stop() } catch {}
+  }
+  _scheduledOscillators = []
 }
 
 /**
  * Play a PatternData with correct sounds at the given BPM.
- * Calls onStep(slotIndex) for each subdivision to drive visual highlighting.
- * Calls onFinish() when done.
- * If click is enabled, plays a synced metronome click on each beat.
+ * Awaits sample loading before scheduling anything.
+ * Schedules audio via Web Audio API timing for sample-accurate playback,
+ * and uses setTimeout only for UI step callbacks.
  */
 export function playPattern(
   pattern: import('../types/curriculum').PatternData,
@@ -174,45 +200,77 @@ export function playPattern(
   onStep?: (step: number) => void,
   onFinish?: () => void,
 ): void {
-  // Ensure samples are loaded before playing
-  loadDrumSamples()
-
   stopPatternPlayback()
   _isPlaying = true
   _stepCallback = onStep ?? null
 
-  const { beats, subdivisions, tracks } = pattern
-  const totalSlots = beats * subdivisions
-  const msPerSlot = (60000 / bpm) / subdivisions
-  const totalSteps = totalSlots * bars
+  // Await samples, then schedule everything
+  loadDrumSamples().then(() => {
+    if (!_isPlaying) return // stopped before samples loaded
 
-  for (let step = 0; step < totalSteps; step++) {
-    const delay = step * msPerSlot
-    const slotIdx = step % totalSlots
+    const c = ctx()
+    const { beats, subdivisions, tracks } = pattern
+    const totalSlots = beats * subdivisions
+    const secPerSlot = (60 / bpm) / subdivisions
+    const totalSteps = totalSlots * bars
 
-    _playbackTimers.push(setTimeout(() => {
-      if (!_isPlaying) return
-      _stepCallback?.(slotIdx)
+    // Small lookahead so first note doesn't collide with scheduling overhead
+    const startTime = c.currentTime + 0.05
 
-      // Metronome click on beat boundaries
-      if (_clickEnabled && slotIdx % subdivisions === 0) {
-        const beatIdx = slotIdx / subdivisions
-        playClick(beatIdx === 0)
-      }
+    // Schedule all audio using Web Audio API timing (sample-accurate)
+    for (let step = 0; step < totalSteps; step++) {
+      const when = startTime + step * secPerSlot
+      const slotIdx = step % totalSlots
 
-      // Play all notes at this slot
+      // Schedule drum sounds at precise audio time
       for (const [pad, values] of Object.entries(tracks) as [DrumPad, HitValue[]][]) {
         const hv = values[slotIdx]
-        if (hv > 0) playPadSound(pad, hv)
+        if (hv > 0) {
+          const fn = PAD_SOUND[pad]
+          if (!fn) continue
+          const vol = hv === 2 ? 1.0 : hv === 3 ? 0.15 : 0.6
+          const sampleName = PAD_TO_SAMPLE[pad]
+          if (sampleName) playSample(sampleName, vol, when)
+        }
       }
-    }, delay))
-  }
 
-  // Finish callback
-  _playbackTimers.push(setTimeout(() => {
-    if (!_isPlaying) return
-    _isPlaying = false
-    _stepCallback = null
-    onFinish?.()
-  }, totalSteps * msPerSlot + 50))
+      // Metronome click at precise audio time
+      if (_clickEnabled && slotIdx % subdivisions === 0) {
+        const beatIdx = slotIdx / subdivisions
+        playClick(beatIdx === 0, when)
+      }
+
+      // UI callback via setTimeout (doesn't need to be sample-accurate)
+      const delayMs = (when - c.currentTime) * 1000
+      _playbackTimers.push(setTimeout(() => {
+        if (!_isPlaying) return
+        _stepCallback?.(slotIdx)
+      }, Math.max(0, delayMs)))
+    }
+
+    // Finish callback
+    const finishDelay = ((startTime + totalSteps * secPerSlot) - c.currentTime) * 1000 + 50
+    _playbackTimers.push(setTimeout(() => {
+      if (!_isPlaying) return
+      _isPlaying = false
+      _stepCallback = null
+      onFinish?.()
+    }, Math.max(0, finishDelay)))
+  })
+}
+
+// Map DrumPad to sample name for scheduled playback
+const PAD_TO_SAMPLE: Partial<Record<DrumPad, string>> = {
+  [DrumPad.Kick]: 'kick',
+  [DrumPad.Snare]: 'snare',
+  [DrumPad.SnareRim]: 'snareRim',
+  [DrumPad.HiHatClosed]: 'hihatClosed',
+  [DrumPad.HiHatOpen]: 'hihatOpen',
+  [DrumPad.HiHatPedal]: 'hihatPedal',
+  [DrumPad.CrashCymbal]: 'crash',
+  [DrumPad.RideCymbal]: 'ride',
+  [DrumPad.RideBell]: 'rideBell',
+  [DrumPad.Tom1]: 'tom1',
+  [DrumPad.Tom2]: 'tom2',
+  [DrumPad.FloorTom]: 'floorTom',
 }

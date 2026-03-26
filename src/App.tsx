@@ -19,6 +19,7 @@ import FreePlayPage from './pages/practice/FreePlayPage'
 import PracticePlayerPage from './pages/practice/PracticePlayerPage'
 import PlaceholderPage from './pages/practice/PlaceholderPage'
 import AdminPage from './pages/AdminPage'
+import StudioPage from './pages/studio/StudioPage'
 
 export default function App() {
   const { isAuthenticated, isLoading, checkAuth } = useAuthStore()
@@ -77,6 +78,8 @@ export default function App() {
           <Route path="practice/songs" element={
             <PlaceholderPage title="Song Charts" icon="📄" description="Full song structures with repeats, sections, dynamics, and roadmaps. Learn to play through a whole chart." />
           } />
+          <Route path="studio" element={<StudioPage />} />
+          <Route path="studio/:id" element={<StudioPage />} />
           <Route path="chat" element={<ChatPage />} />
           <Route path="admin" element={<AdminPage />} />
           <Route path="settings" element={<SettingsPage />} />
