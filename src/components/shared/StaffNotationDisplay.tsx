@@ -17,7 +17,7 @@ import {
 interface DrumVoiceNote {
   keys: string[]
   duration: string
-  stem_direction: number // 1=up, -1=down
+  stemDirection: number // 1=up, -1=down
   type: 'note' | 'ghost' | 'rest'
   isAccent: boolean
   noteType?: string
@@ -97,7 +97,7 @@ function patternToVexNotes(pattern: PatternData): { upNotes: (StaveNote | GhostN
       const note = new StaveNote({
         keys: upKeys,
         duration: dur,
-        stem_direction: 1,
+        stemDirection: 1,
         clef: 'percussion',
       })
       // Apply x noteheads
@@ -122,7 +122,7 @@ function patternToVexNotes(pattern: PatternData): { upNotes: (StaveNote | GhostN
       const note = new StaveNote({
         keys: downKeys,
         duration: dur,
-        stem_direction: -1,
+        stemDirection: -1,
         clef: 'percussion',
       })
       for (const [idx, head] of Object.entries(downNoteHeads)) {
@@ -203,13 +203,13 @@ function VexNotation({ pattern, width }: {
       const voices: Voice[] = []
 
       if (hasCymbals) {
-        const upVoice = new Voice({ num_beats: beats, beat_value: 4 }).setStrict(false)
+        const upVoice = new Voice({ numBeats: beats, beatValue: 4 }).setStrict(false)
         upVoice.addTickables(upNotes)
         voices.push(upVoice)
       }
 
       if (hasDrums) {
-        const downVoice = new Voice({ num_beats: beats, beat_value: 4 }).setStrict(false)
+        const downVoice = new Voice({ numBeats: beats, beatValue: 4 }).setStrict(false)
         downVoice.addTickables(downNotes)
         voices.push(downVoice)
       }
@@ -220,7 +220,7 @@ function VexNotation({ pattern, width }: {
       for (const v of voices) {
         formatter.joinVoices([v])
       }
-      formatter.format(voices, staveWidth - 80, { align_rests: false })
+      formatter.format(voices, staveWidth - 80, { alignRests: false })
 
       voices.forEach(v => v.draw(context, stave))
 

@@ -155,8 +155,8 @@ export default function ReadingPracticePage() {
     try {
       aiService.setApiKey(apiKey)
       const name = await aiService.suggestExerciseName({
-        noteValues: config.noteValues,
-        instruments: config.instruments,
+        noteValues: { ...config.noteValues },
+        instruments: { ...config.instruments },
         difficulty: config.difficulty,
         bpm: config.bpm,
         timeSignature: config.timeSignature,
