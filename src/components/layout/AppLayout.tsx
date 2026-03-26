@@ -1,10 +1,10 @@
 import { Outlet } from 'react-router-dom'
-import Sidebar from './Sidebar'
+import TopNav from './TopNav'
 
 export default function AppLayout() {
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-[#0f1117]">
-      <Sidebar />
+    <div className="fixed inset-0 bg-[#06080d] flex flex-col overflow-hidden">
+      <TopNav />
       <main className="flex-1 overflow-y-auto">
         <Outlet />
       </main>

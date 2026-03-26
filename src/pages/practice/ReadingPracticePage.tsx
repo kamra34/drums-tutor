@@ -198,13 +198,13 @@ export default function ReadingPracticePage() {
   return (
     <div className="p-6 max-w-5xl mx-auto">
       <nav className="flex items-center gap-2 text-sm text-[#4b5563] mb-5">
-        <Link to="/practice" className="hover:text-violet-400">Practice</Link>
-        <span>›</span>
+        <Link to="/practice" className="text-amber-500/80 hover:text-amber-400 transition-colors">Practice</Link>
+        <svg className="w-3.5 h-3.5 text-[#2d3748]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
         <span className="text-[#94a3b8]">Notation Reading</span>
       </nav>
 
       <div className="mb-5">
-        <h1 className="text-2xl font-bold text-white mb-1">Notation Reading Studio</h1>
+        <h1 className="text-3xl font-extrabold text-white tracking-tight mb-1">Notation Reading Studio</h1>
         <p className="text-sm text-[#6b7280]">
           Choose a preset or build your own exercise. Click <strong className="text-white">Generate</strong> to create a new pattern, then <strong className="text-white">Listen</strong> to hear how it sounds.
         </p>
@@ -214,20 +214,20 @@ export default function ReadingPracticePage() {
 
         {/* ── Left: Presets ── */}
         <div className="col-span-3 space-y-2">
-          <div className="text-xs text-[#4b5563] uppercase tracking-wider mb-2">Presets</div>
+          <div className="text-[11px] font-semibold text-[#4b5563] uppercase tracking-widest mb-2">Presets</div>
           {PRESETS.map(preset => (
             <button
               key={preset.id}
               onClick={() => loadPreset(preset.id)}
               className={`w-full text-left p-3 rounded-xl border transition-all ${
                 activePreset === preset.id
-                  ? 'border-violet-700 bg-[#13101e]'
-                  : 'border-[#1e2433] bg-[#0d1117] hover:border-[#2d3748]'
+                  ? 'border-amber-500/20 bg-amber-500/10'
+                  : 'border-white/[0.06] bg-white/[0.03] hover:border-white/[0.12]'
               }`}
             >
               <div className="flex items-center gap-2 mb-0.5">
                 <span className="text-base">{preset.icon}</span>
-                <span className="text-sm text-white font-medium">{preset.name}</span>
+                <span className={`text-sm font-medium ${activePreset === preset.id ? 'text-amber-400' : 'text-white'}`}>{preset.name}</span>
               </div>
               <div className="text-[10px] text-[#4b5563] leading-relaxed">{preset.description}</div>
               <div className="flex items-center gap-2 mt-1.5">
@@ -248,19 +248,20 @@ export default function ReadingPracticePage() {
             <button
               onClick={() => setShowBuilder(v => !v)}
               className={`text-xs px-3 py-1.5 rounded-lg border transition-colors ${
-                showBuilder ? 'border-violet-700 text-violet-300 bg-violet-900/20' : 'border-[#2d3748] text-[#6b7280] hover:text-violet-400'
+                showBuilder ? 'border-amber-500/20 text-amber-400 bg-amber-500/10' : 'border-white/[0.06] text-[#6b7280] hover:text-amber-400'
               }`}
             >
               {showBuilder ? '▼ Custom Builder' : '▶ Custom Builder'}
             </button>
             <div className="flex gap-2">
               <button onClick={regenerate}
-                className="text-xs px-4 py-1.5 rounded-lg bg-violet-600 text-white hover:bg-violet-500 transition-colors font-medium">
+                className="text-xs px-4 py-1.5 rounded-lg text-white font-medium transition-colors"
+                style={{ background: 'linear-gradient(135deg, #f59e0b, #ea580c)', boxShadow: '0 4px 20px -4px rgba(245,158,11,0.35)' }}>
                 Generate New
               </button>
               {isConfigured && (
                 <button onClick={generateWithAi} disabled={aiLoading}
-                  className="text-xs px-4 py-1.5 rounded-lg bg-cyan-700 text-white hover:bg-cyan-600 transition-colors font-medium disabled:opacity-50">
+                  className="text-xs px-4 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.06] text-[#94a3b8] hover:text-white hover:bg-white/[0.07] font-medium transition-colors disabled:opacity-50">
                   {aiLoading ? 'Generating...' : 'AI Generate'}
                 </button>
               )}
@@ -269,18 +270,18 @@ export default function ReadingPracticePage() {
 
           {/* Custom builder panel */}
           {showBuilder && (
-            <div className="bg-[#0d1117] border border-[#1e2433] rounded-xl p-5 space-y-4">
+            <div className="rounded-2xl p-5 border border-white/[0.04] space-y-4" style={{ background: 'linear-gradient(135deg, rgba(12,14,20,0.7) 0%, rgba(10,12,18,0.8) 100%)' }}>
               {/* Row 1: Note values + Difficulty */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <div className="text-xs text-[#4b5563] uppercase tracking-wider mb-2">Note Values</div>
+                  <div className="text-[11px] font-semibold text-[#4b5563] uppercase tracking-widest mb-2">Note Values</div>
                   <div className="flex gap-1.5 flex-wrap">
                     {NOTE_VALUE_INFO.map(nv => (
                       <button key={nv.key} onClick={() => toggleNoteValue(nv.key)}
                         className={`text-xs px-2.5 py-1.5 rounded-lg border transition-colors ${
                           config.noteValues[nv.key]
-                            ? 'border-violet-600 bg-violet-900/30 text-violet-300'
-                            : 'border-[#1e2433] text-[#4b5563] hover:border-[#2d3748]'
+                            ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                            : 'bg-white/[0.03] border-white/[0.06] text-[#6b7280] hover:text-white'
                         }`}>
                         <span className="mr-1">{nv.symbol}</span>{nv.label}
                       </button>
@@ -288,18 +289,18 @@ export default function ReadingPracticePage() {
                   </div>
                 </div>
                 <div>
-                  <div className="text-xs text-[#4b5563] uppercase tracking-wider mb-2">
+                  <div className="text-[11px] font-semibold text-[#4b5563] uppercase tracking-widest mb-2">
                     Difficulty: <span className="font-bold" style={{ color: diffColor(config.difficulty) }}>{config.difficulty}/10</span>
                   </div>
                   <input type="range" min={1} max={10} value={config.difficulty}
                     onChange={e => updateConfig('difficulty', parseInt(e.target.value))}
-                    className="w-full accent-violet-600" />
+                    className="w-full accent-amber-500" />
                 </div>
               </div>
 
               {/* Row 2: Instruments */}
               <div>
-                <div className="text-xs text-[#4b5563] uppercase tracking-wider mb-2">Instruments</div>
+                <div className="text-[11px] font-semibold text-[#4b5563] uppercase tracking-widest mb-2">Instruments</div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <div className="text-[10px] text-[#374151] mb-1.5">Cymbals</div>
@@ -308,8 +309,8 @@ export default function ReadingPracticePage() {
                         <button key={inst.key} onClick={() => toggleInstrument(inst.key)}
                           className={`text-[11px] px-2 py-1 rounded-lg border transition-colors ${
                             config.instruments[inst.key]
-                              ? 'border-green-700 bg-green-900/20 text-green-300'
-                              : 'border-[#1e2433] text-[#4b5563] hover:border-[#2d3748]'
+                              ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                              : 'bg-white/[0.03] border-white/[0.06] text-[#6b7280] hover:text-white'
                           }`}>
                           {inst.label}
                         </button>
@@ -323,8 +324,8 @@ export default function ReadingPracticePage() {
                         <button key={inst.key} onClick={() => toggleInstrument(inst.key)}
                           className={`text-[11px] px-2 py-1 rounded-lg border transition-colors ${
                             config.instruments[inst.key]
-                              ? 'border-blue-700 bg-blue-900/20 text-blue-300'
-                              : 'border-[#1e2433] text-[#4b5563] hover:border-[#2d3748]'
+                              ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                              : 'bg-white/[0.03] border-white/[0.06] text-[#6b7280] hover:text-white'
                           }`}>
                           {inst.label}
                         </button>
@@ -337,7 +338,7 @@ export default function ReadingPracticePage() {
               {/* Row 3: Concepts + BPM + Bars */}
               <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <div className="text-xs text-[#4b5563] uppercase tracking-wider mb-2">Concepts</div>
+                  <div className="text-[11px] font-semibold text-[#4b5563] uppercase tracking-widest mb-2">Concepts</div>
                   <div className="space-y-1.5">
                     {[
                       { key: 'includeRests' as const, label: 'Include Rests' },
@@ -347,30 +348,30 @@ export default function ReadingPracticePage() {
                       <label key={opt.key} className="flex items-center gap-2 cursor-pointer text-xs text-[#94a3b8]">
                         <input type="checkbox" checked={config[opt.key]}
                           onChange={() => updateConfig(opt.key, !config[opt.key])}
-                          className="accent-violet-600 rounded" />
+                          className="accent-amber-500 rounded" />
                         {opt.label}
                       </label>
                     ))}
                   </div>
                 </div>
                 <div>
-                  <div className="text-xs text-[#4b5563] uppercase tracking-wider mb-2">Tempo</div>
+                  <div className="text-[11px] font-semibold text-[#4b5563] uppercase tracking-widest mb-2">Tempo</div>
                   <div className="flex items-center gap-2">
                     <input type="range" min={40} max={180} value={config.bpm}
                       onChange={e => updateConfig('bpm', parseInt(e.target.value))}
-                      className="flex-1 accent-violet-600" />
+                      className="flex-1 accent-amber-500" />
                     <span className="text-sm text-white font-mono w-10 text-right">{config.bpm}</span>
                   </div>
                 </div>
                 <div>
-                  <div className="text-xs text-[#4b5563] uppercase tracking-wider mb-2">Bars</div>
+                  <div className="text-[11px] font-semibold text-[#4b5563] uppercase tracking-widest mb-2">Bars</div>
                   <div className="flex gap-1.5">
                     {[1, 2, 4, 8].map(b => (
                       <button key={b} onClick={() => updateConfig('bars', b)}
                         className={`text-xs px-3 py-1.5 rounded-lg border transition-colors ${
                           config.bars === b
-                            ? 'border-violet-600 bg-violet-900/30 text-violet-300'
-                            : 'border-[#1e2433] text-[#4b5563] hover:border-[#2d3748]'
+                            ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                            : 'bg-white/[0.03] border-white/[0.06] text-[#6b7280] hover:text-white'
                         }`}>
                         {b}
                       </button>
@@ -382,18 +383,19 @@ export default function ReadingPracticePage() {
               {/* AI prompt */}
               {isConfigured && (
                 <div>
-                  <div className="text-xs text-[#4b5563] uppercase tracking-wider mb-2">AI Instruction (optional)</div>
+                  <div className="text-[11px] font-semibold text-[#4b5563] uppercase tracking-widest mb-2">AI Instruction (optional)</div>
                   <input
                     type="text" value={aiPrompt} onChange={e => setAiPrompt(e.target.value)}
                     placeholder="e.g. 'Make it sound like a James Brown groove' or 'Focus on kick syncopation'"
-                    className="w-full bg-[#0a0c13] border border-[#1e2433] rounded-lg px-3 py-2 text-sm text-[#e2e8f0] placeholder-[#374151] focus:outline-none focus:border-violet-700"
+                    className="w-full bg-white/[0.03] border border-white/[0.06] rounded-xl px-4 py-3 text-sm text-white placeholder-[#2d3748] focus:outline-none focus:border-amber-500/40 focus:bg-white/[0.05]"
                   />
                 </div>
               )}
 
               {/* Generate button in builder */}
               <button onClick={regenerate}
-                className="w-full py-2.5 rounded-xl bg-violet-600 text-white hover:bg-violet-500 transition-colors font-medium text-sm">
+                className="w-full py-2.5 rounded-xl text-white font-medium text-sm transition-colors"
+                style={{ background: 'linear-gradient(135deg, #f59e0b, #ea580c)', boxShadow: '0 4px 20px -4px rgba(245,158,11,0.35)' }}>
                 Generate Exercise
               </button>
             </div>
@@ -401,15 +403,15 @@ export default function ReadingPracticePage() {
 
           {/* ── Notation display ── */}
           {pattern ? (
-            <div className="bg-[#0d1117] border border-[#1e2433] rounded-xl p-5">
+            <div className="rounded-2xl p-5 border border-white/[0.04]" style={{ background: 'linear-gradient(135deg, rgba(12,14,20,0.7) 0%, rgba(10,12,18,0.8) 100%)' }}>
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-3">
-                  <div className="text-xs text-[#4b5563] uppercase tracking-wider">Generated Exercise</div>
+                  <div className="text-[11px] font-semibold text-[#4b5563] uppercase tracking-widest">Generated Exercise</div>
                   <button onClick={saveExercise} disabled={saving}
-                    className="text-[10px] px-2.5 py-1 rounded-lg border border-green-800/40 text-green-400 hover:bg-green-900/20 transition-colors disabled:opacity-50">
+                    className="text-[10px] px-2.5 py-1 rounded-lg border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/10 transition-colors disabled:opacity-50">
                     {saving ? 'Saving...' : 'Save to Library'}
                   </button>
-                  {saveMsg && <span className="text-[10px] text-green-400">{saveMsg}</span>}
+                  {saveMsg && <span className="text-[10px] text-emerald-400">{saveMsg}</span>}
                 </div>
                 <div className="flex items-center gap-3 text-[10px] text-[#4b5563]">
                   <span>{config.bpm} BPM</span>
@@ -421,13 +423,13 @@ export default function ReadingPracticePage() {
               <StaffNotationDisplay pattern={pattern} bpm={config.bpm} bars={config.bars} />
             </div>
           ) : (
-            <div className="bg-[#0d1117] border border-[#1e2433] rounded-xl p-12 text-center">
-              <div className="text-4xl mb-3">🎼</div>
+            <div className="rounded-2xl p-12 border border-white/[0.04] text-center" style={{ background: 'linear-gradient(135deg, rgba(12,14,20,0.7) 0%, rgba(10,12,18,0.8) 100%)' }}>
               <div className="text-[#6b7280] text-sm mb-4">
                 Choose a preset from the left, or open the custom builder to configure your own exercise.
               </div>
               <button onClick={regenerate}
-                className="px-6 py-2.5 rounded-xl bg-violet-600 text-white hover:bg-violet-500 transition-colors font-medium text-sm">
+                className="px-6 py-2.5 rounded-xl text-white font-medium text-sm transition-colors"
+                style={{ background: 'linear-gradient(135deg, #f59e0b, #ea580c)', boxShadow: '0 4px 20px -4px rgba(245,158,11,0.35)' }}>
                 Generate Exercise
               </button>
             </div>
@@ -435,18 +437,18 @@ export default function ReadingPracticePage() {
 
           {/* Quick regenerate bar */}
           {pattern && (
-            <div className="flex items-center justify-between bg-[#0a0c13] border border-[#1e2433] rounded-xl px-4 py-3">
+            <div className="flex items-center justify-between rounded-2xl border border-white/[0.04] px-4 py-3" style={{ background: 'linear-gradient(135deg, rgba(12,14,20,0.7) 0%, rgba(10,12,18,0.8) 100%)' }}>
               <div className="text-xs text-[#4b5563]">
                 Not quite right? Generate another with the same settings.
               </div>
               <div className="flex gap-2">
                 <button onClick={regenerate}
-                  className="text-xs px-3 py-1.5 rounded-lg border border-[#2d3748] text-[#94a3b8] hover:text-white hover:border-violet-700 transition-colors">
+                  className="text-xs px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.06] text-[#94a3b8] hover:text-white hover:bg-white/[0.07] transition-colors">
                   Shuffle
                 </button>
                 {isConfigured && (
                   <button onClick={generateWithAi} disabled={aiLoading}
-                    className="text-xs px-3 py-1.5 rounded-lg border border-cyan-800 text-cyan-400 hover:text-white hover:border-cyan-600 transition-colors disabled:opacity-50">
+                    className="text-xs px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.06] text-[#94a3b8] hover:text-white hover:bg-white/[0.07] transition-colors disabled:opacity-50">
                     {aiLoading ? '...' : 'AI Remix'}
                   </button>
                 )}

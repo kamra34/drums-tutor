@@ -80,21 +80,21 @@ export default function FreePlayPage() {
   return (
     <div className="p-8 max-w-4xl mx-auto">
       <nav className="flex items-center gap-2 text-sm text-[#4b5563] mb-6">
-        <Link to="/practice" className="hover:text-violet-400">Practice</Link>
-        <span>›</span>
+        <Link to="/practice" className="text-amber-500/80 hover:text-amber-400 transition-colors">Practice</Link>
+        <svg className="w-3.5 h-3.5 text-[#2d3748]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
         <span className="text-[#94a3b8]">Free Play</span>
       </nav>
 
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white mb-1">🎯 Free Play</h1>
+        <h1 className="text-3xl font-extrabold text-white tracking-tight mb-1">Free Play</h1>
         <p className="text-sm text-[#6b7280]">
           No rules, no scoring — just play. Use the metronome to keep time and watch your live stats.
         </p>
       </div>
 
       {!isConnected && (
-        <div className="mb-6 text-sm text-yellow-600 bg-yellow-900/20 border border-yellow-800/40 rounded-lg px-4 py-3">
-          Connect your drum kit in <Link to="/settings" className="underline">Settings</Link> to start free play.
+        <div className="mb-6 text-sm text-amber-400/80 bg-amber-500/[0.06] border border-amber-500/15 rounded-xl px-4 py-3">
+          Connect your drum kit in <Link to="/settings" className="text-amber-500/80 hover:text-amber-400 underline transition-colors">Settings</Link> to start free play.
         </div>
       )}
 
@@ -102,8 +102,8 @@ export default function FreePlayPage() {
         {/* Left: pad activity + stats */}
         <div className="col-span-2 space-y-5">
           {/* Pad activity grid */}
-          <div className="bg-[#0d1117] border border-[#1e2433] rounded-xl p-5">
-            <div className="text-xs text-[#4b5563] uppercase tracking-wider mb-3">Pad Activity</div>
+          <div className="rounded-2xl p-5 border border-white/[0.04]" style={{ background: 'linear-gradient(135deg, rgba(12,14,20,0.7) 0%, rgba(10,12,18,0.8) 100%)' }}>
+            <div className="text-[11px] font-semibold text-[#4b5563] uppercase tracking-widest mb-3">Pad Activity</div>
             <div className="grid grid-cols-3 gap-2">
               {padNames.map(pad => {
                 const isActive = activePads[pad as keyof typeof activePads] !== undefined
@@ -112,15 +112,15 @@ export default function FreePlayPage() {
                 return (
                   <div
                     key={pad}
-                    className={`p-3 rounded-lg border text-center transition-all ${
+                    className={`p-3 rounded-xl border text-center transition-all ${
                       isActive
-                        ? 'border-violet-600 bg-violet-900/30 scale-105'
+                        ? 'border-amber-500/40 bg-amber-500/10 scale-105'
                         : isRecent
-                        ? 'border-[#2d3748] bg-[#13101e]'
-                        : 'border-[#1e2433] bg-[#0a0c13]'
+                        ? 'border-white/[0.06] bg-white/[0.04]'
+                        : 'border-white/[0.04] bg-white/[0.02]'
                     }`}
                   >
-                    <div className={`text-xs font-medium ${isActive ? 'text-violet-400' : 'text-[#6b7280]'}`}>
+                    <div className={`text-xs font-medium ${isActive ? 'text-amber-400' : 'text-[#6b7280]'}`}>
                       {pad.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
                     </div>
                     <div className="text-lg font-bold text-white mt-1">{hitCount}</div>
@@ -133,17 +133,17 @@ export default function FreePlayPage() {
 
           {/* Live stats */}
           <div className="flex gap-4">
-            <div className="flex-1 bg-[#0d1117] border border-[#1e2433] rounded-xl p-4 text-center">
+            <div className="flex-1 rounded-2xl p-4 border border-white/[0.04] text-center" style={{ background: 'linear-gradient(135deg, rgba(12,14,20,0.7) 0%, rgba(10,12,18,0.8) 100%)' }}>
               <div className="text-2xl font-bold text-white">{stats.totalHits}</div>
-              <div className="text-xs text-[#4b5563]">Total Hits</div>
+              <div className="text-[10px] text-[#4b5563] uppercase tracking-wider">Total Hits</div>
             </div>
-            <div className="flex-1 bg-[#0d1117] border border-[#1e2433] rounded-xl p-4 text-center">
-              <div className="text-2xl font-bold text-violet-400">{stats.avgVelocity}</div>
-              <div className="text-xs text-[#4b5563]">Avg Velocity</div>
+            <div className="flex-1 rounded-2xl p-4 border border-white/[0.04] text-center" style={{ background: 'linear-gradient(135deg, rgba(12,14,20,0.7) 0%, rgba(10,12,18,0.8) 100%)' }}>
+              <div className="text-2xl font-bold text-amber-400">{stats.avgVelocity}</div>
+              <div className="text-[10px] text-[#4b5563] uppercase tracking-wider">Avg Velocity</div>
             </div>
-            <div className="flex-1 bg-[#0d1117] border border-[#1e2433] rounded-xl p-4 text-center">
-              <div className="text-2xl font-bold text-green-400">{stats.hitRate}</div>
-              <div className="text-xs text-[#4b5563]">Hits/min</div>
+            <div className="flex-1 rounded-2xl p-4 border border-white/[0.04] text-center" style={{ background: 'linear-gradient(135deg, rgba(12,14,20,0.7) 0%, rgba(10,12,18,0.8) 100%)' }}>
+              <div className="text-2xl font-bold text-emerald-400">{stats.hitRate}</div>
+              <div className="text-[10px] text-[#4b5563] uppercase tracking-wider">Hits/min</div>
             </div>
           </div>
 
@@ -153,28 +153,29 @@ export default function FreePlayPage() {
               onClick={toggleMetronome}
               className={`flex-1 py-3 rounded-xl font-semibold transition-colors ${
                 metronomeOn
-                  ? 'bg-red-800/50 text-red-300 border border-red-800/40'
-                  : 'bg-violet-600 text-white hover:bg-violet-500'
+                  ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20 hover:bg-rose-500/15'
+                  : 'text-white'
               }`}
+              style={!metronomeOn ? { background: 'linear-gradient(135deg, #f59e0b, #ea580c)', boxShadow: '0 4px 20px -4px rgba(245,158,11,0.35)' } : undefined}
             >
               {metronomeOn ? '■ Stop Metronome' : '▶ Start Metronome'}
             </button>
             <button
               onClick={reset}
-              className="px-6 py-3 rounded-xl bg-[#1e2433] text-[#94a3b8] hover:text-white transition-colors"
+              className="px-6 py-3 rounded-xl bg-white/[0.04] border border-white/[0.06] text-[#94a3b8] hover:text-white hover:bg-white/[0.07] transition-colors"
             >
               Reset Stats
             </button>
           </div>
 
           {/* Recent hits log */}
-          <div className="bg-[#0d1117] border border-[#1e2433] rounded-xl p-4">
-            <div className="text-xs text-[#4b5563] uppercase tracking-wider mb-2">Recent Hits</div>
+          <div className="rounded-2xl p-5 border border-white/[0.04]" style={{ background: 'linear-gradient(135deg, rgba(12,14,20,0.7) 0%, rgba(10,12,18,0.8) 100%)' }}>
+            <div className="text-[11px] font-semibold text-[#4b5563] uppercase tracking-widest mb-2">Recent Hits</div>
             <div className="flex gap-1 flex-wrap">
               {hitLog.slice(-30).map((h, i) => (
                 <span
                   key={i}
-                  className="text-[10px] px-1.5 py-0.5 rounded bg-[#1e2433] text-[#94a3b8]"
+                  className="text-[10px] px-1.5 py-0.5 rounded bg-white/[0.05] text-[#94a3b8]"
                   style={{ opacity: 0.4 + (i / 30) * 0.6 }}
                 >
                   {h.pad.replace(/_/g, '').slice(0, 4)}

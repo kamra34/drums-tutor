@@ -40,9 +40,7 @@ export default function ExercisePage() {
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const startTimeRef = useRef<number>(0)
 
-  // Reset all state when exercise changes (including navigating to next exercise)
   useEffect(() => {
-    // Stop any running session
     audioService.stopMetronome()
     clearInterval(stepIntervalRef.current!)
     clearInterval(countdownRef.current!)
@@ -56,7 +54,6 @@ export default function ExercisePage() {
     setCountdown(0)
   }, [exercise?.id])
 
-  // Register MIDI listener
   useEffect(() => {
     const unsub = midiService.onNoteOn((event) => {
       if (practiceStore.status !== 'playing') return
@@ -65,15 +62,9 @@ export default function ExercisePage() {
       const pad = midiService.resolvePad(event.note)
       if (pad) {
         useMidiStore.getState().padHit(pad, event.velocity)
-        // Get judgement for display
         const score = scoringEngineRef.current?.getRealtimeScore()
         if (score) {
-          practiceStore.updateScore(
-            score.accuracy,
-            score.hitCount,
-            score.missCount,
-            score.totalExpected
-          )
+          practiceStore.updateScore(score.accuracy, score.hitCount, score.missCount, score.totalExpected)
         }
       }
     })
@@ -83,7 +74,6 @@ export default function ExercisePage() {
   function startCountdown() {
     practiceStore.setStatus('countdown')
     setCountdown(3)
-
     let count = 3
     countdownRef.current = setInterval(() => {
       count--
@@ -97,16 +87,13 @@ export default function ExercisePage() {
 
   function startPractice() {
     if (!exercise) return
-
     practiceStore.setStatus('playing')
     practiceStore.reset()
 
-    // Init scoring engine
     const engine = new ScoringEngine(exercise.patternData, bpm, drumMap)
     engine.setExerciseInfo(exercise.id, exercise.bars)
     scoringEngineRef.current = engine
 
-    // Start metronome
     audioService.startMetronome(bpm, exercise.timeSignature, (beat) => {
       practiceStore.setCurrentBeat(beat)
     })
@@ -114,7 +101,6 @@ export default function ExercisePage() {
     startTimeRef.current = performance.now()
     engine.start()
 
-    // Step tracker for grid highlight
     const stepDurationMs = (60000 / bpm) / exercise.patternData.subdivisions
     const totalSteps = exercise.patternData.beats * exercise.patternData.subdivisions * exercise.bars
     let step = 0
@@ -123,7 +109,6 @@ export default function ExercisePage() {
       const gridStep = step % (exercise.patternData.beats * exercise.patternData.subdivisions)
       setCurrentStep(gridStep)
       step++
-
       if (step >= totalSteps) {
         clearInterval(stepIntervalRef.current!)
         finishPractice()
@@ -142,7 +127,6 @@ export default function ExercisePage() {
     practiceStore.setResult(result)
     addExerciseResult(result)
 
-    // Get AI feedback
     if (isConfigured) {
       setFeedbackLoading(true)
       aiService.setApiKey(apiKey)
@@ -174,7 +158,6 @@ export default function ExercisePage() {
     practiceStore.reset()
   }
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       audioService.stopMetronome()
@@ -185,37 +168,43 @@ export default function ExercisePage() {
 
   if (!module || !exercise) {
     return (
-      <div className="p-8 text-center text-[#6b7280]">
-        Exercise not found.{' '}
-        <Link to="/curriculum" className="text-violet-500 hover:underline">
-          Back to curriculum
-        </Link>
+      <div className="flex items-center justify-center h-full p-8">
+        <div className="rounded-2xl border border-white/[0.04] p-8 text-center" style={{
+          background: 'linear-gradient(135deg, rgba(12,14,20,0.7) 0%, rgba(10,12,18,0.8) 100%)',
+        }}>
+          <p className="text-[#6b7280] mb-3">Exercise not found.</p>
+          <Link to="/curriculum" className="text-amber-500/80 hover:text-amber-400 text-sm font-medium transition-colors">
+            Back to curriculum
+          </Link>
+        </div>
       </div>
     )
   }
 
   const status: PracticeStatus = practiceStore.status
-
-  // Find next exercise
   const exIdx = module.exercises.findIndex((e) => e.id === exercise.id)
   const nextExercise = exIdx < module.exercises.length - 1 ? module.exercises[exIdx + 1] : undefined
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
+    <div className="p-6 max-w-5xl mx-auto">
       {/* Breadcrumb */}
       <nav className="flex items-center gap-2 text-sm text-[#4b5563] mb-6">
-        <Link to="/curriculum" className="hover:text-violet-400">Curriculum</Link>
-        <span>›</span>
-        <Link to="/curriculum" state={{ expandModule: module.id }} className="text-[#6b7280] hover:text-violet-400 transition-colors">
+        <Link to="/curriculum" className="hover:text-amber-400 transition-colors">Curriculum</Link>
+        <svg className="w-3.5 h-3.5 text-[#2d3748]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+        </svg>
+        <Link to="/curriculum" state={{ expandModule: module.id }} className="text-[#6b7280] hover:text-amber-400 transition-colors">
           {module.name}
         </Link>
-        <span>›</span>
+        <svg className="w-3.5 h-3.5 text-[#2d3748]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+        </svg>
         <span className="text-[#94a3b8]">{exercise.title}</span>
       </nav>
 
       {status === 'finished' && practiceStore.result ? (
         <div>
-          <h1 className="text-2xl font-bold text-white mb-6">Results</h1>
+          <h1 className="text-2xl font-extrabold text-white mb-6 tracking-tight">Results</h1>
           <ResultsScreen
             result={practiceStore.result}
             feedback={aiFeedback}
@@ -234,68 +223,94 @@ export default function ExercisePage() {
           <div className="col-span-2 space-y-5">
             {/* Exercise header */}
             <div>
-              <h1 className="text-2xl font-bold text-white mb-1">{exercise.title}</h1>
+              <h1 className="text-2xl font-extrabold text-white mb-1 tracking-tight">{exercise.title}</h1>
               <p className="text-sm text-[#6b7280]">{exercise.description}</p>
-              <div className="flex gap-4 mt-2 text-xs text-[#4b5563]">
-                <span>🎵 {exercise.timeSignature.join('/')} time</span>
-                <span>🥁 {exercise.bars} bar{exercise.bars > 1 ? 's' : ''}</span>
-                <span>⚡ Difficulty {exercise.difficulty}/10</span>
+              <div className="flex gap-4 mt-3 text-xs text-[#4b5563]">
+                <span className="flex items-center gap-1.5">
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z" />
+                  </svg>
+                  {exercise.timeSignature.join('/')} time
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h7" />
+                  </svg>
+                  {exercise.bars} bar{exercise.bars > 1 ? 's' : ''}
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                  Difficulty {exercise.difficulty}/10
+                </span>
               </div>
             </div>
 
-            {/* Staff notation (primary) */}
-            <div className="bg-[#0d1117] border border-[#1e2433] rounded-xl p-4">
-              <div className="text-xs text-[#4b5563] uppercase tracking-wider mb-3">Notation</div>
-              <StaffNotationDisplay
-                pattern={exercise.patternData}
-                currentStep={status === 'playing' ? currentStep : undefined}
-                bpm={exercise.targetBpm}
-                bars={exercise.bars}
-              />
+            {/* Staff notation */}
+            <div className="rounded-2xl border border-white/[0.04] p-5" style={{
+              background: 'linear-gradient(135deg, rgba(12,14,20,0.7) 0%, rgba(10,12,18,0.8) 100%)',
+            }}>
+              <span className="text-[11px] font-semibold text-[#4b5563] uppercase tracking-widest">Notation</span>
+              <div className="mt-3">
+                <StaffNotationDisplay
+                  pattern={exercise.patternData}
+                  currentStep={status === 'playing' ? currentStep : undefined}
+                  bpm={exercise.targetBpm}
+                  bars={exercise.bars}
+                />
+              </div>
             </div>
 
-            {/* Grid view is now included inside StaffNotationDisplay */}
-
-            {/* Judgement + live stats */}
+            {/* Judgement feedback */}
             <JudgementFeedback
               judgement={practiceStore.lastJudgement?.judgement ?? null}
               offsetMs={practiceStore.lastJudgement?.offsetMs}
               timestamp={practiceStore.lastJudgementTime}
             />
 
+            {/* Live stats */}
             {status === 'playing' && (
-              <div className="flex gap-4 text-sm text-center">
-                <div className="flex-1 bg-[#0d1117] border border-[#1e2433] rounded-lg py-2">
-                  <div className="text-lg font-bold text-white">
-                    {Math.round(practiceStore.accuracy * 100)}%
-                  </div>
-                  <div className="text-xs text-[#4b5563]">Accuracy</div>
+              <div className="flex gap-3 text-sm text-center">
+                <div className="flex-1 rounded-xl border border-white/[0.04] py-3" style={{
+                  background: 'linear-gradient(135deg, rgba(12,14,20,0.7) 0%, rgba(10,12,18,0.8) 100%)',
+                }}>
+                  <div className="text-xl font-extrabold text-white">{Math.round(practiceStore.accuracy * 100)}%</div>
+                  <div className="text-[11px] text-[#4b5563] font-medium mt-0.5">Accuracy</div>
                 </div>
-                <div className="flex-1 bg-[#0d1117] border border-[#1e2433] rounded-lg py-2">
-                  <div className="text-lg font-bold text-green-400">{practiceStore.hitCount}</div>
-                  <div className="text-xs text-[#4b5563]">Hits</div>
+                <div className="flex-1 rounded-xl border border-white/[0.04] py-3" style={{
+                  background: 'linear-gradient(135deg, rgba(12,14,20,0.7) 0%, rgba(10,12,18,0.8) 100%)',
+                }}>
+                  <div className="text-xl font-extrabold text-emerald-400">{practiceStore.hitCount}</div>
+                  <div className="text-[11px] text-[#4b5563] font-medium mt-0.5">Hits</div>
                 </div>
-                <div className="flex-1 bg-[#0d1117] border border-[#1e2433] rounded-lg py-2">
-                  <div className="text-lg font-bold text-red-400">{practiceStore.missCount}</div>
-                  <div className="text-xs text-[#4b5563]">Misses</div>
+                <div className="flex-1 rounded-xl border border-white/[0.04] py-3" style={{
+                  background: 'linear-gradient(135deg, rgba(12,14,20,0.7) 0%, rgba(10,12,18,0.8) 100%)',
+                }}>
+                  <div className="text-xl font-extrabold text-rose-400">{practiceStore.missCount}</div>
+                  <div className="text-[11px] text-[#4b5563] font-medium mt-0.5">Misses</div>
                 </div>
               </div>
             )}
 
-            {/* Start/Stop button */}
+            {/* Start/Stop/Countdown */}
             <div>
               {status === 'idle' && (
                 <>
                   {!isConnected && (
-                    <div className="mb-3 text-xs text-yellow-600 bg-yellow-900/20 border border-yellow-800/40 rounded-lg px-3 py-2">
+                    <div className="mb-3 text-xs text-amber-400/80 bg-amber-500/[0.06] border border-amber-500/15 rounded-xl px-4 py-2.5">
                       No drum kit connected — connect your e-drum in{' '}
-                      <Link to="/settings" className="underline">Settings</Link> to practice with MIDI scoring.
-                      You can still listen to the metronome.
+                      <Link to="/settings" className="underline hover:text-amber-300 transition-colors">Settings</Link>{' '}
+                      for MIDI scoring. You can still listen to the metronome.
                     </div>
                   )}
                   <button
                     onClick={startCountdown}
-                    className="w-full py-3 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-semibold text-lg transition-colors"
+                    className="w-full py-3.5 rounded-xl text-white font-semibold text-lg transition-all hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
+                    style={{
+                      background: 'linear-gradient(135deg, #f59e0b, #ea580c)',
+                      boxShadow: '0 4px 20px -4px rgba(245,158,11,0.35)',
+                    }}
                   >
                     Start Practice
                   </button>
@@ -303,16 +318,16 @@ export default function ExercisePage() {
               )}
 
               {status === 'countdown' && (
-                <div className="w-full py-3 text-center">
-                  <div className="text-6xl font-bold text-violet-400 animate-pulse">{countdown}</div>
-                  <div className="text-[#6b7280] text-sm mt-1">Get ready…</div>
+                <div className="w-full py-6 text-center">
+                  <div className="text-7xl font-extrabold bg-gradient-to-b from-amber-400 to-orange-500 bg-clip-text text-transparent animate-pulse">{countdown}</div>
+                  <div className="text-[#6b7280] text-sm mt-2">Get ready...</div>
                 </div>
               )}
 
               {status === 'playing' && (
                 <button
                   onClick={handleStop}
-                  className="w-full py-3 rounded-xl bg-red-800/50 hover:bg-red-700/50 text-red-300 font-medium transition-colors border border-red-800/40"
+                  className="w-full py-3.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/15 text-rose-400 font-medium transition-colors border border-rose-500/20 cursor-pointer"
                 >
                   Stop
                 </button>

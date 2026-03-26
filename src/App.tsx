@@ -28,10 +28,22 @@ export default function App() {
   // Show loading spinner while checking existing token
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#080c14] flex items-center justify-center">
+      <div className="fixed inset-0 bg-[#06080d] flex items-center justify-center" style={{ zIndex: 50 }}>
         <div className="text-center">
-          <div className="text-5xl mb-3 animate-pulse">🥁</div>
-          <div className="text-[#6b7280] text-sm">Loading...</div>
+          <div className="relative w-16 h-16 mx-auto mb-4">
+            <div className="absolute inset-0 rounded-full border-2 border-amber-500/20 animate-ping" />
+            <div className="absolute inset-2 rounded-full border-2 border-amber-500/40 animate-pulse" />
+            <div className="absolute inset-0 flex items-center justify-center">
+              <svg viewBox="0 0 64 64" fill="none" className="w-8 h-8">
+                <line x1="18" y1="46" x2="40" y2="18" stroke="url(#lg)" strokeWidth="4" strokeLinecap="round" />
+                <circle cx="42" cy="16" r="4" fill="#f59e0b" />
+                <line x1="46" y1="46" x2="24" y2="18" stroke="url(#lg)" strokeWidth="4" strokeLinecap="round" />
+                <circle cx="22" cy="16" r="4" fill="#f59e0b" />
+                <defs><linearGradient id="lg" x1="0" y1="46" x2="0" y2="18"><stop offset="0%" stopColor="#92400e" /><stop offset="100%" stopColor="#d97706" /></linearGradient></defs>
+              </svg>
+            </div>
+          </div>
+          <div className="text-[#6b7280] text-sm tracking-wide">Loading...</div>
         </div>
       </div>
     )

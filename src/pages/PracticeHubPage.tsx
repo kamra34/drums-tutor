@@ -87,6 +87,69 @@ const MODES: PracticeMode[] = [
   },
 ]
 
+/* SVG icons for each mode */
+function ModeIcon({ id, color }: { id: string; color: string }) {
+  const cls = "w-6 h-6"
+  switch (id) {
+    case 'reading':
+      return (
+        <svg className={cls} fill="none" viewBox="0 0 24 24" stroke={color} strokeWidth={1.8}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z" />
+        </svg>
+      )
+    case 'beats':
+      return (
+        <svg className={cls} fill="none" viewBox="0 0 24 24" stroke={color} strokeWidth={1.8}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM21 16c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M15 6l-6 2" />
+        </svg>
+      )
+    case 'rudiments':
+      return (
+        <svg className={cls} fill="none" viewBox="0 0 24 24" stroke={color} strokeWidth={1.8}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h8" />
+          <circle cx="18" cy="18" r="2" fill={color} opacity={0.5} />
+        </svg>
+      )
+    case 'fills':
+      return (
+        <svg className={cls} fill="none" viewBox="0 0 24 24" stroke={color} strokeWidth={1.8}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+        </svg>
+      )
+    case 'ai-daily':
+      return (
+        <svg className={cls} fill="none" viewBox="0 0 24 24" stroke={color} strokeWidth={1.8}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714a2.25 2.25 0 00.659 1.591L19 14.5m-4.75-11.396c.251.023.501.05.75.082M12 3v2.25m0 0a2.25 2.25 0 002.25 2.25h1.5m-3.75 0A2.25 2.25 0 019.75 7.5h-1.5" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 14.25l3 3m0 0l3-3m-3 3v-7.5" />
+        </svg>
+      )
+    case 'freeplay':
+      return (
+        <svg className={cls} fill="none" viewBox="0 0 24 24" stroke={color} strokeWidth={1.8}>
+          <circle cx="12" cy="12" r="9" />
+          <circle cx="12" cy="12" r="5" />
+          <circle cx="12" cy="12" r="1" fill={color} />
+        </svg>
+      )
+    case 'sight-reading':
+      return (
+        <svg className={cls} fill="none" viewBox="0 0 24 24" stroke={color} strokeWidth={1.8}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
+      )
+    case 'songs':
+      return (
+        <svg className={cls} fill="none" viewBox="0 0 24 24" stroke={color} strokeWidth={1.8}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+        </svg>
+      )
+    default:
+      return null
+  }
+}
+
 export default function PracticeHubPage() {
   const { isConnected } = useMidiStore()
   const { progress } = useUserStore()
@@ -94,67 +157,157 @@ export default function PracticeHubPage() {
   const totalResults = progress.exerciseResults.length
 
   return (
-    <div className="p-8 max-w-4xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-white mb-1">Practice</h1>
-        <p className="text-[#6b7280]">Choose a practice mode. Every mode scores your playing via MIDI.</p>
+    <div className="p-6 lg:p-8 max-w-[1400px] mx-auto" style={{ background: '#06080d', minHeight: '100vh' }}>
+
+      {/* ── Hero banner with ambient glow ── */}
+      <div className="relative mb-8 overflow-hidden rounded-3xl p-8 lg:p-10 border border-white/[0.04]" style={{
+        background: 'linear-gradient(135deg, rgba(15,12,8,0.9) 0%, rgba(10,14,22,0.9) 50%, rgba(15,12,8,0.8) 100%)',
+      }}>
+        {/* Ambient warm glow */}
+        <div className="absolute -top-20 -right-20 w-80 h-80 rounded-full pointer-events-none" style={{
+          background: 'radial-gradient(circle, rgba(245,158,11,0.08) 0%, transparent 70%)',
+        }} />
+        <div className="absolute -bottom-20 -left-20 w-60 h-60 rounded-full pointer-events-none" style={{
+          background: 'radial-gradient(circle, rgba(249,115,22,0.05) 0%, transparent 70%)',
+        }} />
+
+        <div className="relative z-10">
+          <h1 className="text-3xl lg:text-4xl font-extrabold text-white mb-2 tracking-tight">
+            Practice Hub<span className="bg-gradient-to-r from-amber-400 to-orange-400 bg-clip-text text-transparent">.</span>
+          </h1>
+          <p className="text-[#6b7280] text-base lg:text-lg max-w-xl">
+            Choose a practice mode. Every mode scores your playing via MIDI.
+          </p>
+        </div>
       </div>
 
+      {/* ── MIDI Warning ── */}
       {!isConnected && (
-        <div className="mb-6 text-sm text-yellow-600 bg-yellow-900/20 border border-yellow-800/40 rounded-lg px-4 py-3">
-          No drum kit connected — connect your e-drum in{' '}
-          <Link to="/settings" className="underline">Settings</Link> for MIDI scoring.
-          You can still browse and listen to patterns without a kit.
+        <div
+          className="mb-8 rounded-2xl p-5 border border-amber-500/15 flex items-start gap-4"
+          style={{
+            background: 'linear-gradient(135deg, rgba(12,14,20,0.7) 0%, rgba(10,12,18,0.8) 100%)',
+          }}
+        >
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: 'rgba(245,158,11,0.1)' }}>
+            <svg className="w-5 h-5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+            </svg>
+          </div>
+          <div>
+            <p className="text-sm font-medium text-amber-400 mb-0.5">No drum kit connected</p>
+            <p className="text-sm text-[#6b7280]">
+              Connect your e-drum in{' '}
+              <Link to="/settings" className="text-amber-400/80 underline underline-offset-2 hover:text-amber-400 transition-colors">Settings</Link>{' '}
+              for MIDI scoring. You can still browse and listen to patterns without a kit.
+            </p>
+          </div>
         </div>
       )}
 
-      {/* Quick stats */}
-      <div className="flex gap-4 mb-8">
-        <div className="flex-1 bg-[#0d1117] border border-[#1e2433] rounded-xl p-4 text-center">
-          <div className="text-2xl font-bold text-white">{totalResults}</div>
+      {/* ── Section label: Stats ── */}
+      <div className="text-[11px] font-semibold text-[#4b5563] uppercase tracking-widest mb-3">Overview</div>
+
+      {/* ── Quick stats as glass cards ── */}
+      <div className="grid grid-cols-3 gap-4 mb-10">
+        <div
+          className="rounded-2xl p-5 border border-white/[0.04] text-center"
+          style={{ background: 'linear-gradient(135deg, rgba(12,14,20,0.7) 0%, rgba(10,12,18,0.8) 100%)' }}
+        >
+          <div className="text-3xl font-bold text-white mb-1">{totalResults}</div>
           <div className="text-xs text-[#4b5563]">Total exercises played</div>
         </div>
-        <div className="flex-1 bg-[#0d1117] border border-[#1e2433] rounded-xl p-4 text-center">
-          <div className="text-2xl font-bold text-white">{progress.completedLessons.length}</div>
+        <div
+          className="rounded-2xl p-5 border border-white/[0.04] text-center"
+          style={{ background: 'linear-gradient(135deg, rgba(12,14,20,0.7) 0%, rgba(10,12,18,0.8) 100%)' }}
+        >
+          <div className="text-3xl font-bold text-white mb-1">{progress.completedLessons.length}</div>
           <div className="text-xs text-[#4b5563]">Lessons completed</div>
         </div>
-        <div className="flex-1 bg-[#0d1117] border border-[#1e2433] rounded-xl p-4 text-center">
-          <div className="text-2xl font-bold text-violet-400">{progress.currentModule}</div>
+        <div
+          className="rounded-2xl p-5 border border-white/[0.04] text-center"
+          style={{ background: 'linear-gradient(135deg, rgba(12,14,20,0.7) 0%, rgba(10,12,18,0.8) 100%)' }}
+        >
+          <div className="text-3xl font-bold bg-gradient-to-r from-amber-400 to-orange-500 bg-clip-text text-transparent mb-1">{progress.currentModule}</div>
           <div className="text-xs text-[#4b5563]">Current module</div>
         </div>
       </div>
 
-      {/* Practice modes grid */}
-      <div className="grid grid-cols-2 gap-4">
+      {/* ── Section label: Modes ── */}
+      <div className="text-[11px] font-semibold text-[#4b5563] uppercase tracking-widest mb-3">Practice Modes</div>
+
+      {/* ── Practice modes 2-column grid ── */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {MODES.map(mode => (
           <Link
             key={mode.id}
             to={mode.ready ? mode.to : '#'}
-            className={`rounded-xl border p-5 transition-all group ${
+            className={`group relative rounded-2xl p-5 border transition-all duration-300 overflow-hidden ${
               mode.ready
-                ? 'border-[#1e2433] hover:border-violet-800/50 bg-[#0d1117] hover:bg-[#13101e]'
-                : 'border-[#1e2433] opacity-40 cursor-not-allowed bg-[#0d1117]'
+                ? 'border-white/[0.04] hover:border-amber-500/15 hover:bg-white/[0.03] cursor-pointer'
+                : 'border-white/[0.04] opacity-35 cursor-not-allowed'
             }`}
+            style={{
+              background: 'linear-gradient(135deg, rgba(12,14,20,0.7) 0%, rgba(10,12,18,0.8) 100%)',
+            }}
             onClick={e => !mode.ready && e.preventDefault()}
           >
-            <div className="flex items-start gap-4">
+            {/* Left accent border */}
+            <div
+              className="absolute left-0 top-0 bottom-0 w-[3px] rounded-l-2xl transition-opacity duration-300"
+              style={{
+                background: mode.color,
+                opacity: mode.ready ? 0.5 : 0.15,
+              }}
+            />
+
+            {/* Hover glow effect */}
+            {mode.ready && (
               <div
-                className="w-12 h-12 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
-                style={{ backgroundColor: mode.color + '22' }}
+                className="absolute -top-10 -right-10 w-40 h-40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
+                style={{
+                  background: `radial-gradient(circle, ${mode.color}10 0%, transparent 70%)`,
+                }}
+              />
+            )}
+
+            <div className="relative flex items-start gap-4">
+              {/* Icon badge */}
+              <div
+                className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 transition-transform duration-300 group-hover:scale-105"
+                style={{ backgroundColor: mode.color + '15', border: `1px solid ${mode.color}20` }}
               >
-                {mode.icon}
+                <ModeIcon id={mode.id} color={mode.color} />
               </div>
+
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-white font-semibold">{mode.title}</span>
+                <div className="flex items-center gap-2 mb-1.5">
+                  <span className="text-white font-semibold text-[15px]">{mode.title}</span>
                   {!mode.ready && (
-                    <span className="text-[10px] text-[#4b5563] bg-[#1e2433] px-1.5 py-0.5 rounded">Coming soon</span>
+                    <span className="inline-flex items-center gap-1 text-[10px] text-[#4b5563] bg-white/[0.04] border border-white/[0.06] px-2 py-0.5 rounded-full">
+                      <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+                      </svg>
+                      Coming soon
+                    </span>
                   )}
                 </div>
                 <p className="text-xs text-[#6b7280] leading-relaxed">{mode.description}</p>
               </div>
+
+              {/* Arrow that slides in on hover */}
               {mode.ready && (
-                <span className="text-[#374151] group-hover:text-violet-500 transition-colors text-lg mt-1">→</span>
+                <div className="flex items-center self-center ml-2">
+                  <svg
+                    className="w-5 h-5 text-[#374151] group-hover:text-amber-400 opacity-0 group-hover:opacity-100 -translate-x-1 group-hover:translate-x-0 transition-all duration-300"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                  </svg>
+                </div>
               )}
             </div>
           </Link>
