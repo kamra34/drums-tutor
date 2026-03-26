@@ -142,7 +142,7 @@ export const PRESETS: { id: string; name: string; description: string; icon: str
   },
   {
     id: 'sixteenth-intro',
-    name: 'Sixteenth Notes',
+    name: '16th Notes',
     description: 'Read double-beamed sixteenth note groups. Start slow!',
     icon: '⚡',
     config: {

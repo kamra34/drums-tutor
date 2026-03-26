@@ -1781,7 +1781,7 @@ const module1Lessons: Lesson[] = [
   {
     id: 'm1-l7',
     moduleId: 'module-1',
-    title: 'Sixteenth Notes',
+    title: '16th Notes',
     order: 7,
     content: lesson_1_7_content,
     completed: false,
@@ -1914,7 +1914,7 @@ const module1Exercises: Exercise[] = [
   {
     id: 'm1-e9',
     moduleId: 'module-1',
-    title: 'Sixteenth Notes on Snare',
+    title: '16th Notes on Snare',
     description:
       'Play all 16 subdivisions on the snare. Start slow! Read the double-beamed sixteenth notes.',
     order: 9,

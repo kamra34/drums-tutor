@@ -51,22 +51,22 @@ const RHYTHM_CELLS: RhythmCell[] = [
   { id: 're',     name: 'Eighth Rest + Eighth', slots: [0,0,1,0], notation: 'Eighth rest (small "7") then eighth note (1 flag). Syncopation!',             counting: '(1)  +',       level: 2, category: 'Eighth Notes', beams: [],
     grid: [{ label: '(1)', state: 'rest' }, { label: '+', state: 'hit' }] },
 
-  // ── Level 3: Sixteenths — all 4 syllables: "1 e + a" ──
-  { id: 'ssss',   name: 'Four Sixteenths',      slots: [1,1,1,1], notation: 'Four notes connected by TWO beams across all four.',                          counting: '1 e + a',       level: 3, category: 'Sixteenth Notes', beams: [[0,3,2]],
+  // ── Level 3: 16ths — all 4 syllables: "1 e + a" ──
+  { id: 'ssss',   name: 'Four 16ths',            slots: [1,1,1,1], notation: 'Four notes connected by TWO beams across all four.',                          counting: '1 e + a',       level: 3, category: '16th Notes', beams: [[0,3,1],[0,3,2]],
     grid: [{ label: '1', state: 'hit' }, { label: 'e', state: 'hit' }, { label: '+', state: 'hit' }, { label: 'a', state: 'hit' }] },
-  { id: 'ess',    name: 'Eighth + Two 16ths',   slots: [1,0,1,1], notation: 'ONE beam across all three. SECOND beam only on the last two (the 16ths).',    counting: '1   + a',       level: 3, category: 'Sixteenth Notes', beams: [[0,3,1],[2,3,2]],
+  { id: 'ess',    name: 'Eighth + Two 16ths',   slots: [1,0,1,1], notation: 'ONE beam across all three. SECOND beam only on the last two (the 16ths).',    counting: '1   + a',       level: 3, category: '16th Notes', beams: [[0,3,1],[2,3,2]],
     grid: [{ label: '1', state: 'hit' }, { label: 'e', state: 'hold' }, { label: '+', state: 'hit' }, { label: 'a', state: 'hit' }] },
-  { id: 'sse',    name: 'Two 16ths + Eighth',   slots: [1,1,1,0], notation: 'ONE beam across all three. SECOND beam only on the first two (the 16ths).',   counting: '1 e +',         level: 3, category: 'Sixteenth Notes', beams: [[0,2,1],[0,1,2]],
+  { id: 'sse',    name: 'Two 16ths + Eighth',   slots: [1,1,1,0], notation: 'ONE beam across all three. SECOND beam only on the first two (the 16ths).',   counting: '1 e +',         level: 3, category: '16th Notes', beams: [[0,2,1],[0,1,2]],
     grid: [{ label: '1', state: 'hit' }, { label: 'e', state: 'hit' }, { label: '+', state: 'hit' }, { label: 'a', state: 'hold' }] },
-  { id: 'ses',    name: '16th+8th+16th',        slots: [1,1,0,1], notation: 'ONE beam across all. Partial SECOND beams on the two outer 16ths.',           counting: '1 e   a',       level: 3, category: 'Sixteenth Notes', beams: [[0,3,1],[0,0,2],[3,3,2]],
+  { id: 'ses',    name: '16th+8th+16th',        slots: [1,1,0,1], notation: 'ONE beam across all. Partial SECOND beams on the two outer 16ths.',           counting: '1 e   a',       level: 3, category: '16th Notes', beams: [[0,3,1],[0,0,2],[3,3,2]],
     grid: [{ label: '1', state: 'hit' }, { label: 'e', state: 'hit' }, { label: '+', state: 'hold' }, { label: 'a', state: 'hit' }] },
 
   // ── Level 4: 16th rests — all 4 syllables with some rested ──
-  { id: 'rss',    name: '16th Rest + Three',    slots: [0,1,1,1], notation: '16th rest then three sixteenths with TWO beams.',                             counting: '(1) e + a',     level: 4, category: '16th Rests', beams: [[1,3,2]],
+  { id: 'rss',    name: '16th Rest + Three',    slots: [0,1,1,1], notation: '16th rest then three 16ths with TWO beams.',                                counting: '(1) e + a',     level: 4, category: '16th Rests', beams: [[1,3,1],[1,3,2]],
     grid: [{ label: '(1)', state: 'rest' }, { label: 'e', state: 'hit' }, { label: '+', state: 'hit' }, { label: 'a', state: 'hit' }] },
-  { id: 'srs',    name: '16th + Rest + Two',    slots: [1,0,1,1], notation: 'Sixteenth (with flag), rest, then two beamed sixteenths.',                    counting: '1   + a',       level: 4, category: '16th Rests', beams: [[2,3,2]],
+  { id: 'srs',    name: '16th + Rest + Two',    slots: [1,0,1,1], notation: '16th (with double flag), rest, then two beamed 16ths.',                      counting: '1   + a',       level: 4, category: '16th Rests', beams: [[2,3,1],[2,3,2]],
     grid: [{ label: '1', state: 'hit' }, { label: '(e)', state: 'rest' }, { label: '+', state: 'hit' }, { label: 'a', state: 'hit' }] },
-  { id: 'ssr',    name: 'Three + 16th Rest',    slots: [1,1,1,0], notation: 'Three sixteenths with TWO beams, then 16th rest.',                            counting: '1 e + (a)',     level: 4, category: '16th Rests', beams: [[0,2,2]],
+  { id: 'ssr',    name: 'Three + 16th Rest',    slots: [1,1,1,0], notation: 'Three 16ths with TWO beams, then 16th rest.',                                counting: '1 e + (a)',     level: 4, category: '16th Rests', beams: [[0,2,1],[0,2,2]],
     grid: [{ label: '1', state: 'hit' }, { label: 'e', state: 'hit' }, { label: '+', state: 'hit' }, { label: '(a)', state: 'rest' }] },
   { id: 'srsr',   name: 'Alternating',          slots: [1,0,1,0], notation: 'Two eighths — same look as "ee". ONE beam.',                                  counting: '1   +',         level: 4, category: '16th Rests', beams: [[0,2,1]],
     grid: [{ label: '1', state: 'hit' }, { label: '+', state: 'hit' }] },
@@ -90,21 +90,31 @@ const CATEGORIES = [...new Set(RHYTHM_CELLS.map(c => c.category))]
 // ── Sound playback ──────────────────────────────────────────────────────────
 
 function playCellOnce(cell: RhythmCell, bpm: number, onStep?: (i: number) => void): ReturnType<typeof setTimeout>[] {
-  const sixteenthMs = (60000 / bpm) / 4
+  const beatMs = 60000 / bpm
+  const gridLen = cell.grid.length
+  const stepMs = beatMs / gridLen
   const timers: ReturnType<typeof setTimeout>[] = []
 
-  cell.slots.forEach((slot, i) => {
+  // Map grid index to slot index (for SVG highlight position + sound lookup)
+  const gridToSlot = (gi: number) => {
+    if (gridLen === 1) return 0           // quarter: slot 0
+    if (gridLen === 2) return gi * 2      // eighth: slots 0, 2
+    return gi                             // 16th/triplet: slots 0,1,2,(3)
+  }
+
+  cell.grid.forEach((g, gi) => {
+    const slotIdx = gridToSlot(gi)
     timers.push(setTimeout(() => {
-      onStep?.(i)
-      if (slot === 1) {
-        if (i === 0) playAccentClick(0.4)
-        else playSnare(0.4)
-      }
-    }, i * sixteenthMs))
+      onStep?.(slotIdx)
+      // Always play beat notifier on the downbeat
+      if (gi === 0) playAccentClick(0.4)
+      // Play snare on every attack
+      if (cell.slots[slotIdx] === 1) playSnare(0.4)
+    }, gi * stepMs))
   })
 
   // Clear highlight after
-  timers.push(setTimeout(() => onStep?.(-1), 4 * sixteenthMs))
+  timers.push(setTimeout(() => onStep?.(-1), gridLen * stepMs))
 
   return timers
 }
@@ -185,16 +195,24 @@ function CellNotation({ cell, highlight = -1, size = 'normal' }: { cell: RhythmC
             <g key={i}>
               <ellipse cx={x} cy={noteY} rx={noteR + 1} ry={noteR} fill={col} transform={`rotate(-12 ${x} ${noteY})`} />
               {/* Solo stem + flag for unbeamed single notes */}
-              {!beamedSlots.has(i) && (
-                <g>
-                  <line x1={x + noteR} y1={noteY} x2={x + noteR} y2={noteY - stemH} stroke={col} strokeWidth={1} />
-                  {/* Flag for eighth notes (er, re patterns) */}
-                  {cell.level >= 2 && cell.level <= 2 && (
-                    <path d={`M ${x + noteR} ${noteY - stemH} C ${x + noteR + 8} ${noteY - stemH + 3} ${x + noteR + 7} ${noteY - stemH + 10} ${x + noteR + 1} ${noteY - stemH + 14}`}
-                      fill="none" stroke={col} strokeWidth={1.2} strokeLinecap="round" />
-                  )}
-                </g>
-              )}
+              {!beamedSlots.has(i) && (() => {
+                const stemX = x + noteR
+                // Determine flag count: level 2 = eighth (1 flag), level 3-4 = 16th (2 flags)
+                const flagCount = cell.level >= 3 && cell.level <= 4 ? 2 : cell.level === 2 ? 1 : 0
+                return (
+                  <g>
+                    <line x1={stemX} y1={noteY} x2={stemX} y2={noteY - stemH} stroke={col} strokeWidth={1} />
+                    {flagCount >= 1 && (
+                      <path d={`M ${stemX} ${noteY - stemH} C ${stemX + 8} ${noteY - stemH + 3} ${stemX + 7} ${noteY - stemH + 10} ${stemX + 1} ${noteY - stemH + 14}`}
+                        fill="none" stroke={col} strokeWidth={1.2} strokeLinecap="round" />
+                    )}
+                    {flagCount >= 2 && (
+                      <path d={`M ${stemX} ${noteY - stemH + 5} C ${stemX + 8} ${noteY - stemH + 8} ${stemX + 7} ${noteY - stemH + 15} ${stemX + 1} ${noteY - stemH + 19}`}
+                        fill="none" stroke={col} strokeWidth={1.2} strokeLinecap="round" />
+                    )}
+                  </g>
+                )
+              })()}
             </g>
           )
         } else if (cell.slots.every(s => s === 0)) {

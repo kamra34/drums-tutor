@@ -86,7 +86,7 @@ export const LESSON_VISUALS: Record<string, LessonVisualEntry[]> = {
   // "Your First Rudiments" — rudiments visual + notation block
   'm1-l6': [{ component: 'rudiments-visual', afterBlock: 0 }],
 
-  // "Sixteenth Notes" — note values + beaming guide
+  // "16th Notes" — note values + beaming guide
   'm1-l7': [
     { component: 'note-values', afterBlock: 0 },
     { component: 'beaming-guide', afterBlock: 0 },

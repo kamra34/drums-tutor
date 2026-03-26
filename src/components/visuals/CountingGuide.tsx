@@ -31,7 +31,7 @@ const SUBDIVISIONS: SubdivisionDef[] = [
   },
   {
     id: 'sixteenth',
-    name: 'Sixteenth Notes',
+    name: '16th Notes',
     labels: ['1', 'e', '+', 'a', '2', 'e', '+', 'a', '3', 'e', '+', 'a', '4', 'e', '+', 'a'],
     perBeat: 4,
     color: '#dc2626',

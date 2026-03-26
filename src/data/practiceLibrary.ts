@@ -176,7 +176,7 @@ export const READING_EXERCISES: PracticeItem[] = [
   // Level 6: Sixteenth notes
   {
     id: 'read-09',
-    title: 'Sixteenth Notes — Snare',
+    title: '16th Notes — Snare',
     description: 'Full sixteenth notes on snare. Read the double-beamed groups.',
     category: 'reading',
     difficulty: 6,

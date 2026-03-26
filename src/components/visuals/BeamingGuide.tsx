@@ -198,7 +198,7 @@ export default function BeamingGuide() {
       {/* ── Sixteenth notes ── */}
       <div>
         <div className="flex items-center gap-2 mb-2">
-          <span className="text-xs font-medium text-[#94a3b8]">Sixteenth Notes</span>
+          <span className="text-xs font-medium text-[#94a3b8]">16th Notes</span>
           <span className="text-[10px] text-[#4b5563]">— 2 flags → 2 beams</span>
           <button
             onClick={() => playRow('sixteenth')}
