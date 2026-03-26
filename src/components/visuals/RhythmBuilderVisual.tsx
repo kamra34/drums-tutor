@@ -25,36 +25,41 @@ interface RhythmCell {
   counting: string    // how to count it
   level: number       // 1-5 difficulty
   category: string
+  // Beaming instructions: each entry is [startSlot, endSlot, beamCount]
+  // beamCount: 1 = eighth-note beam, 2 = sixteenth-note beam
+  beams: [number, number, number][]
 }
 
+// Beam definitions: [startSlotIndex, endSlotIndex, numberOfBeams]
+// 1 beam = eighth-note connection, 2 beams = sixteenth-note connection
 const RHYTHM_CELLS: RhythmCell[] = [
-  // ── Level 1: Single notes ──
-  { id: 'q',      name: 'Quarter Note',        slots: [1,0,0,0], notation: 'One filled notehead, stem, no flag',              counting: '1',             level: 1, category: 'Quarter Notes' },
-  { id: 'qr',     name: 'Quarter Rest',         slots: [0,0,0,0], notation: 'Zig-zag rest symbol',                             counting: '(1)',           level: 1, category: 'Quarter Notes' },
+  // ── Level 1: Single notes (no beams) ──
+  { id: 'q',      name: 'Quarter Note',        slots: [1,0,0,0], notation: 'One filled notehead, stem, no flag. One hit lasting a full beat.',              counting: '1',             level: 1, category: 'Quarter Notes', beams: [] },
+  { id: 'qr',     name: 'Quarter Rest',         slots: [0,0,0,0], notation: 'Zig-zag rest symbol. Silence for a full beat.',                                counting: '(1)',           level: 1, category: 'Quarter Notes', beams: [] },
 
-  // ── Level 2: Eighth note pairs ──
-  { id: 'ee',     name: 'Two Eighth Notes',     slots: [1,0,1,0], notation: 'Two notes connected by ONE beam',                counting: '1  +',          level: 2, category: 'Eighth Notes' },
-  { id: 'er',     name: 'Eighth + Eighth Rest', slots: [1,0,0,0], notation: 'Eighth note (1 flag) + small "7" rest',          counting: '1  (+)',        level: 2, category: 'Eighth Notes' },
-  { id: 're',     name: 'Eighth Rest + Eighth', slots: [0,0,1,0], notation: 'Eighth rest + eighth note',                       counting: '(1)  +',       level: 2, category: 'Eighth Notes' },
+  // ── Level 2: Eighth note pairs (1 beam) ──
+  { id: 'ee',     name: 'Two Eighth Notes',     slots: [1,0,1,0], notation: 'Two notes connected by ONE beam. Two equal hits per beat.',                   counting: '1  +',          level: 2, category: 'Eighth Notes', beams: [[0,2,1]] },
+  { id: 'er',     name: 'Eighth + Eighth Rest', slots: [1,0,0,0], notation: 'Eighth note (1 flag on stem) + small "7" rest. Hit then silence.',            counting: '1  (+)',        level: 2, category: 'Eighth Notes', beams: [] },
+  { id: 're',     name: 'Eighth Rest + Eighth', slots: [0,0,1,0], notation: 'Eighth rest (small "7") then eighth note (1 flag). Syncopation!',             counting: '(1)  +',       level: 2, category: 'Eighth Notes', beams: [] },
 
-  // ── Level 3: Sixteenth note groups ──
-  { id: 'ssss',   name: 'Four Sixteenths',      slots: [1,1,1,1], notation: 'Four notes connected by TWO beams',              counting: '1 e + a',       level: 3, category: 'Sixteenth Notes' },
-  { id: 'ess',    name: 'Eighth + Two 16ths',   slots: [1,0,1,1], notation: 'Eighth + two sixteenths (1 beam then 2 beams)',  counting: '1   + a',       level: 3, category: 'Sixteenth Notes' },
-  { id: 'sse',    name: 'Two 16ths + Eighth',   slots: [1,1,1,0], notation: 'Two sixteenths + eighth (2 beams then 1 beam)',  counting: '1 e +',         level: 3, category: 'Sixteenth Notes' },
-  { id: 'ses',    name: '16th+8th+16th',        slots: [1,1,0,1], notation: 'Sixteenth + eighth + sixteenth',                  counting: '1 e   a',      level: 3, category: 'Sixteenth Notes' },
+  // ── Level 3: Sixteenth note groups (2 beams for 16ths, 1 beam for 8ths) ──
+  { id: 'ssss',   name: 'Four Sixteenths',      slots: [1,1,1,1], notation: 'Four notes connected by TWO beams across all four.',                          counting: '1 e + a',       level: 3, category: 'Sixteenth Notes', beams: [[0,3,2]] },
+  { id: 'ess',    name: 'Eighth + Two 16ths',   slots: [1,0,1,1], notation: 'ONE beam across all three notes. SECOND beam only on the last two (the 16ths).', counting: '1   + a',   level: 3, category: 'Sixteenth Notes', beams: [[0,3,1],[2,3,2]] },
+  { id: 'sse',    name: 'Two 16ths + Eighth',   slots: [1,1,1,0], notation: 'ONE beam across all three notes. SECOND beam only on the first two (the 16ths).', counting: '1 e +',    level: 3, category: 'Sixteenth Notes', beams: [[0,2,1],[0,1,2]] },
+  { id: 'ses',    name: '16th+8th+16th',        slots: [1,1,0,1], notation: 'ONE beam across all. Partial SECOND beams on the two outer 16ths only.',      counting: '1 e   a',      level: 3, category: 'Sixteenth Notes', beams: [[0,3,1],[0,0,2],[3,3,2]] },
 
   // ── Level 4: Rests within sixteenths ──
-  { id: 'rss',    name: '16th Rest + Three',    slots: [0,1,1,1], notation: '16th rest + three sixteenths beamed',             counting: '(1) e + a',    level: 4, category: '16th Rests' },
-  { id: 'srs',    name: '16th + Rest + Two',    slots: [1,0,1,1], notation: 'Same as eighth+two 16ths visually',              counting: '1   + a',       level: 4, category: '16th Rests' },
-  { id: 'ssr',    name: 'Three + 16th Rest',    slots: [1,1,1,0], notation: 'Three sixteenths + 16th rest',                    counting: '1 e + (a)',    level: 4, category: '16th Rests' },
-  { id: 'srsr',   name: 'Alternating',          slots: [1,0,1,0], notation: 'Two eighths (same as "ee")',                      counting: '1   +',         level: 4, category: '16th Rests' },
-  { id: 'rsrs',   name: 'Offbeat Alternating',  slots: [0,1,0,1], notation: 'Two sixteenths on "e" and "a"',                  counting: '  e   a',       level: 4, category: '16th Rests' },
+  { id: 'rss',    name: '16th Rest + Three',    slots: [0,1,1,1], notation: '16th rest then three sixteenths with TWO beams.',                             counting: '(1) e + a',    level: 4, category: '16th Rests', beams: [[1,3,2]] },
+  { id: 'srs',    name: '16th + Rest + Two',    slots: [1,0,1,1], notation: 'Sixteenth (with flag), rest, then two beamed sixteenths.',                    counting: '1   + a',       level: 4, category: '16th Rests', beams: [[2,3,2]] },
+  { id: 'ssr',    name: 'Three + 16th Rest',    slots: [1,1,1,0], notation: 'Three sixteenths with TWO beams, then 16th rest.',                            counting: '1 e + (a)',    level: 4, category: '16th Rests', beams: [[0,2,2]] },
+  { id: 'srsr',   name: 'Alternating',          slots: [1,0,1,0], notation: 'Two eighths — same look as "ee". ONE beam.',                                  counting: '1   +',         level: 4, category: '16th Rests', beams: [[0,2,1]] },
+  { id: 'rsrs',   name: 'Offbeat Alternating',  slots: [0,1,0,1], notation: 'Two sixteenths on "e" and "a" — each with a flag (not beamed to each other).', counting: '  e   a',     level: 4, category: '16th Rests', beams: [] },
 
   // ── Level 5: Dotted and triplets ──
-  { id: 'dq',     name: 'Dotted Quarter',       slots: [1,0,0,0], notation: 'Filled note with dot — 1½ beats (spans into next beat)', counting: '1 (+)',  level: 5, category: 'Dotted & Triplets' },
-  { id: 'de-s',   name: 'Dotted 8th + 16th',   slots: [1,0,0,1], notation: 'Long-short pattern (dotted eighth + sixteenth)',  counting: '1     a',       level: 5, category: 'Dotted & Triplets' },
-  { id: 's-de',   name: '16th + Dotted 8th',    slots: [1,1,0,0], notation: 'Short-long pattern (sixteenth + dotted eighth)',  counting: '1 e',           level: 5, category: 'Dotted & Triplets' },
-  { id: 'trip',   name: 'Eighth-Note Triplet',  slots: [1,1,1,0], notation: 'Three notes with "3" bracket — 3 in the time of 2', counting: '1-trip-let', level: 5, category: 'Dotted & Triplets' },
+  { id: 'dq',     name: 'Dotted Quarter',       slots: [1,0,0,0], notation: 'Filled note with a dot beside it — 1½ beats. No flag, no beam.',              counting: '1 (+)',         level: 5, category: 'Dotted & Triplets', beams: [] },
+  { id: 'de-s',   name: 'Dotted 8th + 16th',   slots: [1,0,0,1], notation: 'ONE beam across both. Short SECOND beam only on the last note (the 16th).',   counting: '1     a',       level: 5, category: 'Dotted & Triplets', beams: [[0,3,1],[3,3,2]] },
+  { id: 's-de',   name: '16th + Dotted 8th',    slots: [1,1,0,0], notation: 'ONE beam across both. Short SECOND beam only on the first note (the 16th).',  counting: '1 e',           level: 5, category: 'Dotted & Triplets', beams: [[0,1,1],[0,0,2]] },
+  { id: 'trip',   name: 'Eighth-Note Triplet',  slots: [1,1,1,0], notation: 'Three notes with ONE beam and a "3" bracket above. NOT sixteenths!',          counting: '1-trip-let',    level: 5, category: 'Dotted & Triplets', beams: [] },
 ]
 
 // Group by category
@@ -93,73 +98,58 @@ function CellNotation({ cell, highlight = -1, size = 'normal' }: { cell: RhythmC
   const stemH = size === 'large' ? 18 : 14
   const noteR = size === 'large' ? 5 : 3.5
 
-  // Determine beaming
   const attacks = cell.slots.map((s, i) => s === 1 ? i : -1).filter(i => i >= 0)
-
-  // Is this an eighth-note pair? (slots 0,2 filled)
-  const isEighthPair = cell.id === 'ee' || cell.id === 'srsr'
-  // Is this all four sixteenths?
-  const isAllSixteenths = attacks.length >= 3 && !isEighthPair && cell.level >= 3
   const isTriplet = cell.id === 'trip'
+
+  // Collect all slots that participate in any beam (for stem drawing)
+  const beamedSlots = new Set<number>()
+  for (const [s, e] of cell.beams) {
+    for (let i = s; i <= e; i++) { if (cell.slots[i] === 1) beamedSlots.add(i) }
+  }
+  // Triplet notes are also beamed
+  if (isTriplet) attacks.forEach(i => beamedSlots.add(i))
+
+  const beamY = noteY - stemH
 
   return (
     <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`}>
       {/* Staff line */}
       <line x1={2} y1={staffY} x2={w - 2} y2={staffY} stroke="#2d3748" strokeWidth={0.8} />
 
-      {/* Beat subdivision ticks */}
+      {/* Highlight backgrounds */}
       {[0,1,2,3].map(i => {
-        const x = i * noteW + noteW / 2
         const isHl = highlight === i
-        return (
-          <g key={i}>
-            {/* Highlight bg */}
-            {isHl && <rect x={i * noteW + 1} y={0} width={noteW - 2} height={h} fill="#7c3aed" opacity={0.15} rx={3} />}
-          </g>
-        )
+        return isHl ? <rect key={i} x={i * noteW + 1} y={0} width={noteW - 2} height={h} fill="#7c3aed" opacity={0.15} rx={3} /> : null
       })}
 
-      {/* Beams between attacks */}
-      {attacks.length >= 2 && !isTriplet && (() => {
-        const beamY = noteY - stemH
+      {/* Stems for beamed notes */}
+      {attacks.filter(i => beamedSlots.has(i)).map(i => {
+        const x = i * noteW + noteW / 2 + noteR
+        return <line key={`stem-${i}`} x1={x} y1={noteY} x2={x} y2={beamY} stroke="#c8d0d8" strokeWidth={1} />
+      })}
+
+      {/* Beams from explicit definitions */}
+      {cell.beams.map(([s, e, count], bi) => {
+        // For beam count 1: draw at beamY. For beam count 2: draw at beamY+4 (the second beam line)
+        const bLineY = count === 2 ? beamY + 4 : beamY
+        // Find actual note positions for start and end
+        const sx = s * noteW + noteW / 2 + noteR
+        const ex = e * noteW + noteW / 2 + noteR
+        // If start===end, it's a partial beam (flag-like stub)
+        const stubLen = size === 'large' ? 8 : 5
+        const x1 = sx
+        const x2 = s === e ? sx + stubLen : ex
+        return <line key={`beam-${bi}`} x1={x1} y1={bLineY} x2={x2} y2={bLineY} stroke="#c8d0d8" strokeWidth={2.5} strokeLinecap="round" />
+      })}
+
+      {/* Triplet: one beam + bracket with "3" */}
+      {isTriplet && attacks.length >= 2 && (() => {
         const x1 = attacks[0] * noteW + noteW / 2 + noteR
         const x2 = attacks[attacks.length - 1] * noteW + noteW / 2 + noteR
-
-        // Single beam (eighths) or double beam (sixteenths)
-        const beamCount = isEighthPair ? 1 : isAllSixteenths ? 2 : 1
-        return (
-          <g>
-            {/* Stems to beam */}
-            {attacks.map(i => {
-              const x = i * noteW + noteW / 2 + noteR
-              return <line key={`s${i}`} x1={x} y1={noteY} x2={x} y2={beamY} stroke="#c8d0d8" strokeWidth={1} />
-            })}
-            {/* Beams */}
-            {Array.from({ length: beamCount }).map((_, b) => (
-              <line key={`b${b}`} x1={x1} y1={beamY + b * 4} x2={x2} y2={beamY + b * 4} stroke="#c8d0d8" strokeWidth={2.5} strokeLinecap="round" />
-            ))}
-            {/* Partial beams for mixed patterns like ess, sse */}
-            {cell.id === 'ess' && <line x1={(2 * noteW + noteW/2 + noteR)} y1={beamY + 4} x2={(3 * noteW + noteW/2 + noteR)} y2={beamY + 4} stroke="#c8d0d8" strokeWidth={2.5} strokeLinecap="round" />}
-            {cell.id === 'sse' && <line x1={(0 * noteW + noteW/2 + noteR)} y1={beamY + 4} x2={(1 * noteW + noteW/2 + noteR)} y2={beamY + 4} stroke="#c8d0d8" strokeWidth={2.5} strokeLinecap="round" />}
-          </g>
-        )
-      })()}
-
-      {/* Triplet bracket */}
-      {isTriplet && (() => {
-        const x1 = attacks[0] * noteW + noteW / 2
-        const x2 = attacks[attacks.length - 1] * noteW + noteW / 2
-        const by = noteY - stemH - 4
-        return (
-          <g>
-            {attacks.map(i => {
-              const x = i * noteW + noteW / 2 + noteR
-              return <line key={`s${i}`} x1={x} y1={noteY} x2={x} y2={noteY - stemH} stroke="#c8d0d8" strokeWidth={1} />
-            })}
-            <line x1={x1} y1={noteY - stemH} x2={x2 + noteR * 2} y2={noteY - stemH} stroke="#c8d0d8" strokeWidth={2.5} strokeLinecap="round" />
-            <text x={(x1 + x2) / 2 + noteR} y={by} textAnchor="middle" fill="#d97706" fontSize={size === 'large' ? 11 : 8} fontWeight="bold" fontFamily="system-ui">3</text>
-          </g>
-        )
+        return <g>
+          <line x1={x1} y1={beamY} x2={x2} y2={beamY} stroke="#c8d0d8" strokeWidth={2.5} strokeLinecap="round" />
+          <text x={(x1 + x2) / 2} y={beamY - 5} textAnchor="middle" fill="#d97706" fontSize={size === 'large' ? 11 : 8} fontWeight="bold" fontFamily="system-ui">3</text>
+        </g>
       })()}
 
       {/* Noteheads */}
@@ -172,12 +162,20 @@ function CellNotation({ cell, highlight = -1, size = 'normal' }: { cell: RhythmC
           return (
             <g key={i}>
               <ellipse cx={x} cy={noteY} rx={noteR + 1} ry={noteR} fill={col} transform={`rotate(-12 ${x} ${noteY})`} />
-              {/* Solo stem for single notes or unbeamed */}
-              {attacks.length === 1 && <line x1={x + noteR} y1={noteY} x2={x + noteR} y2={noteY - stemH} stroke={col} strokeWidth={1} />}
+              {/* Solo stem + flag for unbeamed single notes */}
+              {!beamedSlots.has(i) && (
+                <g>
+                  <line x1={x + noteR} y1={noteY} x2={x + noteR} y2={noteY - stemH} stroke={col} strokeWidth={1} />
+                  {/* Flag for eighth notes (er, re patterns) */}
+                  {cell.level >= 2 && cell.level <= 2 && (
+                    <path d={`M ${x + noteR} ${noteY - stemH} C ${x + noteR + 8} ${noteY - stemH + 3} ${x + noteR + 7} ${noteY - stemH + 10} ${x + noteR + 1} ${noteY - stemH + 14}`}
+                      fill="none" stroke={col} strokeWidth={1.2} strokeLinecap="round" />
+                  )}
+                </g>
+              )}
             </g>
           )
         } else if (cell.slots.every(s => s === 0)) {
-          // Quarter rest (only on first slot)
           if (i === 0) {
             return (
               <path key={i}
