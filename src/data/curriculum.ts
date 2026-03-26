@@ -1966,6 +1966,504 @@ const module1Exercises: Exercise[] = [
 ];
 
 // ═══════════════════════════════════════════════════════════════════════════
+//  MODULE 2 — RHYTHM READING MASTERY
+// ═══════════════════════════════════════════════════════════════════════════
+
+const lesson_2_1_content: LessonBlock[] = [
+  {
+    type: 'text',
+    content: `# The Rhythm Cell Method
+
+Here's a secret that professional sight-readers know: **you don't read individual notes — you read patterns.**
+
+Just like you don't read words letter-by-letter (you see "drum" as one shape, not d-r-u-m), experienced musicians see groups of notes as single recognisable shapes. We call these shapes **rhythm cells**.
+
+---
+
+## What Is a Rhythm Cell?
+
+A rhythm cell is **one beat's worth of rhythm** — whatever fills the space between two beat clicks. In 4/4 time, each bar has exactly 4 cells.
+
+### The Building Blocks
+
+There are a limited number of ways to fill one beat:
+
+| Cell | What fills the beat | Number of attacks |
+|---|---|---|
+| Quarter note | One hit on the beat | 1 |
+| Quarter rest | Silence for the whole beat | 0 |
+| Two eighths | Hit on the beat AND the "and" | 2 |
+| Four sixteenths | Hit on every subdivision | 4 |
+| Dotted eighth + sixteenth | Long-short pattern | 2 |
+| Eighth-note triplet | Three evenly-spaced hits | 3 |
+
+Plus various combinations of these with rests.
+
+---
+
+## Why This Matters
+
+When you see a bar of music, you're not reading 16 individual sixteenth-note slots. You're reading **4 cells**. Your brain processes 4 things instead of 16.
+
+That Instagram video with 8 bars of increasing difficulty? Each bar is just 4 cells in a row. The difficulty comes from:
+1. **More complex cells** (sixteenth patterns instead of quarters)
+2. **Mixing different cell types** in one bar
+3. **Adding rests** inside cells
+
+---
+
+## Our Approach
+
+In this module, you'll learn to **instantly recognise** every common rhythm cell by:
+
+1. **Seeing** its shape on the staff
+2. **Hearing** how it sounds
+3. **Counting** it out loud
+4. **Playing** it at different tempos
+
+Once you can identify each cell, reading any rhythm is like reading words — fast and automatic.`,
+  },
+  {
+    type: 'quiz',
+    question: 'In 4/4 time, how many rhythm cells are in one bar?',
+    options: ['2', '4', '8', '16'],
+    correctIndex: 1,
+    explanation: 'In 4/4 time, there are 4 beats per bar. Each beat is one rhythm cell. A full bar = 4 cells in a row. Learning to read each cell as a single unit is the key to sight-reading.',
+  },
+];
+
+const lesson_2_2_content: LessonBlock[] = [
+  {
+    type: 'text',
+    content: `# Quarter Notes and Rests
+
+The simplest rhythm cells. One sound (or one silence) per beat.
+
+---
+
+## The Quarter Note Cell
+
+**Shape:** A filled oval notehead with a stem. No flags, no beams.
+
+**Sound:** One hit, exactly on the beat.
+
+**Count:** Just the beat number — "1" or "2" or "3" or "4."
+
+This is your home base. Every other rhythm cell is defined in relation to this one.
+
+---
+
+## The Quarter Rest Cell
+
+**Shape:** The distinctive zig-zag / lightning bolt symbol.
+
+**Sound:** Silence. You count the beat in your head but don't play.
+
+**Count:** "(1)" — say the number silently, or mouth it without playing.
+
+### Why Rests Are Hard
+
+Beginners think rests are easy because "you don't have to do anything." But rests are actually one of the hardest things in music! You must:
+- Keep your internal clock running
+- Resist the urge to fill the silence
+- Enter on the exact next beat after the rest
+
+> **Practice tip:** When you see a rest, keep your stick raised and ready. Physically hold still. Then drop it precisely on the next attack.
+
+---
+
+## Combining Them
+
+A bar like: **♩  ♩  𝄽  ♩** (quarter, quarter, rest, quarter)
+
+means: play on 1, play on 2, silence on 3, play on 4.
+
+Count: "1 — 2 — (3) — 4"
+
+The rest on beat 3 creates **tension**. Your ear expects a hit and doesn't get it. When beat 4 arrives, it feels like a resolution. This is how drummers create musical phrasing with silence.`,
+  },
+  {
+    type: 'quiz',
+    question: 'Why are rests considered difficult for beginners?',
+    options: [
+      'The rest symbol is hard to draw',
+      'You must keep time internally without playing and re-enter precisely',
+      'Rests make the music quieter',
+      'You need a special technique to play rests',
+    ],
+    correctIndex: 1,
+    explanation: 'Rests require you to maintain your internal pulse (keep counting) without the physical feedback of hitting the drum. Then you must re-enter exactly on the next note. This internal timekeeping is a core skill.',
+  },
+];
+
+const lesson_2_3_content: LessonBlock[] = [
+  {
+    type: 'text',
+    content: `# Eighth Note Cells
+
+Now we split each beat in half. Two attacks per beat.
+
+---
+
+## Two Eighth Notes (the "1 +" cell)
+
+**Shape:** Two noteheads connected by ONE horizontal beam.
+
+**Sound:** Two evenly-spaced hits — one on the beat, one halfway between beats.
+
+**Count:** "1 +" (one-and). The "+" is exactly halfway between beats.
+
+This is the most common cell in drum music. Hi-hat patterns, ride patterns, and fills are built on eighth notes.
+
+---
+
+## Eighth + Rest (the "1 +" → "1" cell)
+
+**Shape:** An eighth note (one flag or beam to nothing) + an eighth rest (small "7" shape).
+
+**Sound:** Hit on the beat, silence on the "and."
+
+**Count:** "1 (+)" — say "and" silently.
+
+This creates a **short, punchy** feel. Common in funk and reggae.
+
+---
+
+## Rest + Eighth (the upbeat cell)
+
+**Shape:** An eighth rest + an eighth note.
+
+**Sound:** Silence on the beat, hit on the "and."
+
+**Count:** "(1) +" — silence on the downbeat, play on the upbeat.
+
+This is **syncopation** — hitting between beats. It creates forward momentum and is the foundation of groove in funk, hip-hop, and jazz.
+
+> **This is where most beginners get confused.** The note comes AFTER the click, not on it. Practice this slowly with a metronome — the click is the silence, you play between clicks.
+
+---
+
+## Recognition Tips
+
+| Shape | What you see | Count |
+|---|---|---|
+| ♫ (two beamed) | Two noteheads, one beam | 1 + |
+| ♪ 𝄾 (note + rest) | Eighth note then gap | 1 (+) |
+| 𝄾 ♪ (rest + note) | Gap then eighth note | (+) + |
+
+Train yourself to see the BEAM as the clue. One beam = eighth notes. Two beams = sixteenths. No beam = quarter or longer.`,
+  },
+  {
+    type: 'quiz',
+    question: 'An eighth rest followed by an eighth note on the "and" creates what musical effect?',
+    options: ['A strong downbeat', 'Syncopation — hitting between beats', 'A triplet feel', 'A slow tempo'],
+    correctIndex: 1,
+    explanation: 'Playing on the "and" (upbeat) while resting on the beat (downbeat) is called syncopation. It creates the forward momentum that makes funk, jazz, and hip-hop grooves feel good.',
+  },
+];
+
+const lesson_2_4_content: LessonBlock[] = [
+  {
+    type: 'text',
+    content: `# Sixteenth Note Cells
+
+Four attacks per beat. This is where the vocabulary really expands.
+
+---
+
+## The Full Sixteenth Group: "1 e + a"
+
+**Shape:** Four noteheads connected by TWO horizontal beams.
+
+**Sound:** Four rapid, evenly-spaced hits within one beat.
+
+**Count:** "1-e-and-a" (one-ee-and-uh)
+
+At 100 BPM, that's ~6.7 hits per second. Start slow!
+
+---
+
+## The Key Partial Groups
+
+Here's where it gets interesting. By replacing some sixteenths with rests or combining them with eighths, you get distinctive rhythmic shapes:
+
+### Eighth + Two Sixteenths: "1   + a"
+**Shape:** One beam for the first half, two beams for the second half. The first note is held longer (an eighth), then two quick sixteenths.
+
+**Sound:** "DA-da-da" — long-short-short
+
+**Common in:** Rock fills, marching patterns
+
+### Two Sixteenths + Eighth: "1 e +"
+**Shape:** Two beams on the first half, one beam on the second half. Two quick sixteenths, then a longer eighth note.
+
+**Sound:** "da-da-DA" — short-short-long
+
+**Common in:** Latin rhythms, lead-ins to a beat
+
+### Sixteenth + Eighth + Sixteenth: "1 e   a"
+**Shape:** The middle note is longer than the surrounding ones. Complex beaming.
+
+**Sound:** "da-DA-da" — short-LONG-short. This creates a lopsided feel.
+
+**Common in:** Funk ghost note patterns
+
+---
+
+## How to Practice
+
+1. **Isolate one cell.** Pick "eighth + two sixteenths" and play ONLY that for 2 minutes.
+2. **Count out loud.** Say "1...plus-a, 2...plus-a, 3...plus-a, 4...plus-a" while playing.
+3. **Slow is smooth, smooth is fast.** 60 BPM feels stupid-slow but it's where you build accuracy.
+4. **Mix two cells.** Play "two eighths" on beats 1-2 and "four sixteenths" on beats 3-4. This trains cell transitions.
+
+---
+
+## The Visual Trick
+
+**Count the beams:**
+- **0 beams (no beam)** = quarter note (or longer)
+- **1 beam** = eighth notes
+- **2 beams** = sixteenth notes
+- **3 beams** = thirty-second notes (rare, don't worry yet)
+
+Beams tell you SPEED. More beams = faster subdivisions.`,
+  },
+  {
+    type: 'quiz',
+    question: 'You see four noteheads connected by two beams. What are they?',
+    options: ['Four quarter notes', 'Four eighth notes', 'Four sixteenth notes', 'A triplet'],
+    correctIndex: 2,
+    explanation: 'Two beams = sixteenth notes. One beam = eighth notes. No beam = quarter notes. The number of beams tells you the speed of the subdivision. Four sixteenths = 4 hits within one beat.',
+  },
+];
+
+const lesson_2_5_content: LessonBlock[] = [
+  {
+    type: 'text',
+    content: `# Dotted Rhythms and Triplets
+
+These cells break the "even division" rule and create swing, shuffle, and groove.
+
+---
+
+## Dotted Eighth + Sixteenth: The "Long-Short"
+
+**Shape:** A note with a dot + a single sixteenth note. The dot makes the eighth note 75% of the beat, leaving 25% for the short sixteenth.
+
+**Sound:** "DAAH-da" — a long note followed by a quick one.
+
+**Count:** "1.....a" — you hit on "1" and the next hit doesn't come until "a" (the last sixteenth).
+
+**Where you hear it:** Marches, country music, swing at slower tempos. Think of the rhythm of the word "HUM-pty" (Humpty Dumpty).
+
+---
+
+## Sixteenth + Dotted Eighth: The "Short-Long"
+
+**Shape:** A sixteenth note + a dotted eighth note. The opposite of above.
+
+**Sound:** "da-DAAH" — a quick pickup into a long note.
+
+**Count:** "1 e......" — hit on "1", quick hit on "e", then hold.
+
+This creates an **anticipation** feel — like leaning forward.
+
+---
+
+## Eighth-Note Triplets: Three in the Time of Two
+
+**Shape:** Three eighth notes under a bracket with a "3" above it.
+
+**Sound:** Three evenly-spaced hits that fill one beat — but NOT aligned to the sixteenth grid. They create their own special grid that divides the beat into thirds.
+
+**Count:** "1-trip-let" or "1-la-lee"
+
+**Where you hear it everywhere:**
+- **Blues shuffle** — the swing feel IS triplets
+- **Jazz** — swing rhythm is based on triplets
+- **Fill endings** — "ba-da-DUM" before a crash
+- **12/8 time** — the entire groove is triplet-based
+
+---
+
+## Why Triplets Feel Different
+
+Eighth notes divide the beat into **2 equal parts** (1 +).
+Triplets divide it into **3 equal parts** (1 trip let).
+
+Your brain has to shift from a binary (2-based) feel to a ternary (3-based) feel. This is a GEAR SHIFT. It takes practice.
+
+### Practice method:
+1. Clap steady quarter notes
+2. Now subdivide each beat into 3 equal claps: "1-trip-let, 2-trip-let, 3-trip-let, 4-trip-let"
+3. Alternate: 2 bars of eighth notes, then 2 bars of triplets
+4. The transition between them is the skill you're building
+
+---
+
+## Putting It All Together
+
+That Instagram image you saw? It mixes all of these cells:
+- Bar 1: Eighths and quarters (easy cells)
+- Bar 2: All-quarter cells (simple)
+- Bar 3: Triplets mixed with eighths
+- Bar 4: Sixteenth note groups
+- Bar 5-8: Increasingly complex mixtures
+
+The progression is: **learn each cell → combine them → increase speed → read anything.**`,
+  },
+  {
+    type: 'quiz',
+    question: 'Eighth-note triplets divide one beat into how many equal parts?',
+    options: ['2 parts', '3 parts', '4 parts', '6 parts'],
+    correctIndex: 1,
+    explanation: 'Triplets divide the beat into 3 equal parts, counted "1-trip-let." This is different from eighth notes (2 parts) and sixteenths (4 parts). The "3" bracket above the notes tells you it\'s a triplet.',
+  },
+];
+
+const lesson_2_6_content: LessonBlock[] = [
+  {
+    type: 'text',
+    content: `# Reading Multi-Bar Rhythms
+
+Now let's put cells together into bars and read full phrases.
+
+---
+
+## The 4-Cell Bar
+
+Every bar of 4/4 is: **Cell 1 + Cell 2 + Cell 3 + Cell 4**
+
+Example: ♫  ♩  𝅘𝅥𝅯𝅘𝅥𝅯𝅘𝅥𝅯𝅘𝅥𝅯  ♩
+
+That's: two-eighths + quarter + four-sixteenths + quarter
+
+Reading process:
+1. **Scan the bar** — identify each cell before you play
+2. **Count through** — "1-and, 2, 3-e-and-a, 4"
+3. **Play** at slow tempo first
+
+---
+
+## Common Patterns Across Bars
+
+### The "Groove Bar" (most rock/pop)
+Cell 1: quarter (kick)
+Cell 2: two-eighths (HH)
+Cell 3: quarter (kick)
+Cell 4: two-eighths (HH)
+
+### The "Fill Bar" (leading to a chorus/section)
+Cell 1-2: groove continues
+Cell 3-4: sixteenth runs on snare/toms
+
+### The "Syncopated Bar" (funk/R&B)
+Cell 1: upbeat-eighth
+Cell 2: two-eighths
+Cell 3: dotted-eighth + sixteenth
+Cell 4: quarter
+
+---
+
+## Multi-Bar Phrases
+
+In real music, rhythms come in **2-bar, 4-bar, and 8-bar phrases**:
+
+- **2-bar phrase:** A pattern that repeats every 2 bars (most grooves)
+- **4-bar phrase:** Often 3 bars of groove + 1 bar of fill
+- **8-bar phrase:** A full verse or chorus section
+
+### How to practice reading:
+1. **Preview the whole line** before playing — scan all bars
+2. **Look ahead** while playing — your eyes should be 1-2 beats ahead of your hands
+3. **Circle trouble spots** — if one cell is tricky, isolate and drill it
+4. **Loop the phrase** — play it 4x in a row until it's automatic
+
+---
+
+## The Speed Ladder
+
+For every new rhythm:
+1. Start at **60 BPM** — painfully slow, but you nail every note
+2. Increase by **5 BPM** when clean
+3. Target: being able to read it at **100+ BPM** fluently
+
+If you make mistakes, you went too fast. Drop back 10 BPM and rebuild.
+
+> **The goal is not to play fast. The goal is to read instantly.** Speed is a byproduct of recognition speed, not hand speed.`,
+  },
+  {
+    type: 'quiz',
+    question: 'When reading a new rhythm, your eyes should be:',
+    options: [
+      'Looking at the note you are currently playing',
+      '1-2 beats ahead of what you are currently playing',
+      'At the end of the bar',
+      'Closed — you should memorise it first',
+    ],
+    correctIndex: 1,
+    explanation: 'Good sight-readers keep their eyes 1-2 beats ahead of their hands. This gives your brain time to process the next cell before you need to play it. Looking at what you\'re currently playing means you\'re always reacting instead of anticipating.',
+  },
+];
+
+// ── Module 2 Lessons ──────────────────────────────────────────────────────────
+
+const module2Lessons: Lesson[] = [
+  { id: 'm2-l1', moduleId: 'module-2', title: 'The Rhythm Cell Method', order: 1, content: lesson_2_1_content, completed: false },
+  { id: 'm2-l2', moduleId: 'module-2', title: 'Quarter Notes and Rests', order: 2, content: lesson_2_2_content, completed: false },
+  { id: 'm2-l3', moduleId: 'module-2', title: 'Eighth Note Cells', order: 3, content: lesson_2_3_content, completed: false },
+  { id: 'm2-l4', moduleId: 'module-2', title: 'Sixteenth Note Cells', order: 4, content: lesson_2_4_content, completed: false },
+  { id: 'm2-l5', moduleId: 'module-2', title: 'Dotted Rhythms and Triplets', order: 5, content: lesson_2_5_content, completed: false },
+  { id: 'm2-l6', moduleId: 'module-2', title: 'Reading Multi-Bar Rhythms', order: 6, content: lesson_2_6_content, completed: false },
+];
+
+// ── Module 2 Exercises ────────────────────────────────────────────────────────
+
+const module2Exercises: Exercise[] = [
+  {
+    id: 'm2-e1', moduleId: 'module-2', title: 'Quarters and Rests',
+    description: 'Simple quarter notes with a rest on beat 3. Read the cells: note-note-rest-note.',
+    order: 1, patternData: PATTERN_QUARTER_REST, targetBpm: 80, timeSignature: [4, 4], bars: 4, difficulty: 2,
+  },
+  {
+    id: 'm2-e2', moduleId: 'module-2', title: 'Eighth Note Reading',
+    description: 'Read beamed eighth-note pairs on hi-hat with kick on beats.',
+    order: 2, patternData: PATTERN_EIGHTH_REST, targetBpm: 85, timeSignature: [4, 4], bars: 4, difficulty: 3,
+  },
+  {
+    id: 'm2-e3', moduleId: 'module-2', title: 'Sixteenth Note Group',
+    description: 'All four sixteenths on every beat. Count "1-e-+-a" on each beat.',
+    order: 3, patternData: PATTERN_SIXTEENTH_SNARE, targetBpm: 60, timeSignature: [4, 4], bars: 2, difficulty: 4,
+  },
+  {
+    id: 'm2-e4', moduleId: 'module-2', title: 'Mixed Cell Reading',
+    description: 'HH eighths + kick/snare quarters. Read three voices: two cell types.',
+    order: 4, patternData: PATTERN_BASIC_ROCK_BEAT, targetBpm: 85, timeSignature: [4, 4], bars: 4, difficulty: 4,
+  },
+  {
+    id: 'm2-e5', moduleId: 'module-2', title: 'Accents Within Cells',
+    description: 'Same eighth cells but with accent marks. Read > and play louder on marked notes.',
+    order: 5, patternData: PATTERN_ACCENT_SNARE, targetBpm: 80, timeSignature: [4, 4], bars: 4, difficulty: 4,
+  },
+  {
+    id: 'm2-e6', moduleId: 'module-2', title: 'Ghost + Accent Cells',
+    description: 'Ghost notes (soft) between accented backbeats. Full dynamic reading.',
+    order: 6, patternData: PATTERN_GHOST_SNARE, targetBpm: 75, timeSignature: [4, 4], bars: 4, difficulty: 6,
+  },
+  {
+    id: 'm2-e7', moduleId: 'module-2', title: 'Full Kit Multi-Bar',
+    description: 'Crash + HH eighths + snare backbeat + kick. Read all voices at once across 4 bars.',
+    order: 7, patternData: PATTERN_FULL_KIT_INTRO, targetBpm: 85, timeSignature: [4, 4], bars: 4, difficulty: 5,
+  },
+  {
+    id: 'm2-e8', moduleId: 'module-2', title: 'Tom Fill Reading',
+    description: 'Read a descending tom fill across T1, T2, Floor Tom. Three different staff positions.',
+    order: 8, patternData: PATTERN_TOM_FILL, targetBpm: 80, timeSignature: [4, 4], bars: 4, difficulty: 4,
+  },
+];
+
+// ═══════════════════════════════════════════════════════════════════════════
 //  EXPORTED MODULES
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -1993,10 +2491,23 @@ export const MODULE_1: Module = {
   },
 };
 
+export const MODULE_2: Module = {
+  id: 'module-2',
+  name: 'Rhythm Reading Mastery',
+  description:
+    'Master every rhythm cell: quarter/eighth/sixteenth combinations, rests, dotted rhythms, triplets. Read any rhythm on sight.',
+  order: 2,
+  lessons: module2Lessons,
+  exercises: module2Exercises,
+  unlockRequirements: {
+    requiredModuleComplete: 'module-1',
+  },
+};
+
 /**
  * Complete ordered list of all curriculum modules.
  */
-export const CURRICULUM: Module[] = [MODULE_0, MODULE_1];
+export const CURRICULUM: Module[] = [MODULE_0, MODULE_1, MODULE_2];
 
 /**
  * Look up a module by its ID.

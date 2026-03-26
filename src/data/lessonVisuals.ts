@@ -18,6 +18,7 @@ export interface LessonVisualEntry {
     | 'counting-guide'
     | 'rudiments-visual'
     | 'dotted-notes-visual'
+    | 'rhythm-builder'
   afterBlock: number
 }
 
@@ -96,4 +97,24 @@ export const LESSON_VISUALS: Record<string, LessonVisualEntry[]> = {
 
   // "Dynamics: Playing with Expression" — articulations guide (dynamics tab)
   'm1-l9': [{ component: 'drum-articulations', afterBlock: 0 }],
+
+  // ═══ MODULE 2 — RHYTHM READING MASTERY ═══
+
+  // "The Rhythm Cell Method" — rhythm builder explorer
+  'm2-l1': [{ component: 'rhythm-builder', afterBlock: 0 }],
+
+  // "Quarter Notes and Rests" — rhythm builder (quarter notes tab)
+  'm2-l2': [{ component: 'rhythm-builder', afterBlock: 0 }, { component: 'counting-guide', afterBlock: 0 }],
+
+  // "Eighth Note Cells" — rhythm builder (eighths tab) + beaming guide
+  'm2-l3': [{ component: 'rhythm-builder', afterBlock: 0 }, { component: 'beaming-guide', afterBlock: 0 }],
+
+  // "Sixteenth Note Cells" — rhythm builder (sixteenths tab) + beaming guide
+  'm2-l4': [{ component: 'rhythm-builder', afterBlock: 0 }, { component: 'beaming-guide', afterBlock: 0 }],
+
+  // "Dotted Rhythms and Triplets" — rhythm builder (dotted tab) + dotted notes visual
+  'm2-l5': [{ component: 'rhythm-builder', afterBlock: 0 }, { component: 'dotted-notes-visual', afterBlock: 0 }],
+
+  // "Reading Multi-Bar Rhythms" — rhythm builder + counting guide
+  'm2-l6': [{ component: 'rhythm-builder', afterBlock: 0 }, { component: 'counting-guide', afterBlock: 0 }],
 }

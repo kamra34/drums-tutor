@@ -16,6 +16,7 @@ import DrumArticulationsGuide from '../visuals/DrumArticulationsGuide'
 import CountingGuide from '../visuals/CountingGuide'
 import RudimentsVisual from '../visuals/RudimentsVisual'
 import DottedNotesVisual from '../visuals/DottedNotesVisual'
+import RhythmBuilderVisual from '../visuals/RhythmBuilderVisual'
 
 function escapeHtml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -137,6 +138,8 @@ function VisualComponent({ entry }: { entry: LessonVisualEntry }) {
       return <RudimentsVisual />
     case 'dotted-notes-visual':
       return <DottedNotesVisual />
+    case 'rhythm-builder':
+      return <RhythmBuilderVisual />
     default:
       return null
   }
