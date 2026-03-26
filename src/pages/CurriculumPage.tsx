@@ -11,9 +11,8 @@ export default function CurriculumPage() {
   const { user } = useAuthStore()
   const isAdmin = user?.role === 'admin'
   const location = useLocation()
-  // Allow breadcrumb links to pass which module to expand
-  const initialModule = (location.state as { expandModule?: string } | null)?.expandModule
-    ?? progress.currentModule
+  // Only expand a module if explicitly passed via breadcrumb navigation
+  const initialModule = (location.state as { expandModule?: string } | null)?.expandModule ?? null
   const [expandedModule, setExpandedModule] = useState<string | null>(initialModule)
 
   return (
