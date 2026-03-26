@@ -113,29 +113,37 @@ export default function TopNav() {
         </div>
 
         {/* Metronome button */}
-        <div className="flex items-center gap-0.5">
+        <div className="flex items-center gap-1">
           <button
             onClick={() => setMetronomeOpen(true)}
-            className={`relative flex items-center gap-2 py-1.5 rounded-lg border transition-all cursor-pointer ${
+            className={`relative flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all cursor-pointer ${
               metronomeRunning
-                ? 'bg-amber-500/10 border-amber-500/20 text-amber-400 pl-3 pr-2'
-                : 'bg-white/[0.03] border-white/[0.04] text-[#6b7280] hover:text-white hover:border-white/[0.08] px-3'
+                ? 'bg-amber-500/[0.08] border-amber-500/20 text-amber-400'
+                : 'bg-white/[0.03] border-white/[0.04] text-[#6b7280] hover:text-white hover:border-white/[0.08]'
             }`}
           >
+            {/* Metronome icon */}
             <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
               <path d="M12 2L8.5 21h7L12 2z" />
               <path d="M12 8l5-3" />
               <line x1="7" y1="21" x2="17" y2="21" />
             </svg>
             {metronomeRunning && (
-              <span className="text-[10px] font-mono font-bold tabular-nums">{metronomeBpm}</span>
+              <span className="text-[11px] font-mono font-bold tabular-nums">{metronomeBpm}</span>
+            )}
+            {/* Pulsing dot when playing */}
+            {metronomeRunning && (
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-50" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-400" />
+              </span>
             )}
           </button>
-          {/* Inline stop button when running */}
+          {/* Inline stop */}
           {metronomeRunning && (
             <button
               onClick={() => { stopGlobalMetronome(); useGlobalMetronomeStore.getState().setPlaying(false) }}
-              className="w-7 h-7 rounded-lg bg-white/[0.04] border border-white/[0.06] text-[#6b7280] hover:text-rose-400 hover:border-rose-500/20 flex items-center justify-center cursor-pointer transition-colors"
+              className="w-7 h-7 rounded-xl bg-white/[0.04] border border-white/[0.06] text-[#4b5563] hover:text-rose-400 hover:border-rose-500/20 flex items-center justify-center cursor-pointer transition-colors"
               title="Stop metronome"
             >
               <svg className="w-3 h-3" viewBox="0 0 12 12" fill="currentColor">

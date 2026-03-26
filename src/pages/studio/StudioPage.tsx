@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom'
 import { PatternData, HitValue } from '../../types/curriculum'
 import { DrumPad } from '../../types/midi'
 import EditableGrid from '../../components/studio/EditableGrid'
+import AiBuilderTab from '../../components/studio/AiBuilderTab'
 import StaffNotationDisplay from '../../components/shared/StaffNotationDisplay'
 import { apiSaveExercise, apiUpdateExercise, apiGetExercise, apiListExercises, apiDeleteExercise, DbExercise } from '../../services/apiClient'
 
@@ -36,9 +37,12 @@ function makeEmptyPattern(beats: number, subdivisions: number, bars: number): Pa
 
 // ── Studio Page ──────────────────────────────────────────────────────────────
 
+type StudioMode = 'create' | 'ai-builder' | 'scan'
+
 export default function StudioPage() {
   const { id: editId } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const [mode, setMode] = useState<StudioMode>('create')
 
   // Pattern settings
   const [title, setTitle] = useState('')
@@ -238,6 +242,26 @@ export default function StudioPage() {
   // Reset selected bar when bars count changes
   useEffect(() => { setSelectedBar(null) }, [bars])
 
+  // When AI builder generates a pattern, load it into the Create tab
+  function handleAiPatternGenerated(
+    aiPattern: PatternData,
+    aiTitle: string,
+    cfg: { bpm: number; bars: number; timeSig: [number, number]; difficulty: number; isAi: boolean }
+  ) {
+    setPattern(aiPattern)
+    setTitle(aiTitle)
+    setBpm(cfg.bpm)
+    setBars(cfg.bars)
+    setTimeSig(cfg.timeSig)
+    setSubdivisions(aiPattern.subdivisions)
+    setSavedId(null)
+
+    // Derive enabled pads from the generated pattern
+    const padsInUse = Object.keys(aiPattern.tracks) as DrumPad[]
+    const allPads = [...new Set([...DEFAULT_PADS, ...padsInUse])]
+    setEnabledPads(allPads)
+  }
+
   if (loadingEdit) {
     return (
       <div className="p-8 text-center text-[#6b7280]">Loading pattern...</div>
@@ -263,17 +287,29 @@ export default function StudioPage() {
           <p className="text-[#6b7280] text-base lg:text-lg max-w-xl">
             Create drum patterns from scratch. Click the grid to place hits, preview the notation, and save for practice.
           </p>
-          {/* Mode tabs (future: AI Builder, Scan) */}
+          {/* Mode tabs */}
           <div className="flex gap-2 mt-4">
-            <span className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-violet-500/15 text-violet-400 border border-violet-500/25">
-              Create
-            </span>
-            <span className="px-3 py-1.5 rounded-lg text-xs font-medium text-[#4b5563] bg-white/[0.03] border border-white/[0.04] cursor-not-allowed opacity-50" title="Coming soon">
-              AI Builder
-            </span>
-            <span className="px-3 py-1.5 rounded-lg text-xs font-medium text-[#4b5563] bg-white/[0.03] border border-white/[0.04] cursor-not-allowed opacity-50" title="Coming soon">
-              Scan
-            </span>
+            {([
+              { id: 'create' as StudioMode, label: 'Create', icon: '🎹', ready: true },
+              { id: 'ai-builder' as StudioMode, label: 'AI Builder', icon: '✨', ready: true },
+              { id: 'scan' as StudioMode, label: 'Scan', icon: '📷', ready: false },
+            ]).map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => tab.ready && setMode(tab.id)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                  mode === tab.id
+                    ? 'bg-violet-500/15 text-violet-400 border border-violet-500/25 font-semibold'
+                    : tab.ready
+                      ? 'text-[#6b7280] bg-white/[0.03] border border-white/[0.04] hover:text-white hover:bg-white/[0.05] cursor-pointer'
+                      : 'text-[#4b5563] bg-white/[0.03] border border-white/[0.04] cursor-not-allowed opacity-50'
+                }`}
+                disabled={!tab.ready}
+                title={!tab.ready ? 'Coming soon' : undefined}
+              >
+                <span className="mr-1">{tab.icon}</span>{tab.label}
+              </button>
+            ))}
           </div>
         </div>
       </div>
@@ -336,6 +372,14 @@ export default function StudioPage() {
 
         {/* ── Right: Editor area ── */}
         <div className="col-span-9 space-y-5">
+
+          {/* ═══ AI Builder mode ═══ */}
+          {mode === 'ai-builder' && (
+            <AiBuilderTab onPatternGenerated={handleAiPatternGenerated} />
+          )}
+
+          {/* ═══ Create mode ═══ */}
+          {mode === 'create' && (<>
           {/* ── Settings bar ── */}
           <div className="rounded-2xl p-5 border border-white/[0.04]" style={{
             background: 'linear-gradient(135deg, rgba(12,14,20,0.7) 0%, rgba(10,12,18,0.8) 100%)',
@@ -587,6 +631,23 @@ export default function StudioPage() {
               <span className="text-[11px] text-amber-400/60">Give your pattern a name to save it</span>
             )}
           </div>
+          </>)}
+
+          {/* ═══ AI Builder: save prompt when pattern generated ═══ */}
+          {mode === 'ai-builder' && hasNotes && (
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => { setMode('create') }}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium bg-violet-500/10 text-violet-400 border border-violet-500/20 hover:bg-violet-500/15 transition-colors cursor-pointer"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
+                </svg>
+                Edit & Save in Create
+              </button>
+              <span className="text-[11px] text-[#4b5563]">Switch to Create mode to edit the grid, name it, and save</span>
+            </div>
+          )}
         </div>
       </div>
     </div>

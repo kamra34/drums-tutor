@@ -300,7 +300,7 @@ export default function ReadingPracticePage() {
         // Build PatternData from AI response
         const subdivisions = config.noteValues.sixteenth ? 4 : config.noteValues.eighth ? 2 : 1
         const beats = config.timeSignature[0]
-        const totalSlots = beats * subdivisions
+        const totalSlots = beats * subdivisions * config.bars
         const tracks: PatternData['tracks'] = {}
         const padMap: Record<string, string> = {
           kick: 'kick', snare: 'snare', hihat_closed: 'hihat_closed',

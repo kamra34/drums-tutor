@@ -66,6 +66,13 @@ export async function loadDrumSamples(): Promise<void> {
 let _scheduledSources: AudioBufferSourceNode[] = []
 let _scheduledOscillators: OscillatorNode[] = []
 
+// Samples that need their duration capped (seconds) with a fade-out
+const SAMPLE_MAX_DURATION: Record<string, number> = {
+  crash: 2.0,
+  ride: 2.5,
+  rideBell: 2.0,
+}
+
 function playSample(name: string, vol: number, when?: number): void {
   const buffer = _bufferCache.get(name)
   if (!buffer) {
@@ -73,13 +80,25 @@ function playSample(name: string, vol: number, when?: number): void {
     return
   }
   const c = ctx()
+  const startTime = when ?? c.currentTime
   const source = c.createBufferSource()
   source.buffer = buffer
   const gain = c.createGain()
-  gain.gain.value = vol
+  gain.gain.setValueAtTime(vol, startTime)
+
   source.connect(gain)
   gain.connect(c.destination)
-  source.start(when ?? 0)
+  source.start(startTime)
+
+  // Apply fade-out for long samples (must be after start)
+  const maxDur = SAMPLE_MAX_DURATION[name]
+  if (maxDur && buffer.duration > maxDur) {
+    const fadeStart = startTime + maxDur - 0.3
+    const fadeEnd = startTime + maxDur
+    gain.gain.setValueAtTime(vol, fadeStart)
+    gain.gain.exponentialRampToValueAtTime(0.001, fadeEnd)
+    source.stop(fadeEnd)
+  }
   if (when !== undefined) {
     _scheduledSources.push(source)
     source.onended = () => {

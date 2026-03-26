@@ -3,7 +3,7 @@ import { ExerciseResult, UserProgress } from '../types/curriculum';
 
 const API_URL = 'https://api.anthropic.com/v1/messages';
 const ANTHROPIC_VERSION = '2023-06-01';
-const MODEL = 'claude-sonnet-4-6-20250514';
+const MODEL = 'claude-sonnet-4-6';
 
 // Content block types for the Anthropic API
 interface TextBlock {
@@ -321,7 +321,7 @@ You are generating a drum notation exercise. You have deep knowledge of what mak
 
 Return ONLY the JSON object requested — no explanation, no markdown, no extra text.`;
 
-      return await this.callApi(MODEL, systemPrompt, [{ role: 'user', content: prompt }], 1024);
+      return await this.callApi(MODEL, systemPrompt, [{ role: 'user', content: prompt }], 4096);
     } catch (err) {
       console.error('AI exercise generation failed:', err);
       throw err;

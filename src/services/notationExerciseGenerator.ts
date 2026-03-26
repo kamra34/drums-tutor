@@ -182,12 +182,14 @@ export const PRESETS: { id: string; name: string; description: string; icon: str
 
 export function generateExercise(config: ExerciseConfig, seed?: number): PatternData {
   const rng = createRng(seed ?? Math.floor(Math.random() * 999999))
-  const { noteValues, instruments, timeSignature, difficulty, includeRests, includeSyncopation, includeDynamics } = config
+  const { noteValues, instruments, timeSignature, difficulty, includeRests, includeSyncopation, includeDynamics, bars } = config
 
   // Determine grid resolution
   const subdivisions = noteValues.sixteenth ? 4 : noteValues.eighth ? 2 : 1
   const beats = timeSignature[0]
-  const totalSlots = beats * subdivisions
+  const slotsPerBar = beats * subdivisions
+  const numBars = bars ?? 1
+  const totalSlots = slotsPerBar * numBars
 
   const tracks: Partial<Record<DrumPad, HitValue[]>> = {}
 
@@ -218,23 +220,25 @@ export function generateExercise(config: ExerciseConfig, seed?: number): Pattern
     const arr: HitValue[] = new Array<HitValue>(totalSlots).fill(0)
 
     if (noteValues.eighth || noteValues.sixteenth) {
-      // Eighth note pattern on timekeeper
       const step = noteValues.sixteenth ? 1 : subdivisions >= 2 ? 1 : 2
       for (let i = 0; i < totalSlots; i += step) {
         if (subdivisions >= 2 && i % 2 === 0) arr[i] = 1
         else if (subdivisions >= 4) arr[i] = 1
         else if (i % subdivisions === 0) arr[i] = 1
       }
-      // Add some open hi-hat if enabled
-      if (instruments.hihatOpen && rng() > 0.5) {
-        const openSlot = (beats - 1) * subdivisions + subdivisions - 1 // "and" of last beat
-        arr[openSlot] = 0 // remove closed
+      // Add some open hi-hat if enabled (on last beat of random bars)
+      if (instruments.hihatOpen) {
         const openArr: HitValue[] = new Array(totalSlots).fill(0)
-        openArr[openSlot] = 1
-        tracks[DrumPad.HiHatOpen] = openArr
+        for (let bar = 0; bar < numBars; bar++) {
+          if (rng() > 0.5) {
+            const openSlot = bar * slotsPerBar + (beats - 1) * subdivisions + subdivisions - 1
+            arr[openSlot] = 0
+            openArr[openSlot] = 1
+          }
+        }
+        if (openArr.some(v => v > 0)) tracks[DrumPad.HiHatOpen] = openArr
       }
     } else {
-      // Quarter notes
       for (let i = 0; i < totalSlots; i += subdivisions) arr[i] = 1
     }
     tracks[tk] = arr
@@ -247,25 +251,27 @@ export function generateExercise(config: ExerciseConfig, seed?: number): Pattern
       preferDownbeats: true,
       includeRests,
       includeSyncopation,
-      includeDynamics: false, // kick is rarely accented/ghosted
+      includeDynamics: false,
     })
   }
 
   // Snare pattern
   if (pads.includes(DrumPad.Snare)) {
     const snareArr: HitValue[] = new Array(totalSlots).fill(0)
-    // Standard backbeat (2, 4) if difficulty >= 3
     if (difficulty >= 3 && beats >= 4) {
-      snareArr[1 * subdivisions] = includeDynamics && rng() > 0.5 ? 2 : 1 // beat 2
-      snareArr[3 * subdivisions] = includeDynamics && rng() > 0.5 ? 2 : 1 // beat 4
-      // Ghost notes between backbeats
+      // Backbeat on 2 and 4 in every bar
+      for (let bar = 0; bar < numBars; bar++) {
+        const offset = bar * slotsPerBar
+        snareArr[offset + 1 * subdivisions] = includeDynamics && rng() > 0.5 ? 2 : 1
+        snareArr[offset + 3 * subdivisions] = includeDynamics && rng() > 0.5 ? 2 : 1
+      }
+      // Ghost notes
       if (includeDynamics && difficulty >= 5) {
         for (let i = 0; i < totalSlots; i++) {
           if (snareArr[i] === 0 && rng() < 0.2) snareArr[i] = 3
         }
       }
     } else {
-      // Simple: snare on some beats
       Object.assign(snareArr, generateRhythmicTrack(totalSlots, subdivisions, rng, {
         density: baseDensity * 0.5,
         preferDownbeats: true,
@@ -290,19 +296,22 @@ export function generateExercise(config: ExerciseConfig, seed?: number): Pattern
     }
   }
 
-  // Crash (typically beat 1 only)
+  // Crash (typically beat 1 of first bar, optionally other bars)
   if (pads.includes(DrumPad.CrashCymbal)) {
     const arr: HitValue[] = new Array<HitValue>(totalSlots).fill(0)
-    if (rng() > 0.3) arr[0] = 2 // accent on beat 1
+    if (rng() > 0.3) arr[0] = 2
     tracks[DrumPad.CrashCymbal] = arr
   }
 
-  // HH Pedal (beats 2 and 4 in jazz)
+  // HH Pedal (beats 2 and 4 in every bar)
   if (pads.includes(DrumPad.HiHatPedal)) {
     const arr: HitValue[] = new Array<HitValue>(totalSlots).fill(0)
     if (beats >= 4) {
-      arr[1 * subdivisions] = 1
-      arr[3 * subdivisions] = 1
+      for (let bar = 0; bar < numBars; bar++) {
+        const offset = bar * slotsPerBar
+        arr[offset + 1 * subdivisions] = 1
+        arr[offset + 3 * subdivisions] = 1
+      }
     }
     tracks[DrumPad.HiHatPedal] = arr
   }
@@ -376,7 +385,8 @@ export function buildAiExercisePrompt(config: ExerciseConfig): string {
     .map(([k]) => k)
 
   const subdivisions = config.noteValues.sixteenth ? 4 : config.noteValues.eighth ? 2 : 1
-  const totalSlots = config.timeSignature[0] * subdivisions
+  const slotsPerBar = config.timeSignature[0] * subdivisions
+  const totalSlots = slotsPerBar * config.bars
 
   // Build instrument guide based on what's enabled
   const instrumentGuide: string[] = []
@@ -424,25 +434,32 @@ ${difficultyGuide}
 ${instrumentGuide.join('\n')}
 
 ## Notation Rules
-- Each track array must have EXACTLY ${totalSlots} elements (${config.timeSignature[0]} beats × ${subdivisions} subdivisions)
+- Each track array must have EXACTLY ${totalSlots} elements (${config.bars} bar${config.bars > 1 ? 's' : ''} × ${config.timeSignature[0]} beats × ${subdivisions} subdivisions = ${totalSlots} slots total)
+- The array represents ALL ${config.bars} bars concatenated: slots 0-${slotsPerBar - 1} = bar 1, slots ${slotsPerBar}-${slotsPerBar * 2 - 1} = bar 2${config.bars > 2 ? ', and so on' : ''}
+- CRITICAL: You MUST place notes throughout ALL ${config.bars} bars, not just the first bar. Every bar must have musical content — DO NOT leave later bars empty or silent.${config.bars > 1 ? ` Vary the pattern slightly across bars to make it interesting (e.g. small fill in bar ${config.bars}, variation in bar 2).` : ''}
 - Values: 0 = rest/silence, 1 = normal hit, 2 = accent (louder), 3 = ghost note (softer)
 - ${!config.includeDynamics ? 'Only use 0 and 1 (no accents or ghosts since dynamics are disabled).' : 'Use the full range 0-3 for musical expression.'}
 - The pattern must be musically valid — something a real drummer would actually play
 - Kick + snare should form a coherent groove together
-- Cymbal patterns (hi-hat/ride) should be consistent timekeeping, not random
+- Cymbal patterns (hi-hat/ride) should be consistent timekeeping throughout ALL bars, not random
 ${config.instruments.crash ? '- Crash cymbal: use VERY sparingly — typically only on beat 1 of the first bar or at section transitions' : ''}
 ${config.instruments.tom1 || config.instruments.tom2 || config.instruments.floorTom ? '- Toms: use for fills or color, not constant patterns. A fill typically descends: tom1 → tom2 → floor_tom' : ''}
 ${config.aiPrompt ? `\n## Special Instruction from Student\n${config.aiPrompt}` : ''}
 
 ## Output Format
-Return ONLY a JSON object, no explanation, no markdown fences:
+Return ONLY a JSON object, no explanation, no markdown fences.
+Each array must have exactly ${totalSlots} values — fill ALL of them with musical content across all ${config.bars} bars:
 {
   "title": "short descriptive title (3-6 words)",
   "description": "1-sentence description of the musical feel/style",
   "tracks": {
 ${instruments.map(i => {
     const key = i === 'hihatClosed' ? 'hihat_closed' : i === 'hihatOpen' ? 'hihat_open' : i === 'floorTom' ? 'floor_tom' : i === 'hihatPedal' ? 'hihat_pedal' : i
-    return `    "${key}": [${Array(totalSlots).fill('...').join(',')}]`
+    // Show bar boundaries in the template to guide the AI
+    const barSlots = Array.from({ length: config.bars }, (_, bar) =>
+      Array(slotsPerBar).fill('...').join(',')
+    ).join(', ')
+    return `    "${key}": [${barSlots}]`
   }).join(',\n')}
   }
 }`
