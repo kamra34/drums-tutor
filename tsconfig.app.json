@@ -16,6 +16,14 @@
     "noEmit": true,
     "jsx": "react-jsx",
 
+    /* Path aliases */
+    "baseUrl": ".",
+    "paths": {
+      "@shared/*": ["src/shared/*"],
+      "@drums/*": ["src/drums/*"],
+      "@piano/*": ["src/piano/*"]
+    },
+
     /* Linting */
     "strict": true,
     "noFallthroughCasesInSwitch": true

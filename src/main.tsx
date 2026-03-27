@@ -2,7 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
-import { loadDrumSamples } from './services/drumSounds'
+import { loadDrumSamples } from '@drums/services/drumSounds'
 
 // Preload drum samples on first user interaction (AudioContext needs gesture).
 // Awaiting ensures samples are decoded and ready before first playback.

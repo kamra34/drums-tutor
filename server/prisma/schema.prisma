@@ -78,6 +78,7 @@ model Exercise {
   tags           String[] @default([])
   isBuiltin      Boolean  @default(false) @map("is_builtin")
   isAiGenerated  Boolean  @default(false) @map("is_ai_generated")
+  instrument     String   @default("drums") // "drums" | "piano"
 
   createdAt DateTime @default(now()) @map("created_at")
 
@@ -88,6 +89,7 @@ model Exercise {
   @@index([userId])
   @@index([category])
   @@index([isBuiltin])
+  @@index([instrument])
   @@map("exercises")
 }
 
@@ -117,6 +119,7 @@ model PracticeSession {
 
   // What mode was this
   practiceMode String @default("exercise") @map("practice_mode") // exercise, reading, beats, rudiments, fills, freeplay
+  instrument   String @default("drums") // "drums" | "piano"
 
   // Relations
   user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -125,6 +128,7 @@ model PracticeSession {
   @@index([userId])
   @@index([exerciseId])
   @@index([userId, startedAt])
+  @@index([userId, instrument])
   @@map("practice_sessions")
 }
 
@@ -135,8 +139,9 @@ model PracticeSession {
 model ChatConversation {
   id        String   @id @default(cuid())
   userId    String   @map("user_id")
-  title     String   @default("New conversation")
-  createdAt DateTime @default(now()) @map("created_at")
+  title      String   @default("New conversation")
+  instrument String   @default("drums") // "drums" | "piano"
+  createdAt  DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
   user     User           @relation(fields: [userId], references: [id], onDelete: Cascade)
