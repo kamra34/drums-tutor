@@ -76,7 +76,7 @@ export default function ChatPage() {
 
   const {
     apiKey, isConfigured,
-    conversations, activeConversationId, conversationsLoaded,
+    conversations, activeConversationId,
     isLoading, followups,
     loadConversations, newConversation, setActiveConversation,
     addMessage, syncMessage, updateConversationTitle, deleteConversation,
@@ -137,7 +137,7 @@ export default function ChatPage() {
         studentLevel: avgSkill >= 75 ? 'advanced' : avgSkill >= 45 ? 'intermediate' : 'beginner',
         currentModule: progress.currentModule,
         instrument,
-        skillProfile: progress.skillProfile,
+        skillProfile: progress.skillProfile as any,
         chatHistory: currentMessages,
       }, userMsg.image)
 
