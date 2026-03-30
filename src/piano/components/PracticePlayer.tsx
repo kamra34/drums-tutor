@@ -131,13 +131,26 @@ function NotationWithGrid({ eventsRH, eventsLH, activeIdxRH, activeIdxLH, timeSi
 }) {
   const hasBothHands = eventsLH.length > 0
   const mainEvents = eventsRH.length > 0 ? eventsRH : eventsLH
-  const sp = large ? 56 : 48, lp = 70
+  const sp = large ? 68 : 58, lp = 70
   const totalW = lp + mainEvents.length * sp + 40
   const lg = large ? 12 : 10
   const staffH = large ? 140 : 120
   const grandStaffH = hasBothHands ? staffH * 2 + 20 : staffH
-  const gridH = large ? 44 : 38
+  const gridH = large ? 56 : 48
   const svgH = grandStaffH + gridH
+
+  // Auto-scroll to keep active note in view
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const activeCol = activeIdxRH >= 0 ? activeIdxRH : (activeIdxLH >= 0 ? activeIdxLH : -1)
+  useEffect(() => {
+    if (activeCol >= 0 && scrollRef.current) {
+      const activeX = lp + activeCol * sp
+      const container = scrollRef.current
+      const containerW = container.clientWidth
+      const scrollTarget = activeX - containerW / 3
+      container.scrollTo({ left: Math.max(0, scrollTarget), behavior: 'smooth' })
+    }
+  }, [activeCol, sp])
 
   const tTop = large ? 38 : 30
   const tLines = [0,1,2,3,4].map(i => tTop + i * lg)
@@ -221,7 +234,7 @@ function NotationWithGrid({ eventsRH, eventsLH, activeIdxRH, activeIdxLH, timeSi
   }
 
   return (
-    <div className="overflow-x-auto">
+    <div className="overflow-x-auto" ref={scrollRef} style={{ scrollBehavior: 'smooth' }}>
       <svg viewBox={`0 0 ${totalW} ${svgH}`} width={totalW} height={svgH} className="block min-w-full">
         {/* Treble staff */}
         {tLines.map((y, i) => <line key={`t${i}`} x1={10} y1={y} x2={totalW - 10} y2={y} stroke="#2d3748" strokeWidth={0.8} />)}
@@ -259,22 +272,22 @@ function NotationWithGrid({ eventsRH, eventsLH, activeIdxRH, activeIdxLH, timeSi
           const isLHAct = lhInfo ? lhInfo.idx === activeIdxLH : false
           const isAct = isRHAct || isLHAct
           const isPast = activeIdxRH >= 0 && i < activeIdxRH
-          const cellW = sp - 4, cellH = gridH - 8, cellX = x - cellW / 2, cellY = gridY + 4
+          const cellW = sp - 6, cellH = gridH - 8, cellX = x - cellW / 2, cellY = gridY + 4
           const rhLabel = ev.type === 'chord' ? ev.name : ev.note
-          // Show LH label if an LH event STARTS at this column
           const lhStartsHere = lhEventAtRHColumn(i)
           const lhLabel = lhStartsHere ? (lhStartsHere.type === 'chord' ? lhStartsHere.name : lhStartsHere.note) : null
           const showBothLabels = lhLabel && lhLabel !== rhLabel
 
-          return (<g key={`grid${i}`} className="cursor-pointer" onClick={() => onClickNote(i)} opacity={isPast ? 0.3 : 1}>
-            <rect x={cellX} y={cellY} width={cellW} height={cellH} rx={6}
-              fill={isAct ? 'rgba(167,139,250,0.15)' : 'rgba(255,255,255,0.02)'}
-              stroke={isAct ? 'rgba(167,139,250,0.4)' : 'rgba(255,255,255,0.04)'} strokeWidth={isAct ? 1.5 : 0.5} />
-            {isAct && <rect x={cellX} y={cellY} width={cellW} height={cellH} rx={6} fill="none" stroke="#a78bfa" strokeWidth={1.5} opacity={0.3}><animate attributeName="opacity" values="0.3;0.1;0.3" dur="0.6s" repeatCount="indefinite" /></rect>}
+          return (<g key={`grid${i}`} className="cursor-pointer" onClick={() => onClickNote(i)} opacity={isPast ? 0.25 : 1}>
+            {/* Cell background */}
+            <rect x={cellX} y={cellY} width={cellW} height={cellH} rx={8}
+              fill={isAct ? 'rgba(167,139,250,0.18)' : 'rgba(255,255,255,0.035)'}
+              stroke={isAct ? 'rgba(167,139,250,0.5)' : 'rgba(255,255,255,0.07)'} strokeWidth={isAct ? 2 : 1} />
+            {isAct && <rect x={cellX} y={cellY} width={cellW} height={cellH} rx={8} fill="none" stroke="#a78bfa" strokeWidth={2} opacity={0.4}><animate attributeName="opacity" values="0.4;0.15;0.4" dur="0.6s" repeatCount="indefinite" /></rect>}
             {showBothLabels ? <>
-              <text x={x} y={cellY + cellH / 2 - 1} textAnchor="middle" fontSize={large ? 10 : 9} fontWeight={isAct ? 700 : 500} fill={isRHAct ? RH_COLOR : '#6b7280'}>{rhLabel}</text>
-              <text x={x} y={cellY + cellH / 2 + 10} textAnchor="middle" fontSize={large ? 9 : 8} fontWeight={isLHAct ? 600 : 400} fill={isLHAct ? LH_COLOR : '#4b5563'}>{lhLabel}</text>
-            </> : <text x={x} y={cellY + cellH / 2 + (large ? 4 : 3.5)} textAnchor="middle" fontSize={large ? 11 : 10} fontWeight={isAct ? 700 : 500} fill={isAct ? '#fff' : '#6b7280'}>{rhLabel}</text>}
+              <text x={x} y={cellY + cellH / 2 - 2} textAnchor="middle" fontSize={large ? 13 : 12} fontWeight={isAct ? 800 : 600} fill={isRHAct ? '#fff' : '#c4b5fd'}>{rhLabel}</text>
+              <text x={x} y={cellY + cellH / 2 + 13} textAnchor="middle" fontSize={large ? 11 : 10} fontWeight={isLHAct ? 700 : 500} fill={isLHAct ? LH_COLOR : '#6b7280'}>{lhLabel}</text>
+            </> : <text x={x} y={cellY + cellH / 2 + (large ? 5 : 4)} textAnchor="middle" fontSize={large ? 14 : 13} fontWeight={isAct ? 800 : 600} fill={isAct ? '#fff' : '#c4b5fd'}>{rhLabel}</text>}
           </g>)
         })}
       </svg>
