@@ -39,24 +39,24 @@ export default function LandingPage() {
         background: 'radial-gradient(circle, rgba(167,139,250,0.06) 0%, transparent 60%)',
       }} />
 
-      <div className="relative z-10 text-center px-6">
+      <div className="relative z-10 text-center px-4 sm:px-6">
         {/* Logo */}
         <div className="mb-3">
-          <span className="text-5xl">🎵</span>
+          <span className="text-4xl sm:text-5xl">🎵</span>
         </div>
-        <h1 className="text-4xl lg:text-5xl font-extrabold text-white mb-3 tracking-tight">
+        <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white mb-3 tracking-tight">
           Harmony<span className="bg-gradient-to-r from-amber-400 via-orange-400 to-indigo-400 bg-clip-text text-transparent">Hub</span>
         </h1>
-        <p className="text-[#6b7280] text-base lg:text-lg mb-12 max-w-md mx-auto">
+        <p className="text-[#6b7280] text-sm sm:text-base lg:text-lg mb-8 sm:mb-12 max-w-md mx-auto">
           AI-powered music learning. Choose your instrument to get started.
         </p>
 
         {/* Instrument cards */}
-        <div className="flex gap-6 justify-center flex-wrap">
+        <div className="flex gap-4 sm:gap-6 justify-center flex-wrap">
           {/* Drums */}
           <button
             onClick={() => selectInstrument('drums')}
-            className="group relative w-64 rounded-3xl p-8 border border-white/[0.04] hover:border-amber-500/20 transition-all duration-300 cursor-pointer overflow-hidden"
+            className="group relative w-full sm:w-64 rounded-2xl sm:rounded-3xl p-6 sm:p-8 border border-white/[0.04] hover:border-amber-500/20 transition-all duration-300 cursor-pointer overflow-hidden"
             style={{ background: 'linear-gradient(150deg, rgba(15,12,8,0.9) 0%, rgba(10,12,18,0.95) 100%)' }}
           >
             <div className="absolute -top-10 -right-10 w-32 h-32 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" style={{
@@ -93,7 +93,7 @@ export default function LandingPage() {
           {/* Piano */}
           <button
             onClick={() => selectInstrument('piano')}
-            className="group relative w-64 rounded-3xl p-8 border border-white/[0.04] hover:border-violet-400/20 transition-all duration-300 cursor-pointer overflow-hidden"
+            className="group relative w-full sm:w-64 rounded-2xl sm:rounded-3xl p-6 sm:p-8 border border-white/[0.04] hover:border-violet-400/20 transition-all duration-300 cursor-pointer overflow-hidden"
             style={{ background: 'linear-gradient(150deg, rgba(10,10,18,0.9) 0%, rgba(8,10,20,0.95) 100%)' }}
           >
             <div className="absolute -top-10 -right-10 w-32 h-32 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" style={{

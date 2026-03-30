@@ -24,9 +24,9 @@ export default function RepertoirePlayerPage() {
   const dc = DIFF_COLORS[piece.difficulty] || '#6b7280'
 
   return (
-    <div className="p-4 lg:p-6 max-w-5xl mx-auto">
+    <div className="p-2 sm:p-3 md:p-4 lg:p-6 max-w-[1800px] mx-auto">
       {/* Breadcrumb */}
-      <nav className="flex items-center gap-1.5 text-xs text-[#4b5563] mb-5">
+      <nav className="flex items-center gap-1.5 text-xs text-[#4b5563] mb-3 sm:mb-5">
         <Link to="/piano/practice" className="hover:text-[#a78bfa] transition-colors">Practice</Link>
         <Chev />
         <Link to="/piano/practice/songs" className="hover:text-[#a78bfa] transition-colors">Songs</Link>
@@ -35,14 +35,14 @@ export default function RepertoirePlayerPage() {
       </nav>
 
       {/* Header */}
-      <div className="relative rounded-2xl overflow-hidden mb-5" style={{
+      <div className="relative rounded-xl sm:rounded-2xl overflow-hidden mb-3 sm:mb-5" style={{
         background: 'linear-gradient(135deg, rgba(167,139,250,0.06) 0%, rgba(139,92,246,0.03) 50%, rgba(12,14,20,0.8) 100%)',
         border: '1px solid rgba(167,139,250,0.1)',
       }}>
-        <div className="relative p-5 lg:p-6">
-          <div className="flex items-start justify-between gap-4">
+        <div className="relative p-3 sm:p-4 md:p-5 lg:p-6">
+          <div className="flex items-start justify-between gap-3 sm:gap-4">
             <div className="flex-1 min-w-0">
-              <h1 className="text-xl lg:text-2xl font-extrabold text-white tracking-tight">{piece.title}</h1>
+              <h1 className="text-lg sm:text-xl lg:text-2xl font-extrabold text-white tracking-tight">{piece.title}</h1>
               <p className="text-sm text-[#6b7280] mt-0.5">{piece.composer}</p>
               <p className="text-xs text-[#4b5563] mt-1">{piece.description}</p>
             </div>

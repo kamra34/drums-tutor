@@ -31,6 +31,14 @@ interface PracticeSection {
 
 const SECTIONS: PracticeSection[] = [
   {
+    id: 'my-exercises',
+    title: 'My Exercises',
+    description: 'Custom exercises you built or generated in the Studio. Practice your own creations.',
+    icon: '🎨',
+    to: '/piano/practice/my-exercises',
+    color: '#c084fc',
+  },
+  {
     id: 'exercises',
     title: 'Curriculum Exercises',
     description: 'All 48 exercises from your course — scales, chords, melodies, technique, and sight-reading. Locked exercises unlock as you complete lessons.',
@@ -95,21 +103,21 @@ export default function PracticeHubPage() {
   const unlockedModules = CURRICULUM.filter(m => isModuleUnlocked(m, progress.completedLessons, CURRICULUM)).length
 
   return (
-    <div className="p-4 lg:p-6 max-w-[1100px] mx-auto">
+    <div className="p-2 sm:p-3 md:p-4 lg:p-6 max-w-[1800px] mx-auto">
       {/* ── Header ── */}
-      <div className="relative mb-6 overflow-hidden rounded-2xl p-6 lg:p-8 border border-white/[0.04]" style={{
+      <div className="relative mb-4 sm:mb-6 overflow-hidden rounded-xl sm:rounded-2xl p-3 sm:p-5 md:p-6 lg:p-8 border border-white/[0.04]" style={{
         background: 'linear-gradient(135deg, rgba(12,10,20,0.9) 0%, rgba(10,12,22,0.9) 50%, rgba(14,10,20,0.8) 100%)',
       }}>
         <div className="absolute -top-16 -right-16 w-64 h-64 rounded-full pointer-events-none"
           style={{ background: `radial-gradient(circle, ${accent}12 0%, transparent 70%)` }} />
         <div className="relative z-10">
-          <h1 className="text-2xl lg:text-3xl font-extrabold text-white tracking-tight mb-1">Practice</h1>
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-white tracking-tight mb-1">Practice</h1>
           <p className="text-sm text-[#6b7280] max-w-lg">
             Your piano gym. Drill exercises, play songs, build technique — all with visual guidance.
           </p>
 
           {/* Stats row */}
-          <div className="flex gap-6 mt-5">
+          <div className="flex flex-wrap gap-3 sm:gap-4 md:gap-6 mt-4 sm:mt-5">
             <Stat value={`${totalPracticeTime}`} unit="m" label="Practice time" />
             <Stat value={`${practiceStreak}`} label="Day streak" />
             <Stat value={`${completedExercises}/${totalExercises}`} label="Exercises" />
@@ -119,10 +127,10 @@ export default function PracticeHubPage() {
       </div>
 
       {/* ── Practice Sections Grid ── */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 mb-4 sm:mb-6">
         {SECTIONS.map(section => (
           <Link key={section.id} to={section.to}
-            className="group relative rounded-2xl p-5 border border-white/[0.04] overflow-hidden transition-all hover:border-white/[0.08]"
+            className="group relative rounded-xl sm:rounded-2xl p-3 sm:p-4 md:p-5 border border-white/[0.04] overflow-hidden transition-all hover:border-white/[0.08]"
             style={{ background: 'linear-gradient(135deg, rgba(12,14,20,0.7) 0%, rgba(10,12,18,0.8) 100%)' }}>
             {/* Left accent */}
             <div className="absolute left-0 top-0 bottom-0 w-[3px] rounded-l-2xl" style={{ background: section.color, opacity: 0.5 }} />
@@ -160,11 +168,11 @@ export default function PracticeHubPage() {
       </div>
 
       {/* ── How it works ── */}
-      <div className="rounded-2xl p-5 border border-white/[0.04]" style={{
+      <div className="rounded-xl sm:rounded-2xl p-3 sm:p-4 md:p-5 border border-white/[0.04]" style={{
         background: 'linear-gradient(135deg, rgba(12,14,20,0.5) 0%, rgba(10,12,18,0.6) 100%)',
       }}>
         <h2 className="text-xs font-semibold text-[#94a3b8] uppercase tracking-wider mb-3">How Practice Works</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
           {[
             { step: '1', title: 'Watch & Listen', desc: 'See notes on the keyboard with finger numbers. Hear correct sound at your tempo.' },
             { step: '2', title: 'Play Along', desc: 'Play on your piano following the visual guide. Pause, rewind, repeat as needed.' },
@@ -188,7 +196,7 @@ export default function PracticeHubPage() {
 function Stat({ value, unit, label }: { value: string; unit?: string; label: string }) {
   return (
     <div>
-      <div className="text-lg font-bold text-white">
+      <div className="text-base sm:text-lg font-bold text-white">
         {value}{unit && <span className="text-sm text-[#4b5563]">{unit}</span>}
       </div>
       <div className="text-[9px] text-[#4b5563] uppercase tracking-wider">{label}</div>

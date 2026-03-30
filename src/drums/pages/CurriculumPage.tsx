@@ -18,10 +18,10 @@ export default function CurriculumPage() {
   const totalPct = totalLessons > 0 ? Math.round((totalDone / totalLessons) * 100) : 0
 
   return (
-    <div className="p-6 lg:p-8 max-w-4xl mx-auto">
+    <div className="p-3 sm:p-4 md:p-6 lg:p-8 max-w-[1600px] mx-auto">
 
       {/* Header */}
-      <div className="relative mb-8 overflow-hidden rounded-3xl p-8 border border-white/[0.04]" style={{
+      <div className="relative mb-6 sm:mb-8 overflow-hidden rounded-2xl sm:rounded-3xl p-5 sm:p-6 md:p-8 border border-white/[0.04]" style={{
         background: 'linear-gradient(135deg, rgba(15,12,8,0.9) 0%, rgba(10,14,22,0.9) 50%, rgba(15,12,8,0.8) 100%)',
       }}>
         <div className="absolute -top-16 -right-16 w-64 h-64 rounded-full pointer-events-none" style={{
@@ -29,7 +29,7 @@ export default function CurriculumPage() {
         }} />
         <div className="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-extrabold text-white tracking-tight mb-1">Curriculum</h1>
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight mb-1">Curriculum</h1>
             <p className="text-[#6b7280]">Your complete learning path from beginner to advanced.</p>
             {isAdmin && (
               <span className="inline-block mt-2 text-[10px] font-semibold uppercase tracking-widest text-amber-500/70 bg-amber-500/10 px-2 py-0.5 rounded-md">

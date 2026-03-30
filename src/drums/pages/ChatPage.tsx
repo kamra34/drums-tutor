@@ -88,7 +88,7 @@ export default function ChatPage() {
 
   const [input, setInput] = useState('')
   const [imagePreview, setImagePreview] = useState<string | null>(null)
-  const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth >= 768)
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -243,7 +243,10 @@ export default function ChatPage() {
 
       {/* ── Sidebar: conversation list ── */}
       {sidebarOpen && (
-        <div className="w-64 flex-shrink-0 border-r border-white/[0.04] flex flex-col" style={{
+        <>
+        {/* Backdrop on mobile */}
+        <div className="fixed inset-0 z-40 bg-black/50 md:hidden" onClick={() => setSidebarOpen(false)} />
+        <div className="fixed inset-y-0 left-0 z-50 w-64 md:relative md:z-auto flex-shrink-0 border-r border-white/[0.04] flex flex-col" style={{
           background: 'linear-gradient(180deg, rgba(8,10,16,0.95) 0%, rgba(6,8,13,0.98) 100%)',
         }}>
           {/* New chat button */}
@@ -293,12 +296,13 @@ export default function ChatPage() {
             ))}
           </div>
         </div>
+        </>
       )}
 
       {/* ── Main chat area ── */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Header */}
-        <div className="px-4 py-3 flex items-center justify-between border-b border-white/[0.04]" style={{
+        <div className="px-3 sm:px-4 py-2.5 sm:py-3 flex items-center justify-between border-b border-white/[0.04]" style={{
           background: 'linear-gradient(135deg, rgba(12,14,20,0.85) 0%, rgba(10,12,18,0.9) 100%)',
           backdropFilter: 'blur(12px)',
         }}>

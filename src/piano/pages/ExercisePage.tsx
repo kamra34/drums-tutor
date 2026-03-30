@@ -40,9 +40,9 @@ export default function PianoExercisePage() {
   const hasBothHands = !!(exercise.notesLeft?.length || exercise.chordsLeft?.length)
 
   return (
-    <div className="p-4 lg:p-6 max-w-5xl mx-auto">
+    <div className="p-2 sm:p-3 md:p-4 lg:p-6 max-w-[1800px] mx-auto">
       {/* Breadcrumb */}
-      <nav className="flex items-center gap-1.5 text-xs text-[#4b5563] mb-5">
+      <nav className="flex items-center gap-1.5 text-xs text-[#4b5563] mb-3 sm:mb-5">
         {fromPractice ? (<>
           <Link to="/piano/practice" className="hover:text-[#a78bfa] transition-colors">Practice</Link>
           <Chev />
@@ -57,15 +57,15 @@ export default function PianoExercisePage() {
       </nav>
 
       {/* Hero Header */}
-      <div className="relative rounded-2xl overflow-hidden mb-5" style={{
+      <div className="relative rounded-2xl overflow-hidden mb-3 sm:mb-5" style={{
         background: 'linear-gradient(135deg, rgba(167,139,250,0.06) 0%, rgba(139,92,246,0.03) 50%, rgba(12,14,20,0.8) 100%)',
         border: '1px solid rgba(167,139,250,0.1)',
       }}>
         <div className="absolute -top-20 -right-20 w-60 h-60 rounded-full opacity-[0.04]" style={{ background: 'radial-gradient(circle, #a78bfa 0%, transparent 70%)' }} />
-        <div className="relative p-5 lg:p-6">
-          <div className="flex items-start justify-between gap-4">
+        <div className="relative p-3 sm:p-5 lg:p-6">
+          <div className="flex items-start justify-between gap-3 sm:gap-4">
             <div className="flex-1 min-w-0">
-              <h1 className="text-xl lg:text-2xl font-extrabold text-white tracking-tight leading-tight">{exercise.title}</h1>
+              <h1 className="text-lg sm:text-xl lg:text-2xl font-extrabold text-white tracking-tight leading-tight">{exercise.title}</h1>
               <p className="text-sm text-[#6b7280] mt-1 leading-relaxed">{exercise.description}</p>
             </div>
             <div className="flex-shrink-0 flex flex-col items-center gap-1">
@@ -74,7 +74,7 @@ export default function PianoExercisePage() {
               <span className="text-[9px] uppercase tracking-wider text-[#4b5563]">Level</span>
             </div>
           </div>
-          <div className="flex flex-wrap gap-2 mt-3.5">
+          <div className="flex flex-wrap gap-1.5 sm:gap-2 mt-2.5 sm:mt-3.5">
             <Tag>{exercise.exerciseType.replace('-', ' ')}</Tag>
             <Tag>{exercise.handsRequired === 'both' ? 'Both hands' : exercise.handsRequired === 'right' ? 'Right hand' : 'Left hand'}</Tag>
             {exercise.keySignature && <Tag>Key: {exercise.keySignature}</Tag>}
@@ -93,7 +93,7 @@ export default function PianoExercisePage() {
       {/* Instructions (collapsible) */}
       {exercise.instructions && exercise.instructions.length > 0 && (
         <button onClick={() => setInstructionsOpen(!instructionsOpen)}
-          className="w-full mb-4 rounded-xl px-4 py-3 flex items-center gap-3 transition-all cursor-pointer"
+          className="w-full mb-3 sm:mb-4 rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 flex items-center gap-2 sm:gap-3 transition-all cursor-pointer"
           style={{
             background: instructionsOpen ? 'rgba(167,139,250,0.04)' : 'rgba(255,255,255,0.01)',
             border: `1px solid ${instructionsOpen ? 'rgba(167,139,250,0.12)' : 'rgba(255,255,255,0.03)'}`,
@@ -107,9 +107,9 @@ export default function PianoExercisePage() {
         </button>
       )}
       {instructionsOpen && exercise.instructions && (
-        <div className="mb-5 rounded-xl border border-white/[0.04] p-4 space-y-2" style={{ background: 'linear-gradient(135deg, rgba(12,14,20,0.5) 0%, rgba(10,12,18,0.6) 100%)' }}>
+        <div className="mb-3 sm:mb-5 rounded-xl border border-white/[0.04] p-3 sm:p-4 space-y-2" style={{ background: 'linear-gradient(135deg, rgba(12,14,20,0.5) 0%, rgba(10,12,18,0.6) 100%)' }}>
           {exercise.instructions.map((inst, i) => (
-            <div key={i} className="flex gap-3 text-sm">
+            <div key={i} className="flex gap-2 sm:gap-3 text-sm">
               <span className="w-5 h-5 rounded-full flex-shrink-0 flex items-center justify-center text-[10px] font-bold mt-0.5"
                 style={{ background: 'rgba(167,139,250,0.12)', color: '#a78bfa' }}>{i + 1}</span>
               <span className="text-[#94a3b8] leading-relaxed">{inst}</span>

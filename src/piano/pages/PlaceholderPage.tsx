@@ -8,7 +8,7 @@ interface Props {
 
 export default function PianoPlaceholderPage({ title, icon, description }: Props) {
   return (
-    <div className="p-6 lg:p-8 max-w-3xl mx-auto text-center" style={{ minHeight: '100vh' }}>
+    <div className="p-3 sm:p-4 md:p-6 lg:p-8 max-w-[1400px] mx-auto text-center" style={{ minHeight: '100vh' }}>
       <div className="pt-20">
         <div className="w-20 h-20 mx-auto mb-6 rounded-2xl flex items-center justify-center text-4xl" style={{
           background: 'rgba(167,139,250,0.08)',

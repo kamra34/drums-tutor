@@ -177,9 +177,9 @@ export default function ExercisePage() {
   const nextExercise = exIdx < module.exercises.length - 1 ? module.exercises[exIdx + 1] : undefined
 
   return (
-    <div className="p-6 max-w-5xl mx-auto">
+    <div className="p-3 sm:p-4 md:p-6 max-w-[1800px] mx-auto">
       {/* Breadcrumb */}
-      <nav className="flex items-center gap-2 text-sm text-[#4b5563] mb-6">
+      <nav className="flex items-center gap-2 text-sm text-[#4b5563] mb-4 sm:mb-6">
         <Link to="/drums/curriculum" className="hover:text-amber-400 transition-colors">Curriculum</Link>
         <svg className="w-3.5 h-3.5 text-[#2d3748]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />

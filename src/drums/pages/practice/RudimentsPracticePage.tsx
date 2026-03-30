@@ -66,7 +66,7 @@ export default function RudimentsPracticePage() {
   useEffect(() => () => stopPractice(), [])
 
   return (
-    <div className="p-8 max-w-3xl mx-auto">
+    <div className="p-3 sm:p-4 md:p-6 lg:p-8 max-w-[1400px] mx-auto">
       {/* Breadcrumb */}
       <nav className="flex items-center gap-2 text-sm text-[#4b5563] mb-6">
         <Link to="/practice" className="text-amber-500/80 hover:text-amber-400 transition-colors">Practice</Link>

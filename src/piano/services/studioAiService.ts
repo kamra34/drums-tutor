@@ -1,27 +1,25 @@
 import type { NoteEvent, ChordEvent } from '../types/curriculum'
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// Piano Studio AI Service — generates exercises and arrangements via Claude
+// Piano Studio AI Service — generates exercises and creative pieces via Claude
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const API_URL = 'https://api.anthropic.com/v1/messages'
 const MODEL = 'claude-sonnet-4-6'
 
+// ── Types ────────────────────────────────────────────────────────────────────
+
 export interface GenerationParams {
-  mode: 'exercise' | 'song' | 'style'
-  // Exercise mode
+  mode: 'exercise'
   exerciseType?: 'scale' | 'chord-progression' | 'melody' | 'technique' | 'sight-reading'
-  // Song mode
-  songName?: string
-  // Style mode
-  stylePrompt?: string
-  // Shared params
-  difficulty: number       // 1-7
-  key: string              // e.g. 'C', 'G', 'Am', 'Bb'
+  genre?: string
+  length?: 'short' | 'medium' | 'long'
+  difficulty: number
+  key: string
   hands: 'right' | 'left' | 'both'
   timeSignature: [number, number]
   bpm: number
-  bars: number             // 4, 8, 16
+  bars: number
 }
 
 export interface GeneratedPiece {
@@ -37,23 +35,21 @@ export interface GeneratedPiece {
   hands: 'right' | 'left' | 'both'
 }
 
-const SYSTEM_PROMPT = `You are Clara, an expert piano instructor and composer. You generate piano exercises and simplified song arrangements as structured JSON data.
+// ── System prompt ────────────────────────────────────────────────────────────
+
+const SYSTEM_PROMPT = `You are Clara, an expert piano instructor and composer. You generate piano exercises as structured JSON data.
 
 CRITICAL RULES:
 1. Return ONLY valid JSON — no markdown, no explanation, no backticks
-2. Use note format: "C4", "Db3", "F#5" etc. (letter + optional accidental + octave number)
-3. Available samples: C3-C6 with all chromatic notes. Use flats (Db, Eb, Gb, Ab, Bb) not sharps for black keys
-4. Duration is in beats: 0.25=sixteenth, 0.5=eighth, 1=quarter, 1.5=dotted quarter, 2=half, 3=dotted half, 4=whole
-5. Finger numbers 1-5 (1=thumb, 5=pinky). RH: 1=C going up. LH: 5=C going up
-6. For "both" hands: include "notesLeft" or "chordsLeft" arrays. RH=treble (C4-C6), LH=bass (C3-C4)
-7. Keep pieces musically correct — proper voice leading, correct scale degrees, idiomatic piano writing
-8. Match the requested difficulty level:
-   - 1-2: C position only, simple rhythms, one hand
-   - 3-4: Two positions, eighth notes, simple both-hands
-   - 5-6: Full scales, syncopation, both hands independent
-   - 7: Advanced technique, complex rhythms
+2. Note format: "C4", "Db3", "F#5" etc. Use flats (Db, Eb, Gb, Ab, Bb) not sharps for black keys
+3. Available range: C3-C6
+4. Duration in beats: 0.25=sixteenth, 0.5=eighth, 1=quarter, 1.5=dotted quarter, 2=half, 3=dotted half, 4=whole
+5. Finger numbers 1-5 (1=thumb, 5=pinky)
+6. For "both" hands: include "notesLeft" or "chordsLeft". RH=treble (C4-C6), LH=bass (C3-C4)
+7. Match difficulty: 1-2=simple, 3-4=intermediate, 5-6=advanced, 7=expert
+8. Keep pieces musically correct — proper voice leading, correct scale degrees
 
-JSON RESPONSE FORMAT:
+JSON FORMAT:
 {
   "title": "short descriptive title",
   "description": "one sentence about the piece",
@@ -67,49 +63,47 @@ JSON RESPONSE FORMAT:
   "hands": "both"
 }
 
-Include "notesLeft" OR "chordsLeft" for both-hands pieces (not both). Single-hand pieces omit these fields.
-For chord exercises, put chords in "chordsLeft" and omit "notes" — or put chord names in "notes" field if single-hand chords.`
+Include "notesLeft" OR "chordsLeft" for both-hands pieces (not both). Single-hand pieces omit these fields.`
+
+// ── Prompt builder ───────────────────────────────────────────────────────────
 
 function buildUserPrompt(params: GenerationParams): string {
-  const { mode, difficulty, key, hands, timeSignature, bpm, bars } = params
-
-  let prompt = ''
+  const { mode, hands } = params
 
   if (mode === 'exercise') {
     const type = params.exerciseType || 'technique'
-    prompt = `Generate a piano ${type} exercise with these parameters:
-- Key: ${key}
-- Difficulty: ${difficulty}/7
+    const genre = params.genre || 'Classical'
+    const lengthMap = { short: '8-12 notes', medium: '16-24 notes', long: '28-40 notes' }
+    const lengthDesc = lengthMap[params.length || 'medium']
+
+    let prompt = `Generate a piano ${type} exercise:
+- Key: ${params.key}
+- Difficulty: ${params.difficulty}/7
 - Hands: ${hands}
-- Time signature: ${timeSignature[0]}/${timeSignature[1]}
-- Tempo: ${bpm} BPM
-- Length: approximately ${bars} bars
+- Time signature: ${params.timeSignature[0]}/${params.timeSignature[1]}
+- Genre/style: ${genre}
+- Length: approximately ${lengthDesc} (right hand). Choose an appropriate tempo.
 - Type: ${type}`
 
-    if (type === 'scale') prompt += '\nInclude proper fingering for the scale with thumb-under crossings.'
-    if (type === 'chord-progression') prompt += '\nUse common progressions (I-IV-V, ii-V-I, etc.) with proper voicing.'
-    if (type === 'melody') prompt += '\nCreate a singable, memorable melody with good phrasing.'
+    if (type === 'scale') prompt += '\nInclude proper fingering with thumb-under crossings.'
+    if (type === 'chord-progression') prompt += '\nUse genre-appropriate progressions with proper voicing.'
+    if (type === 'melody') prompt += '\nCreate a singable, memorable melody in the requested genre style.'
     if (type === 'sight-reading') prompt += '\nMix stepwise motion with occasional leaps. Varied rhythms.'
-  } else if (mode === 'song') {
-    prompt = `Generate a simplified piano arrangement of "${params.songName}":
-- Key: ${key}
-- Difficulty: ${difficulty}/7
-- Hands: ${hands}
-- Tempo: ${bpm} BPM
-- Simplify to fit the difficulty level
-If you don't know the exact melody, create something in the style/spirit of the song.`
-  } else if (mode === 'style') {
-    prompt = `Generate a piano piece based on this request: "${params.stylePrompt}"
-- Key: ${key}
-- Difficulty: ${difficulty}/7
-- Hands: ${hands}
-- Time signature: ${timeSignature[0]}/${timeSignature[1]}
-- Tempo: ${bpm} BPM
-- Length: approximately ${bars} bars`
+    if (type === 'technique') prompt += '\nFocus on a specific technical skill appropriate for the genre.'
+
+    if (genre === 'Jazz') prompt += '\nUse swing feel, 7th chords, blue notes, ii-V-I patterns.'
+    if (genre === 'Blues') prompt += '\nUse 12-bar blues form, blue notes (b3, b5, b7), shuffle rhythm.'
+    if (genre === 'Pop') prompt += '\nUse common pop progressions, catchy hooks, simple rhythms.'
+    if (genre === 'Latin') prompt += '\nUse syncopated rhythms, montuno patterns, Latin voicings.'
+    if (genre === 'Film / Cinematic') prompt += '\nUse expressive, atmospheric writing with wide intervals.'
+
+    return prompt
   }
 
-  return prompt
+  return ''
 }
+
+// ── Generator ────────────────────────────────────────────────────────────────
 
 export async function generatePiece(apiKey: string, params: GenerationParams): Promise<GeneratedPiece> {
   const userPrompt = buildUserPrompt(params)
@@ -138,7 +132,6 @@ export async function generatePiece(apiKey: string, params: GenerationParams): P
   const data = await response.json()
   const text = data.content?.[0]?.text ?? ''
 
-  // Parse JSON from response (strip any accidental markdown)
   const jsonStr = text.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim()
   let parsed: Record<string, unknown>
   try {
@@ -147,7 +140,6 @@ export async function generatePiece(apiKey: string, params: GenerationParams): P
     throw new Error('AI returned invalid JSON. Please try again.')
   }
 
-  // Validate and build the result
   const piece: GeneratedPiece = {
     title: (parsed.title as string) || 'Generated Piece',
     description: (parsed.description as string) || '',
@@ -168,6 +160,8 @@ export async function generatePiece(apiKey: string, params: GenerationParams): P
 
   return piece
 }
+
+// ── Validators ───────────────────────────────────────────────────────────────
 
 function validateNoteEvents(events: unknown): NoteEvent[] {
   if (!Array.isArray(events)) return []

@@ -154,13 +154,13 @@ export default function AuthPage() {
         }}
       >
         {/* Logo section */}
-        <div className="text-center mb-10">
+        <div className="text-center mb-6 sm:mb-10">
           {/* Music icon */}
-          <div className="relative w-16 h-16 mx-auto mb-5 flex items-center justify-center">
-            <span className="text-5xl">🎵</span>
+          <div className="relative w-14 sm:w-16 h-14 sm:h-16 mx-auto mb-4 sm:mb-5 flex items-center justify-center">
+            <span className="text-4xl sm:text-5xl">🎵</span>
           </div>
 
-          <h1 className="text-4xl font-extrabold tracking-tight">
+          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight">
             <span className="bg-gradient-to-r from-amber-400 via-orange-400 to-indigo-400 bg-clip-text text-transparent">
               HARMONY
             </span>
@@ -173,7 +173,7 @@ export default function AuthPage() {
 
         {/* Glass card */}
         <div
-          className="relative rounded-3xl p-8 border border-white/[0.06]"
+          className="relative rounded-2xl sm:rounded-3xl p-5 sm:p-6 md:p-8 border border-white/[0.06]"
           style={{
             background: 'linear-gradient(135deg, rgba(15, 17, 23, 0.9) 0%, rgba(12, 16, 24, 0.95) 100%)',
             backdropFilter: 'blur(40px)',

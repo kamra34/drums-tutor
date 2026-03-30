@@ -39,22 +39,22 @@ export default function ExerciseBrowserPage() {
   const types = ['all', 'scale', 'chord-progression', 'melody', 'technique', 'sight-reading']
 
   return (
-    <div className="p-4 lg:p-6 max-w-[900px] mx-auto">
+    <div className="p-2 sm:p-3 md:p-4 lg:p-6 max-w-[1400px] mx-auto">
       {/* Header */}
-      <div className="flex items-center gap-3 mb-5">
+      <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-5">
         <Link to="/piano/practice" className="w-8 h-8 rounded-lg bg-white/[0.04] border border-white/[0.06] hover:bg-white/[0.08] flex items-center justify-center transition-all">
           <svg className="w-4 h-4 text-[#94a3b8]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
           </svg>
         </Link>
         <div className="flex-1">
-          <h1 className="text-xl font-extrabold text-white tracking-tight">Curriculum Exercises</h1>
+          <h1 className="text-lg sm:text-xl font-extrabold text-white tracking-tight">Curriculum Exercises</h1>
           <p className="text-xs text-[#6b7280]">{completedCount}/{allExercises.length} completed</p>
         </div>
       </div>
 
       {/* Filter bar */}
-      <div className="flex gap-1.5 mb-5 overflow-x-auto pb-1">
+      <div className="flex flex-wrap gap-1.5 mb-3 sm:mb-5 overflow-x-auto pb-1">
         {types.map(t => (
           <button key={t} onClick={() => setFilter(t)}
             className="px-3 py-1.5 rounded-lg text-[11px] font-medium whitespace-nowrap transition-all cursor-pointer"
@@ -69,7 +69,7 @@ export default function ExerciseBrowserPage() {
       </div>
 
       {/* Modules */}
-      <div className="space-y-3">
+      <div className="space-y-2 sm:space-y-3">
         {CURRICULUM.map(module => {
           const unlocked = isAdmin || isModuleUnlocked(module, progress.completedLessons, CURRICULUM)
           const exercises = filter === 'all'
@@ -87,7 +87,7 @@ export default function ExerciseBrowserPage() {
               style={{ background: 'linear-gradient(135deg, rgba(12,14,20,0.7) 0%, rgba(10,12,18,0.8) 100%)' }}>
               {/* Module header */}
               <button onClick={() => setExpandedModule(expanded ? null : module.id)}
-                className="w-full px-4 py-3.5 flex items-center gap-3 cursor-pointer hover:bg-white/[0.02] transition-all">
+                className="w-full px-3 sm:px-4 py-2.5 sm:py-3.5 flex items-center gap-2 sm:gap-3 cursor-pointer hover:bg-white/[0.02] transition-all">
                 <div className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-black flex-shrink-0"
                   style={{
                     background: unlocked ? `${accent}12` : 'rgba(255,255,255,0.03)',
@@ -138,7 +138,7 @@ export default function ExerciseBrowserPage() {
                     return (
                       <Link key={exercise.id}
                         to={`/piano/exercise/${module.id}/${exercise.id}?from=practice`}
-                        className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-white/[0.03] transition-all">
+                        className="flex items-center gap-2 sm:gap-3 px-2 sm:px-3 py-2 sm:py-2.5 rounded-lg hover:bg-white/[0.03] transition-all">
                         <span className="text-lg w-7 text-center">{TYPE_ICONS[exercise.exerciseType] || '🎵'}</span>
                         <div className="flex-1 min-w-0">
                           <div className="text-[13px] text-[#e2e8f0] font-medium truncate">{exercise.title}</div>

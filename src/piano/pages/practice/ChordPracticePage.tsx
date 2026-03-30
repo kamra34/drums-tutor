@@ -58,16 +58,16 @@ export default function ChordPracticePage() {
   }
 
   return (
-    <div className="p-4 lg:p-6 max-w-5xl mx-auto">
+    <div className="p-2 sm:p-3 md:p-4 lg:p-6 max-w-[1800px] mx-auto">
       {/* Header */}
-      <div className="flex items-center gap-3 mb-5">
+      <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-5">
         <Link to="/piano/practice" className="w-8 h-8 rounded-lg bg-white/[0.04] border border-white/[0.06] hover:bg-white/[0.08] flex items-center justify-center transition-all">
           <svg className="w-4 h-4 text-[#94a3b8]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
           </svg>
         </Link>
         <div className="flex-1">
-          <h1 className="text-xl font-extrabold text-white tracking-tight">Chord Lab</h1>
+          <h1 className="text-lg sm:text-xl font-extrabold text-white tracking-tight">Chord Lab</h1>
           <p className="text-xs text-[#6b7280]">{PROGRESSIONS.length} progressions — primary, pop, jazz, technique</p>
         </div>
         {sessionCount >= 1 && (
@@ -79,10 +79,10 @@ export default function ChordPracticePage() {
       </div>
 
       {/* Selector */}
-      <div className="rounded-2xl border border-white/[0.04] p-4 mb-4" style={{ background: 'linear-gradient(135deg, rgba(12,14,20,0.7) 0%, rgba(10,12,18,0.8) 100%)' }}>
+      <div className="rounded-2xl border border-white/[0.04] p-3 sm:p-4 mb-3 sm:mb-4" style={{ background: 'linear-gradient(135deg, rgba(12,14,20,0.7) 0%, rgba(10,12,18,0.8) 100%)' }}>
         {/* Category tabs */}
         <div className="text-[10px] uppercase tracking-widest text-[#4b5563] font-semibold mb-2">Progression</div>
-        <div className="flex gap-1 mb-3">
+        <div className="flex flex-wrap gap-1 mb-2 sm:mb-3">
           {CATEGORIES.map(c => (
             <button key={c} onClick={() => setCategory(c)}
               className="px-2 py-1 rounded-md text-[10px] font-medium capitalize transition-all cursor-pointer"

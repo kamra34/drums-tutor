@@ -24,10 +24,10 @@ export default function DashboardPage() {
   }, [isConfigured])
 
   return (
-    <div className="p-6 lg:p-8 max-w-[1400px] mx-auto">
+    <div className="p-3 sm:p-4 md:p-6 lg:p-8 max-w-[1800px] mx-auto">
 
       {/* ── Hero greeting with ambient glow ── */}
-      <div className="relative mb-8 overflow-hidden rounded-3xl p-8 lg:p-10 border border-white/[0.04]" style={{
+      <div className="relative mb-6 sm:mb-8 overflow-hidden rounded-2xl sm:rounded-3xl p-5 sm:p-6 md:p-8 lg:p-10 border border-white/[0.04]" style={{
         background: 'linear-gradient(135deg, rgba(15,12,8,0.9) 0%, rgba(10,14,22,0.9) 50%, rgba(15,12,8,0.8) 100%)',
       }}>
         {/* Ambient warm glow */}
@@ -40,10 +40,10 @@ export default function DashboardPage() {
 
         <div className="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
           <div>
-            <h1 className="text-3xl lg:text-4xl font-extrabold text-white mb-2 tracking-tight">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white mb-2 tracking-tight">
               Welcome back<span className="bg-gradient-to-r from-amber-400 to-orange-400 bg-clip-text text-transparent">.</span>
             </h1>
-            <p className="text-[#6b7280] text-base lg:text-lg">
+            <p className="text-[#6b7280] text-sm sm:text-base lg:text-lg">
               {practiceStreak > 0
                 ? `You're on a ${practiceStreak}-day streak. Keep the rhythm going!`
                 : "Ready to build your rhythm? Let's practice."}
@@ -80,7 +80,7 @@ export default function DashboardPage() {
       </div>
 
       {/* ── Stats ribbon ── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4 mb-6 sm:mb-8">
         <GlassStatCard
           icon={<FireIcon />}
           value={practiceStreak}
@@ -112,7 +112,7 @@ export default function DashboardPage() {
       </div>
 
       {/* ── Main grid: 3 columns on large screens ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
 
         {/* ── Column 1: Continue learning ── */}
         <div className="lg:col-span-2 space-y-6">

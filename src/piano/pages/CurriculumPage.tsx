@@ -79,10 +79,10 @@ export default function CurriculumPage() {
   const accent = '#a78bfa'
 
   return (
-    <div className="p-6 lg:p-8 max-w-4xl mx-auto">
+    <div className="p-3 sm:p-4 md:p-6 lg:p-8 max-w-[1600px] mx-auto">
 
       {/* Header */}
-      <div className="relative mb-8 overflow-hidden rounded-3xl p-8 border border-white/[0.04]" style={{
+      <div className="relative mb-6 sm:mb-8 overflow-hidden rounded-2xl sm:rounded-3xl p-5 sm:p-6 md:p-8 border border-white/[0.04]" style={{
         background: 'linear-gradient(135deg, rgba(12,10,18,0.9) 0%, rgba(10,12,20,0.9) 50%, rgba(12,10,18,0.8) 100%)',
       }}>
         <div className="absolute -top-16 -right-16 w-64 h-64 rounded-full pointer-events-none" style={{
@@ -90,7 +90,7 @@ export default function CurriculumPage() {
         }} />
         <div className="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-extrabold text-white tracking-tight mb-1">Piano Curriculum</h1>
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white tracking-tight mb-1">Piano Curriculum</h1>
             <p className="text-[#6b7280]">Your complete learning path — from first notes to playing songs.</p>
             {isAdmin && (
               <span className="inline-block mt-2 text-[10px] font-semibold uppercase tracking-widest text-violet-400/70 bg-violet-500/10 px-2 py-0.5 rounded-md">
@@ -283,7 +283,7 @@ export default function CurriculumPage() {
       </div>
 
       {/* Sources disclaimer */}
-      <div className="mt-8 px-5 py-4 rounded-2xl border border-white/[0.04]" style={{ background: 'linear-gradient(135deg, rgba(12,14,20,0.5) 0%, rgba(10,12,18,0.6) 100%)' }}>
+      <div className="mt-6 sm:mt-8 px-5 py-4 rounded-2xl border border-white/[0.04]" style={{ background: 'linear-gradient(135deg, rgba(12,14,20,0.5) 0%, rgba(10,12,18,0.6) 100%)' }}>
         <div className="flex items-start gap-3">
           <svg className="w-4 h-4 mt-0.5 text-[#4b5563] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />

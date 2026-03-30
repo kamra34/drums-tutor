@@ -34,22 +34,22 @@ export default function SightReadingPage() {
   }
 
   return (
-    <div className="p-4 lg:p-6 max-w-5xl mx-auto">
-      <div className="flex items-center gap-3 mb-5">
+    <div className="p-2 sm:p-3 md:p-4 lg:p-6 max-w-[1800px] mx-auto">
+      <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-5">
         <Link to="/piano/practice" className="w-8 h-8 rounded-lg bg-white/[0.04] border border-white/[0.06] hover:bg-white/[0.08] flex items-center justify-center transition-all">
           <svg className="w-4 h-4 text-[#94a3b8]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
           </svg>
         </Link>
         <div>
-          <h1 className="text-xl font-extrabold text-white tracking-tight">Sight Reading</h1>
+          <h1 className="text-lg sm:text-xl font-extrabold text-white tracking-tight">Sight Reading</h1>
           <p className="text-xs text-[#6b7280]">Random passages — preview, then play without stopping</p>
         </div>
       </div>
 
       {/* Settings + generate */}
-      <div className="rounded-2xl border border-white/[0.04] p-4 mb-4" style={{ background: 'linear-gradient(135deg, rgba(12,14,20,0.7) 0%, rgba(10,12,18,0.8) 100%)' }}>
-        <div className="flex flex-wrap gap-5 items-end">
+      <div className="rounded-xl sm:rounded-2xl border border-white/[0.04] p-3 sm:p-4 mb-3 sm:mb-4" style={{ background: 'linear-gradient(135deg, rgba(12,14,20,0.7) 0%, rgba(10,12,18,0.8) 100%)' }}>
+        <div className="flex flex-wrap gap-3 sm:gap-5 items-end">
           <div>
             <div className="text-[10px] uppercase tracking-widest text-[#4b5563] font-semibold mb-2">Difficulty</div>
             <div className="flex gap-1">
@@ -89,7 +89,7 @@ export default function SightReadingPage() {
       )}
 
       {!passage && (
-        <div className="rounded-2xl border border-white/[0.04] p-12 text-center" style={{ background: 'linear-gradient(135deg, rgba(12,14,20,0.5) 0%, rgba(10,12,18,0.6) 100%)' }}>
+        <div className="rounded-xl sm:rounded-2xl border border-white/[0.04] p-6 sm:p-8 md:p-12 text-center" style={{ background: 'linear-gradient(135deg, rgba(12,14,20,0.5) 0%, rgba(10,12,18,0.6) 100%)' }}>
           <div className="text-3xl mb-3">👁</div>
           <p className="text-sm text-[#6b7280]">Generate a passage to start sight-reading</p>
         </div>

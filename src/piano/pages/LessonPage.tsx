@@ -15,7 +15,7 @@ export default function LessonPage() {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: '#06080d' }}>
         <div
-          className="rounded-2xl p-8 border border-white/[0.04] text-center max-w-sm"
+          className="rounded-2xl p-5 sm:p-6 md:p-8 border border-white/[0.04] text-center max-w-sm"
           style={{ background: 'linear-gradient(135deg, rgba(12,14,20,0.7) 0%, rgba(10,12,18,0.8) 100%)' }}
         >
           <svg className="w-10 h-10 mx-auto mb-4 text-[#4b5563]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -50,9 +50,9 @@ export default function LessonPage() {
 
   return (
     <div className="min-h-screen" style={{ background: '#06080d' }}>
-      <div className="max-w-2xl mx-auto px-6 py-10">
+      <div className="max-w-5xl mx-auto px-3 sm:px-4 md:px-6 py-6 sm:py-8 md:py-10">
         {/* Breadcrumb */}
-        <nav className="flex items-center gap-1.5 text-sm text-[#4b5563] mb-8">
+        <nav className="flex items-center gap-1.5 text-sm text-[#4b5563] mb-6 sm:mb-8">
           <Link to="/piano/curriculum" className="text-[#6b7280] hover:text-violet-400 transition-colors">
             Curriculum
           </Link>
@@ -73,7 +73,7 @@ export default function LessonPage() {
         </nav>
 
         {/* Lesson header */}
-        <div className="mb-8">
+        <div className="mb-6 sm:mb-8">
           <div className="flex items-center gap-3 mb-2">
             {isCompleted && (
               <span
@@ -87,7 +87,7 @@ export default function LessonPage() {
               </span>
             )}
           </div>
-          <h1 className="text-3xl font-bold text-white tracking-tight">{lesson.title}</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">{lesson.title}</h1>
         </div>
 
         {/* Lesson content */}

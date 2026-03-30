@@ -42,10 +42,10 @@ export default function PianoDashboardPage() {
   ).length
 
   return (
-    <div className="p-6 lg:p-8 max-w-[1400px] mx-auto">
+    <div className="p-3 sm:p-4 md:p-6 lg:p-8 max-w-[1800px] mx-auto">
 
       {/* ── Hero ── */}
-      <div className="relative mb-8 overflow-hidden rounded-3xl p-8 lg:p-10 border border-white/[0.04]" style={{
+      <div className="relative mb-6 sm:mb-8 overflow-hidden rounded-2xl sm:rounded-3xl p-5 sm:p-6 md:p-8 lg:p-10 border border-white/[0.04]" style={{
         background: 'linear-gradient(135deg, rgba(12,10,20,0.9) 0%, rgba(10,12,22,0.9) 50%, rgba(14,10,20,0.8) 100%)',
       }}>
         <div className="absolute -top-20 -right-20 w-80 h-80 rounded-full pointer-events-none" style={{
@@ -57,13 +57,13 @@ export default function PianoDashboardPage() {
 
         <div className="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
           <div>
-            <h1 className="text-3xl lg:text-4xl font-extrabold text-white mb-2 tracking-tight">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white mb-2 tracking-tight">
               {completedLessons === 0
                 ? <>Ready to play<span style={{ color: accent }}>?</span></>
                 : <>Welcome back<span style={{ color: accent }}>.</span></>
               }
             </h1>
-            <p className="text-[#6b7280] text-base lg:text-lg max-w-lg">
+            <p className="text-[#6b7280] text-sm sm:text-base lg:text-lg max-w-lg">
               {practiceStreak > 0
                 ? `${practiceStreak}-day streak! Consistency is the key to mastery.`
                 : completedLessons === 0
@@ -100,7 +100,7 @@ export default function PianoDashboardPage() {
       </div>
 
       {/* ── Stats row ── */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 mb-6 sm:mb-8">
         {[
           { label: 'Current Module', value: currentModule.name, sub: `${currentModuleDone}/${currentModuleLessons} lessons`, icon: '📖' },
           { label: 'Practice Time', value: totalPracticeTime > 60 ? `${Math.round(totalPracticeTime / 60)}h` : `${totalPracticeTime}m`, sub: 'total practice', icon: '⏱' },

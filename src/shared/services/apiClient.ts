@@ -128,9 +128,10 @@ export interface DbExercise {
   sessions?: { id: string; score: number; stars: number; accuracy: number; bpm: number; startedAt: string }[]
 }
 
-export async function apiListExercises(params?: { category?: string; limit?: number }) {
+export async function apiListExercises(params?: { category?: string; instrument?: string; limit?: number }) {
   const q = new URLSearchParams()
   if (params?.category) q.set('category', params.category)
+  if (params?.instrument) q.set('instrument', params.instrument)
   if (params?.limit) q.set('limit', String(params.limit))
   return request<{ exercises: DbExercise[] }>(`/api/exercises?${q}`)
 }
@@ -141,7 +142,7 @@ export async function apiGetExercise(id: string) {
 
 export async function apiSaveExercise(data: {
   title: string; description?: string; patternData: any; config?: any
-  category?: string; difficulty?: number; bpm?: number
+  category?: string; instrument?: string; difficulty?: number; bpm?: number
   timeSignature?: number[]; bars?: number; tags?: string[]
   isAiGenerated?: boolean
 }) {

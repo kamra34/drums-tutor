@@ -9,7 +9,7 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="p-6 lg:p-8 max-w-4xl mx-auto">
+    <div className="p-3 sm:p-4 md:p-6 lg:p-8 max-w-[1600px] mx-auto">
       {/* Header */}
       <div className="relative mb-8 overflow-hidden rounded-3xl p-8 border border-white/[0.04]" style={{
         background: 'linear-gradient(135deg, rgba(15,12,8,0.9) 0%, rgba(10,14,22,0.9) 50%, rgba(15,12,8,0.8) 100%)',

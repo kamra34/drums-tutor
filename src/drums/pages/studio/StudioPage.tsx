@@ -270,9 +270,9 @@ export default function StudioPage() {
   }
 
   return (
-    <div className="p-6 lg:p-8 max-w-[1600px] mx-auto" style={{ background: '#06080d', minHeight: '100vh' }}>
+    <div className="p-3 sm:p-4 md:p-6 lg:p-8 max-w-[1800px] mx-auto" style={{ background: '#06080d', minHeight: '100vh' }}>
       {/* Header */}
-      <div className="relative mb-8 overflow-hidden rounded-3xl p-8 lg:p-10 border border-white/[0.04]" style={{
+      <div className="relative mb-6 sm:mb-8 overflow-hidden rounded-2xl sm:rounded-3xl p-5 sm:p-6 md:p-8 lg:p-10 border border-white/[0.04]" style={{
         background: 'linear-gradient(135deg, rgba(15,12,8,0.9) 0%, rgba(10,14,22,0.9) 50%, rgba(15,12,8,0.8) 100%)',
       }}>
         <div className="absolute -top-20 -right-20 w-80 h-80 rounded-full pointer-events-none" style={{
@@ -282,10 +282,10 @@ export default function StudioPage() {
           background: 'radial-gradient(circle, rgba(245,158,11,0.05) 0%, transparent 70%)',
         }} />
         <div className="relative z-10">
-          <h1 className="text-3xl lg:text-4xl font-extrabold text-white mb-2 tracking-tight">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white mb-2 tracking-tight">
             Studio<span className="bg-gradient-to-r from-violet-400 to-fuchsia-400 bg-clip-text text-transparent">.</span>
           </h1>
-          <p className="text-[#6b7280] text-base lg:text-lg max-w-xl">
+          <p className="text-[#6b7280] text-sm sm:text-base lg:text-lg max-w-xl">
             Create drum patterns from scratch. Click the grid to place hits, preview the notation, and save for practice.
           </p>
           {/* Mode tabs */}

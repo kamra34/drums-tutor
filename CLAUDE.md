@@ -354,36 +354,60 @@ Reusable component providing the unified playback experience across ALL piano pa
 
 ## Piano Studio (src/piano/pages/StudioPage.tsx)
 
-AI-powered creative workspace for generating custom piano exercises and arrangements.
+Two-mode creative workspace: AI exercise generation and a manual Custom Builder.
 
-### Three Generation Modes
-- **Exercise** — Generate a specific exercise type (scale, chord-progression, melody, technique, sight-reading)
-- **Song** — Type a song name, AI creates a simplified arrangement
-- **Free Prompt** — Describe what you want in natural language (e.g., "Jazz walking bass with RH comping in Bb")
-
-### Parameters
-- Key (C, G, D, A, E, F, Bb, Am, Dm, Em, Gm)
-- Hands (RH, LH, Both)
-- Difficulty (1-7 slider)
-- BPM (30-200)
-- Bars (4, 8, 16)
-- Time signature (4/4, 3/4, 6/8)
+### Two Modes (tabs in header, like drum studio)
+- **AI Exercise** — Generate exercises with type (scale, chord-progression, melody, technique, sight-reading), genre (Classical, Jazz, Blues, Pop, Latin, Film/Cinematic), length (short/medium/long), key, hands, time sig, difficulty
+- **Custom Builder** — Full-width layout: click notes on a 3-octave keyboard (C3-C6) to build exercises manually. Duration selector, finger numbers, visual note timeline with measure bars, reorder/edit/delete per note.
 
 ### AI Service (src/piano/services/studioAiService.ts)
 - Uses Anthropic API directly (same pattern as drum aiService)
 - Model: `claude-sonnet-4-6` with structured JSON system prompt
-- Clara generates note-accurate JSON with `notes`, `notesLeft`, `chordsLeft`
+- Only supports `mode: 'exercise'` — song/free prompt modes removed (LLMs can't reproduce melodies)
 - Validates response: checks note format, duration, array structure
 - Falls back gracefully on parse errors with user-friendly messages
 
-### Generated Pieces
-- Feed directly into PracticePlayer with full notation + keyboard + controls
-- In-session history (last 20 pieces) — click to reload any previous generation
-- Both-hands support when `hands: 'both'` is selected
+### Save/Load/Edit/Delete
+- Exercises saved to backend via `/api/exercises` with `category: 'piano-studio'`, `instrument: 'piano'`
+- **My Patterns sidebar** (xl screens) — lists saved exercises, click to edit (`/piano/studio/:id`), delete on hover
+- **Save bar** — appears after generating/previewing with name input + Save/Update button
+- Backend `patternData` stores `{ notes, notesLeft, chordsLeft, keySignature, hands }` (relaxed Zod schema — accepts both drum and piano formats)
 
-### Navigation
-- Added to sidebar nav (Dashboard, Curriculum, Practice, **Studio**, AI Tutor)
-- Route: `/piano/studio`
+### Practice Integration
+- **My Exercises** section in Practice Hub → `/piano/practice/my-exercises` (MyExercisesPage.tsx)
+- Browse saved exercises with edit/delete/practice actions
+- Play page: `/piano/practice/my-exercises/:exerciseId` (MyExercisePlayerPage.tsx) loads from API, renders with PracticePlayer
+- "Practice this" link appears in Studio after saving
+
+### Routes
+- `/piano/studio` — Studio (new exercise)
+- `/piano/studio/:id` — Studio (edit existing)
+- `/piano/practice/my-exercises` — Browse saved exercises
+- `/piano/practice/my-exercises/:exerciseId` — Play saved exercise
+
+## Responsive Design
+
+### Breakpoint Strategy
+All pages use progressive responsive classes: `p-2 sm:p-3 md:p-4 lg:p-6` for padding, `text-lg sm:text-xl lg:text-2xl` for text scaling.
+
+### TopNav
+- **Mobile (<768px)**: Hamburger menu + slide-out drawer with all nav items, user profile, switch instrument, MIDI/metronome access. Body scroll locked when open.
+- **Tablet (768-1024px)**: Icon-only nav pills, compact spacing
+- **Desktop (>1024px)**: Full layout with icons + labels
+- Drawer auto-closes on route change, animation via CSS `@keyframes slideInLeft`
+
+### Page Max Widths
+- Dashboard/Hub/Studio/Exercise pages: `max-w-[1800px]` — fills large monitors
+- Curriculum/Admin: `max-w-[1600px]`
+- Browsers/Practice sub-pages: `max-w-[1400px]`
+- Lessons/Settings: `max-w-5xl` (1024px) — reading-focused, narrower is better
+- Auth form: `max-w-[420px]` — intentionally compact
+
+### PracticePlayer Responsive
+- Control bar: `flex-wrap` with responsive gaps, separators hidden on mobile, button text hidden on small screens
+- Notation: `overflow-x-auto` with `min-w-0` on all parent containers to prevent CSS Grid overflow
+- Keyboard: `width="100%"` SVG, `maxHeight: 300px` fullscreen / `180px` inline
+- Fullscreen: keyboard anchored to bottom (`items-end`), full width (no max-w constraint)
 
 ## Piano Dashboard (src/piano/pages/DashboardPage.tsx)
 - Dynamic hero greeting based on progress/streak
@@ -461,3 +485,5 @@ AI-powered creative workspace for generating custom piano exercises and arrangem
 12. **Exercise notation chords**: When rendering chord events in notation, ALL notes in `ev.notes` must be rendered as stacked noteheads, not just `ev.notes[0]`. A C chord = 3 noteheads (C, E, G), not 1.
 13. **Exercise both-hands**: `notes`/`chords` = RH, `notesLeft`/`chordsLeft` = LH. PracticePlayer handles dual scheduling automatically. LH notes are positioned in notation by TIME alignment to RH columns (not array index) — see `lhToRHColumn()` in PracticePlayer. When adding both-hands data, RH and LH total durations should match (the longer determines total playback time).
 14. **ExercisePage is thin**: ExercisePage only handles header, breadcrumbs, instructions, and self-assessment. All playback (notation, keyboard, controls, fullscreen) is in the shared PracticePlayer component. Do NOT re-add playback logic to ExercisePage.
+15. **Piano Studio save**: Uses `category: 'piano-studio'` + `instrument: 'piano'` to distinguish from drum exercises. The backend `patternData` Zod schema is `z.any()` to accept both drum `{beats,subdivisions,tracks}` and piano `{notes,chordsLeft,...}` formats.
+16. **Responsive `min-w-0`**: All CSS Grid `1fr` columns containing scrollable content (PracticePlayer, notation) MUST have `min-w-0` on themselves and parent containers. Without this, the grid column expands to fit the SVG's intrinsic width, pushing content off-screen.

@@ -20,14 +20,15 @@ export default function TopNav() {
   const instrument = useInstrument()
   const config = getInstrumentConfig(instrument)
   const basePath = `/${instrument}`
+  const location = useLocation()
 
-  // Drum-specific stores (always called to satisfy hooks rules, but only used when relevant)
   const { isConnected, deviceName } = useMidiStore()
   const { isPlaying: metronomeRunning, bpm: metronomeBpm } = useGlobalMetronomeStore()
 
   const { user, logout } = useAuthStore()
   const [metronomeOpen, setMetronomeOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const profileRef = useRef<HTMLDivElement>(null)
 
   // Close profile dropdown on outside click
@@ -41,170 +42,348 @@ export default function TopNav() {
     return () => document.removeEventListener('mousedown', handleClick)
   }, [profileOpen])
 
+  // Close mobile menu on route change
+  useEffect(() => {
+    setMobileMenuOpen(false)
+  }, [location.pathname])
+
+  // Lock body scroll when mobile menu is open
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
+    }
+    return () => { document.body.style.overflow = '' }
+  }, [mobileMenuOpen])
+
   return (
-    <header
-      className="relative z-30 flex items-center h-16 px-6 border-b border-white/[0.04]"
-      style={{
-        background: 'linear-gradient(180deg, rgba(6,8,13,0.95) 0%, rgba(6,8,13,0.85) 100%)',
-        backdropFilter: 'blur(20px)',
-      }}
-    >
-      {/* Logo — links back to instrument selector */}
-      <NavLink to="/" state={{ fromSwitch: true }} className="flex items-center gap-2.5 mr-2 flex-shrink-0 group" title="Switch instrument">
-        <span className="text-2xl">{config.icon}</span>
-        <span className="text-lg font-extrabold tracking-tight">
-          <span style={{ color: config.accentColor }}>{config.label.toUpperCase()}</span>
-          <span className="text-white">TUTOR</span>
-        </span>
-      </NavLink>
-      {/* Switch instrument button */}
-      <NavLink
-        to="/"
-        state={{ fromSwitch: true }}
-        className="mr-8 flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] text-[#374151] hover:text-[#94a3b8] hover:bg-white/[0.03] transition-colors flex-shrink-0"
-        title="Switch instrument"
+    <>
+      <header
+        className="relative z-30 flex items-center h-14 md:h-16 px-3 md:px-6 border-b border-white/[0.04]"
+        style={{
+          background: 'linear-gradient(180deg, rgba(6,8,13,0.95) 0%, rgba(6,8,13,0.85) 100%)',
+          backdropFilter: 'blur(20px)',
+        }}
       >
-        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
-        </svg>
-        Switch
-      </NavLink>
-
-      {/* Navigation pills */}
-      <nav className="flex items-center gap-1 flex-1">
-        {config.navItems.map(({ to, label }) => {
-          const fullPath = to ? `${basePath}/${to}` : basePath
-          const Icon = ICON_MAP[label] ?? DashboardIcon
-          const isEnd = to === ''
-          return (
-            <NavLink
-              key={fullPath}
-              to={fullPath}
-              end={isEnd}
-              className={({ isActive }) =>
-                `flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
-                  isActive
-                    ? `text-white`
-                    : 'text-[#6b7280] hover:text-white hover:bg-white/[0.04]'
-                }`
-              }
-              style={({ isActive }) => isActive ? { backgroundColor: `${config.accentColor}15`, color: config.accentColor } : undefined}
-            >
-              {({ isActive }) => (
-                <>
-                  <Icon active={isActive} />
-                  <span>{label}</span>
-                </>
-              )}
-            </NavLink>
-          )
-        })}
-        {user?.role === 'admin' && (
-          <NavLink to="/admin" className={({ isActive }) => `flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${isActive ? 'bg-amber-500/10 text-amber-400' : 'text-[#6b7280] hover:text-white hover:bg-white/[0.04]'}`}>
-            {({ isActive }) => (<><AdminIcon active={isActive} /><span>Admin</span></>)}
-          </NavLink>
-        )}
-        <NavLink to="/settings" className={({ isActive }) => `flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${isActive ? 'bg-amber-500/10 text-amber-400' : 'text-[#6b7280] hover:text-white hover:bg-white/[0.04]'}`}>
-          {({ isActive }) => (<><SettingsIcon active={isActive} /><span>Settings</span></>)}
-        </NavLink>
-      </nav>
-
-      {/* Right side: MIDI + Metronome + Profile */}
-      <div className="flex items-center gap-4 flex-shrink-0">
-        {/* MIDI indicator (drums only) */}
-        {config.showMidi && (
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/[0.03] border border-white/[0.04]">
-            <span className={`w-2 h-2 rounded-full flex-shrink-0 ${isConnected ? 'bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.5)]' : 'bg-[#374151]'}`} />
-            <span className="text-xs text-[#6b7280] max-w-[120px] truncate">
-              {isConnected ? deviceName ?? 'Kit connected' : 'No kit'}
-            </span>
-          </div>
-        )}
-
-        {/* Metronome button (instruments that support it) */}
-        {config.showMetronome && <div className="flex items-center gap-1">
-          <button
-            onClick={() => setMetronomeOpen(true)}
-            className={`relative flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all cursor-pointer ${
-              metronomeRunning
-                ? 'bg-amber-500/[0.08] border-amber-500/20 text-amber-400'
-                : 'bg-white/[0.03] border-white/[0.04] text-[#6b7280] hover:text-white hover:border-white/[0.08]'
-            }`}
-          >
-            {/* Metronome icon */}
-            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 2L8.5 21h7L12 2z" />
-              <path d="M12 8l5-3" />
-              <line x1="7" y1="21" x2="17" y2="21" />
+        {/* Hamburger — mobile only */}
+        <button
+          onClick={() => setMobileMenuOpen(o => !o)}
+          className="md:hidden flex items-center justify-center w-10 h-10 -ml-1 mr-1 rounded-xl text-[#6b7280] hover:text-white hover:bg-white/[0.04] transition-colors cursor-pointer flex-shrink-0"
+          aria-label="Toggle menu"
+        >
+          {mobileMenuOpen ? (
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
-            {metronomeRunning && (
-              <span className="text-[11px] font-mono font-bold tabular-nums">{metronomeBpm}</span>
-            )}
-            {/* Pulsing dot when playing */}
-            {metronomeRunning && (
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-50" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-400" />
-              </span>
-            )}
-          </button>
-          {/* Inline stop */}
-          {metronomeRunning && (
-            <button
-              onClick={() => { stopGlobalMetronome(); useGlobalMetronomeStore.getState().setPlaying(false) }}
-              className="w-7 h-7 rounded-xl bg-white/[0.04] border border-white/[0.06] text-[#4b5563] hover:text-rose-400 hover:border-rose-500/20 flex items-center justify-center cursor-pointer transition-colors"
-              title="Stop metronome"
-            >
-              <svg className="w-3 h-3" viewBox="0 0 12 12" fill="currentColor">
-                <rect x="1" y="1" width="10" height="10" rx="1.5" />
-              </svg>
-            </button>
+          ) : (
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
           )}
-        </div>}
+        </button>
 
-        {config.showMetronome && (
-          <GlobalMetronomePopup open={metronomeOpen} onClose={() => setMetronomeOpen(false)} />
-        )}
+        {/* Logo */}
+        <NavLink to="/" state={{ fromSwitch: true }} className="flex items-center gap-2 md:gap-2.5 mr-1 md:mr-2 flex-shrink-0 group" title="Switch instrument">
+          <span className="text-xl md:text-2xl">{config.icon}</span>
+          <span className="text-base md:text-lg font-extrabold tracking-tight">
+            <span style={{ color: config.accentColor }}>{config.label.toUpperCase()}</span>
+            <span className="text-white">TUTOR</span>
+          </span>
+        </NavLink>
 
-        {/* Profile button */}
-        {user && (
-          <div className="relative" ref={profileRef}>
-            <button
-              onClick={() => setProfileOpen(p => !p)}
-              className="flex items-center gap-2 cursor-pointer group"
-            >
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-white text-xs font-bold shadow-lg shadow-amber-500/20">
-                {user.displayName?.charAt(0).toUpperCase() || user.email.charAt(0).toUpperCase()}
-              </div>
-              <svg className="w-3.5 h-3.5 text-[#4b5563] group-hover:text-[#6b7280] transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
+        {/* Switch button — hidden on mobile (available in drawer) */}
+        <NavLink
+          to="/"
+          state={{ fromSwitch: true }}
+          className="hidden md:flex mr-4 lg:mr-8 items-center gap-1 px-2 py-1 rounded-lg text-[10px] text-[#374151] hover:text-[#94a3b8] hover:bg-white/[0.03] transition-colors flex-shrink-0"
+          title="Switch instrument"
+        >
+          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
+          </svg>
+          Switch
+        </NavLink>
 
-            {/* Dropdown */}
-            {profileOpen && (
-              <div
-                className="absolute right-0 top-12 w-56 rounded-2xl border border-white/[0.06] p-1.5 shadow-2xl"
-                style={{
-                  background: 'linear-gradient(135deg, rgba(15, 17, 23, 0.97) 0%, rgba(12, 16, 24, 0.98) 100%)',
-                  backdropFilter: 'blur(40px)',
-                }}
+        {/* Navigation pills — hidden on mobile, icon-only on tablet, full on desktop */}
+        <nav className="hidden md:flex items-center gap-0.5 lg:gap-1 flex-1 min-w-0">
+          {config.navItems.map(({ to, label }) => {
+            const fullPath = to ? `${basePath}/${to}` : basePath
+            const Icon = ICON_MAP[label] ?? DashboardIcon
+            const isEnd = to === ''
+            return (
+              <NavLink
+                key={fullPath}
+                to={fullPath}
+                end={isEnd}
+                className={({ isActive }) =>
+                  `flex items-center gap-1.5 lg:gap-2 px-2.5 lg:px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 flex-shrink-0 ${
+                    isActive
+                      ? 'text-white'
+                      : 'text-[#6b7280] hover:text-white hover:bg-white/[0.04]'
+                  }`
+                }
+                style={({ isActive }) => isActive ? { backgroundColor: `${config.accentColor}15`, color: config.accentColor } : undefined}
+                title={label}
               >
-                <div className="px-3 py-3 border-b border-white/[0.04] mb-1">
-                  <div className="text-sm text-white font-medium truncate">{user.displayName}</div>
-                  <div className="text-xs text-[#4b5563] truncate">{user.email}</div>
+                {({ isActive }) => (
+                  <>
+                    <Icon active={isActive} />
+                    <span className="hidden lg:inline">{label}</span>
+                  </>
+                )}
+              </NavLink>
+            )
+          })}
+          {user?.role === 'admin' && (
+            <NavLink to="/admin" title="Admin" className={({ isActive }) => `flex items-center gap-1.5 lg:gap-2 px-2.5 lg:px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 flex-shrink-0 ${isActive ? 'bg-amber-500/10 text-amber-400' : 'text-[#6b7280] hover:text-white hover:bg-white/[0.04]'}`}>
+              {({ isActive }) => (<><AdminIcon active={isActive} /><span className="hidden lg:inline">Admin</span></>)}
+            </NavLink>
+          )}
+          <NavLink to="/settings" title="Settings" className={({ isActive }) => `flex items-center gap-1.5 lg:gap-2 px-2.5 lg:px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 flex-shrink-0 ${isActive ? 'bg-amber-500/10 text-amber-400' : 'text-[#6b7280] hover:text-white hover:bg-white/[0.04]'}`}>
+            {({ isActive }) => (<><SettingsIcon active={isActive} /><span className="hidden lg:inline">Settings</span></>)}
+          </NavLink>
+        </nav>
+
+        {/* Right side: MIDI + Metronome + Profile */}
+        <div className="flex items-center gap-2 md:gap-4 flex-shrink-0 ml-auto">
+          {/* MIDI indicator (drums only) — hidden on mobile */}
+          {config.showMidi && (
+            <div className="hidden sm:flex items-center gap-2 px-2 md:px-3 py-1.5 rounded-lg bg-white/[0.03] border border-white/[0.04]">
+              <span className={`w-2 h-2 rounded-full flex-shrink-0 ${isConnected ? 'bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.5)]' : 'bg-[#374151]'}`} />
+              <span className="text-xs text-[#6b7280] max-w-[80px] lg:max-w-[120px] truncate">
+                {isConnected ? deviceName ?? 'Connected' : 'No kit'}
+              </span>
+            </div>
+          )}
+
+          {/* Metronome button — hidden on mobile */}
+          {config.showMetronome && <div className="hidden sm:flex items-center gap-1">
+            <button
+              onClick={() => setMetronomeOpen(true)}
+              className={`relative flex items-center gap-2 px-2.5 md:px-3 py-1.5 rounded-xl border transition-all cursor-pointer ${
+                metronomeRunning
+                  ? 'bg-amber-500/[0.08] border-amber-500/20 text-amber-400'
+                  : 'bg-white/[0.03] border-white/[0.04] text-[#6b7280] hover:text-white hover:border-white/[0.08]'
+              }`}
+            >
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 2L8.5 21h7L12 2z" />
+                <path d="M12 8l5-3" />
+                <line x1="7" y1="21" x2="17" y2="21" />
+              </svg>
+              {metronomeRunning && (
+                <span className="text-[11px] font-mono font-bold tabular-nums">{metronomeBpm}</span>
+              )}
+              {metronomeRunning && (
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-50" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-400" />
+                </span>
+              )}
+            </button>
+            {metronomeRunning && (
+              <button
+                onClick={() => { stopGlobalMetronome(); useGlobalMetronomeStore.getState().setPlaying(false) }}
+                className="w-7 h-7 rounded-xl bg-white/[0.04] border border-white/[0.06] text-[#4b5563] hover:text-rose-400 hover:border-rose-500/20 flex items-center justify-center cursor-pointer transition-colors"
+                title="Stop metronome"
+              >
+                <svg className="w-3 h-3" viewBox="0 0 12 12" fill="currentColor">
+                  <rect x="1" y="1" width="10" height="10" rx="1.5" />
+                </svg>
+              </button>
+            )}
+          </div>}
+
+          {config.showMetronome && (
+            <GlobalMetronomePopup open={metronomeOpen} onClose={() => setMetronomeOpen(false)} />
+          )}
+
+          {/* Profile button */}
+          {user && (
+            <div className="relative" ref={profileRef}>
+              <button
+                onClick={() => setProfileOpen(p => !p)}
+                className="flex items-center gap-1.5 md:gap-2 cursor-pointer group"
+              >
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-white text-xs font-bold shadow-lg shadow-amber-500/20">
+                  {user.displayName?.charAt(0).toUpperCase() || user.email.charAt(0).toUpperCase()}
                 </div>
-                <NavLink
-                  to="/settings"
-                  onClick={() => setProfileOpen(false)}
-                  className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm text-[#94a3b8] hover:bg-white/[0.04] hover:text-white transition-colors"
+                <svg className="w-3.5 h-3.5 text-[#4b5563] group-hover:text-[#6b7280] transition-colors hidden sm:block" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+
+              {profileOpen && (
+                <div
+                  className="absolute right-0 top-12 w-52 sm:w-56 rounded-2xl border border-white/[0.06] p-1.5 shadow-2xl z-50"
+                  style={{
+                    background: 'linear-gradient(135deg, rgba(15, 17, 23, 0.97) 0%, rgba(12, 16, 24, 0.98) 100%)',
+                    backdropFilter: 'blur(40px)',
+                  }}
                 >
-                  <SettingsIcon active={false} />
-                  Settings
+                  <div className="px-3 py-3 border-b border-white/[0.04] mb-1">
+                    <div className="text-sm text-white font-medium truncate">{user.displayName}</div>
+                    <div className="text-xs text-[#4b5563] truncate">{user.email}</div>
+                  </div>
+                  <NavLink
+                    to="/settings"
+                    onClick={() => setProfileOpen(false)}
+                    className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm text-[#94a3b8] hover:bg-white/[0.04] hover:text-white transition-colors"
+                  >
+                    <SettingsIcon active={false} />
+                    Settings
+                  </NavLink>
+                  <button
+                    onClick={() => { setProfileOpen(false); logout() }}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm text-[#94a3b8] hover:bg-rose-500/10 hover:text-rose-400 transition-colors cursor-pointer"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                    </svg>
+                    Sign out
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </header>
+
+      {/* ── Mobile Drawer ── */}
+      {mobileMenuOpen && (
+        <>
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 z-40 bg-black/60 md:hidden"
+            onClick={() => setMobileMenuOpen(false)}
+            style={{ backdropFilter: 'blur(4px)' }}
+          />
+          {/* Drawer panel */}
+          <div
+            className="fixed inset-y-0 left-0 z-50 w-72 max-w-[85vw] md:hidden flex flex-col"
+            style={{
+              background: 'linear-gradient(180deg, rgba(10,12,18,0.98) 0%, rgba(6,8,13,0.99) 100%)',
+              borderRight: '1px solid rgba(255,255,255,0.06)',
+              animation: 'slideInLeft 0.2s ease-out',
+            }}
+          >
+            {/* Drawer header */}
+            <div className="flex items-center justify-between h-14 px-4 border-b border-white/[0.04]">
+              <div className="flex items-center gap-2">
+                <span className="text-xl">{config.icon}</span>
+                <span className="text-base font-extrabold tracking-tight">
+                  <span style={{ color: config.accentColor }}>{config.label.toUpperCase()}</span>
+                  <span className="text-white">TUTOR</span>
+                </span>
+              </div>
+              <button
+                onClick={() => setMobileMenuOpen(false)}
+                className="w-9 h-9 rounded-xl flex items-center justify-center text-[#6b7280] hover:text-white hover:bg-white/[0.04] transition-colors cursor-pointer"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Nav items */}
+            <nav className="flex-1 overflow-y-auto py-3 px-3 space-y-1">
+              {config.navItems.map(({ to, label }) => {
+                const fullPath = to ? `${basePath}/${to}` : basePath
+                const Icon = ICON_MAP[label] ?? DashboardIcon
+                const isEnd = to === ''
+                return (
+                  <NavLink
+                    key={fullPath}
+                    to={fullPath}
+                    end={isEnd}
+                    className={({ isActive }) =>
+                      `flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+                        isActive
+                          ? 'text-white'
+                          : 'text-[#9ca3af] hover:text-white hover:bg-white/[0.04]'
+                      }`
+                    }
+                    style={({ isActive }) => isActive ? { backgroundColor: `${config.accentColor}15`, color: config.accentColor } : undefined}
+                  >
+                    {({ isActive }) => (
+                      <>
+                        <Icon active={isActive} />
+                        <span>{label}</span>
+                      </>
+                    )}
+                  </NavLink>
+                )
+              })}
+
+              <div className="border-t border-white/[0.04] my-2" />
+
+              {user?.role === 'admin' && (
+                <NavLink to="/admin" className={({ isActive }) => `flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${isActive ? 'bg-amber-500/10 text-amber-400' : 'text-[#9ca3af] hover:text-white hover:bg-white/[0.04]'}`}>
+                  {({ isActive }) => (<><AdminIcon active={isActive} /><span>Admin</span></>)}
                 </NavLink>
+              )}
+              <NavLink to="/settings" className={({ isActive }) => `flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${isActive ? 'bg-amber-500/10 text-amber-400' : 'text-[#9ca3af] hover:text-white hover:bg-white/[0.04]'}`}>
+                {({ isActive }) => (<><SettingsIcon active={isActive} /><span>Settings</span></>)}
+              </NavLink>
+
+              <div className="border-t border-white/[0.04] my-2" />
+
+              {/* Switch instrument */}
+              <NavLink
+                to="/"
+                state={{ fromSwitch: true }}
+                className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-[#9ca3af] hover:text-white hover:bg-white/[0.04] transition-all"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
+                </svg>
+                <span>Switch Instrument</span>
+              </NavLink>
+
+              {/* MIDI + Metronome in drawer (drums) */}
+              {config.showMidi && (
+                <div className="flex items-center gap-2 px-4 py-3">
+                  <span className={`w-2 h-2 rounded-full flex-shrink-0 ${isConnected ? 'bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.5)]' : 'bg-[#374151]'}`} />
+                  <span className="text-xs text-[#6b7280]">
+                    {isConnected ? deviceName ?? 'Kit connected' : 'No MIDI kit connected'}
+                  </span>
+                </div>
+              )}
+
+              {config.showMetronome && (
                 <button
-                  onClick={() => { setProfileOpen(false); logout() }}
-                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm text-[#94a3b8] hover:bg-rose-500/10 hover:text-rose-400 transition-colors cursor-pointer"
+                  onClick={() => { setMobileMenuOpen(false); setMetronomeOpen(true) }}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all cursor-pointer ${
+                    metronomeRunning ? 'text-amber-400 bg-amber-500/[0.06]' : 'text-[#9ca3af] hover:text-white hover:bg-white/[0.04]'
+                  }`}
+                >
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 2L8.5 21h7L12 2z" />
+                    <path d="M12 8l5-3" />
+                    <line x1="7" y1="21" x2="17" y2="21" />
+                  </svg>
+                  <span>Metronome{metronomeRunning ? ` (${metronomeBpm} BPM)` : ''}</span>
+                </button>
+              )}
+            </nav>
+
+            {/* User info at bottom */}
+            {user && (
+              <div className="border-t border-white/[0.04] p-4">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-white text-xs font-bold shadow-lg shadow-amber-500/20 flex-shrink-0">
+                    {user.displayName?.charAt(0).toUpperCase() || user.email.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-sm text-white font-medium truncate">{user.displayName}</div>
+                    <div className="text-[11px] text-[#4b5563] truncate">{user.email}</div>
+                  </div>
+                </div>
+                <button
+                  onClick={() => { setMobileMenuOpen(false); logout() }}
+                  className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-sm text-[#94a3b8] hover:bg-rose-500/10 hover:text-rose-400 transition-colors cursor-pointer border border-white/[0.04]"
                 >
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
@@ -214,9 +393,9 @@ export default function TopNav() {
               </div>
             )}
           </div>
-        )}
-      </div>
-    </header>
+        </>
+      )}
+    </>
   )
 }
 

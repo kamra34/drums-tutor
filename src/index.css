@@ -40,3 +40,9 @@ body {
 .table-wrapper tr:hover td { background: #0f1117; }
 .prose ol { list-style: decimal; padding-left: 1.5rem; margin-bottom: 0.85rem; color: #94a3b8; }
 .prose ol li { margin-bottom: 0.3rem; }
+
+/* Mobile drawer animation */
+@keyframes slideInLeft {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}

@@ -39,6 +39,8 @@ import SightReadingPage from '@piano/pages/practice/SightReadingPage'
 import EarTrainingPage from '@piano/pages/practice/EarTrainingPage'
 import PianoStudioPage from '@piano/pages/StudioPage'
 import PianoExercisePage from '@piano/pages/ExercisePage'
+import MyExercisesPage from '@piano/pages/practice/MyExercisesPage'
+import MyExercisePlayerPage from '@piano/pages/practice/MyExercisePlayerPage'
 
 export default function App() {
   const { isAuthenticated, isLoading, checkAuth } = useAuthStore()
@@ -115,6 +117,9 @@ export default function App() {
             <Route path="practice/sight-reading" element={<SightReadingPage />} />
             <Route path="practice/ear-training" element={<EarTrainingPage />} />
             <Route path="studio" element={<PianoStudioPage />} />
+            <Route path="studio/:id" element={<PianoStudioPage />} />
+            <Route path="practice/my-exercises" element={<MyExercisesPage />} />
+            <Route path="practice/my-exercises/:exerciseId" element={<MyExercisePlayerPage />} />
             <Route path="chat" element={<DrumChatPage />} />
           </Route>
         </Route>

@@ -73,7 +73,7 @@ function KeyboardSVG({ keys, rhNotes, lhNotes, rhFinger, lhFinger, allNotes, lar
   }
 
   return (
-    <svg viewBox={`0 0 ${svgW} ${svgH}`} width="100%" style={{ maxHeight: large ? 220 : 180, minWidth: 380 }} className="block">
+    <svg viewBox={`0 0 ${svgW} ${svgH}`} width="100%" style={{ maxHeight: large ? 300 : 180, minWidth: 380 }} className="block">
       <defs><linearGradient id="kglow2" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#a78bfa" stopOpacity="0.03" /><stop offset="100%" stopColor="#a78bfa" stopOpacity="0" /></linearGradient></defs>
       <rect x="0" y="0" width={svgW} height={svgH} fill="url(#kglow2)" rx="8" />
       {whites.map(k => {
@@ -234,8 +234,8 @@ function NotationWithGrid({ eventsRH, eventsLH, activeIdxRH, activeIdxLH, timeSi
   }
 
   return (
-    <div className="overflow-x-auto" ref={scrollRef} style={{ scrollBehavior: 'smooth' }}>
-      <svg viewBox={`0 0 ${totalW} ${svgH}`} width={totalW} height={svgH} className="block min-w-full">
+    <div className="overflow-x-auto min-w-0" ref={scrollRef} style={{ scrollBehavior: 'smooth' }}>
+      <svg viewBox={`0 0 ${totalW} ${svgH}`} width={totalW} height={svgH} className="block">
         {/* Treble staff */}
         {tLines.map((y, i) => <line key={`t${i}`} x1={10} y1={y} x2={totalW - 10} y2={y} stroke="#2d3748" strokeWidth={0.8} />)}
         <text x={18} y={tTop + 3.2 * lg} fontSize={large ? 44 : 38} fill="#6b7280" fontFamily="serif">{'\u{1D11E}'}</text>
@@ -497,34 +497,32 @@ export default function PracticePlayer({ notes, chords, notesLeft, chordsLeft, d
   if (eventsRH.length === 0 && eventsLH.length === 0) return <div className="text-center text-[#4b5563] text-sm py-8">No notes to play</div>
 
   const controlBar = (isLg: boolean) => (
-    <div className="flex flex-wrap items-center gap-2.5 lg:gap-4">
-      {playState==='idle' && <button onClick={() => startPlayback(0)} className="group w-11 h-11 rounded-xl flex items-center justify-center transition-all hover:scale-105 active:scale-95 cursor-pointer" style={{ background:'linear-gradient(135deg,#a78bfa,#8b5cf6)', boxShadow:'0 4px 20px -4px rgba(167,139,250,0.4)' }}><svg className="w-5 h-5 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg></button>}
-      {playState==='playing' && <button onClick={handlePause} className="w-11 h-11 rounded-xl flex items-center justify-center bg-amber-500/15 border border-amber-500/25 hover:bg-amber-500/25 transition-all cursor-pointer"><svg className="w-4 h-4 text-amber-400" fill="currentColor" viewBox="0 0 24 24"><rect x="6" y="5" width="4" height="14" rx="1" /><rect x="14" y="5" width="4" height="14" rx="1" /></svg></button>}
-      {playState==='paused' && <button onClick={handleResume} className="group w-11 h-11 rounded-xl flex items-center justify-center transition-all hover:scale-105 active:scale-95 cursor-pointer" style={{ background:'linear-gradient(135deg,#a78bfa,#8b5cf6)', boxShadow:'0 4px 20px -4px rgba(167,139,250,0.4)' }}><svg className="w-5 h-5 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg></button>}
-      {isActive && <button onClick={handleStop} className="w-11 h-11 rounded-xl flex items-center justify-center bg-rose-500/10 border border-rose-500/20 hover:bg-rose-500/20 transition-all cursor-pointer"><svg className="w-4 h-4 text-rose-400" fill="currentColor" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="1" /></svg></button>}
-      <div className="w-px h-8 bg-white/[0.06]" />
+    <div className="flex flex-wrap items-center gap-2 sm:gap-2.5 lg:gap-4">
+      {playState==='idle' && <button onClick={() => startPlayback(0)} className="group w-10 h-10 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center transition-all hover:scale-105 active:scale-95 cursor-pointer flex-shrink-0" style={{ background:'linear-gradient(135deg,#a78bfa,#8b5cf6)', boxShadow:'0 4px 20px -4px rgba(167,139,250,0.4)' }}><svg className="w-5 h-5 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg></button>}
+      {playState==='playing' && <button onClick={handlePause} className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center bg-amber-500/15 border border-amber-500/25 hover:bg-amber-500/25 transition-all cursor-pointer flex-shrink-0"><svg className="w-4 h-4 text-amber-400" fill="currentColor" viewBox="0 0 24 24"><rect x="6" y="5" width="4" height="14" rx="1" /><rect x="14" y="5" width="4" height="14" rx="1" /></svg></button>}
+      {playState==='paused' && <button onClick={handleResume} className="group w-10 h-10 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center transition-all hover:scale-105 active:scale-95 cursor-pointer flex-shrink-0" style={{ background:'linear-gradient(135deg,#a78bfa,#8b5cf6)', boxShadow:'0 4px 20px -4px rgba(167,139,250,0.4)' }}><svg className="w-5 h-5 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg></button>}
+      {isActive && <button onClick={handleStop} className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center bg-rose-500/10 border border-rose-500/20 hover:bg-rose-500/20 transition-all cursor-pointer flex-shrink-0"><svg className="w-4 h-4 text-rose-400" fill="currentColor" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="1" /></svg></button>}
+      <div className="hidden sm:block w-px h-8 bg-white/[0.06]" />
       <div className="flex items-center gap-1.5">
         <button onClick={() => setBpm(b => Math.max(30,b-5))} disabled={isActive} className="w-7 h-7 rounded-lg bg-white/[0.04] border border-white/[0.06] text-[#6b7280] hover:text-white disabled:opacity-30 cursor-pointer transition-all flex items-center justify-center text-sm font-bold">-</button>
-        <div className="text-center w-14"><div className="text-white font-bold text-sm leading-none">{bpm}</div><div className="text-[9px] text-[#4b5563] uppercase tracking-wider mt-0.5">BPM</div></div>
+        <div className="text-center w-12 sm:w-14"><div className="text-white font-bold text-sm leading-none">{bpm}</div><div className="text-[9px] text-[#4b5563] uppercase tracking-wider mt-0.5">BPM</div></div>
         <button onClick={() => setBpm(b => Math.min(200,b+5))} disabled={isActive} className="w-7 h-7 rounded-lg bg-white/[0.04] border border-white/[0.06] text-[#6b7280] hover:text-white disabled:opacity-30 cursor-pointer transition-all flex items-center justify-center text-sm font-bold">+</button>
       </div>
-      <div className="w-px h-8 bg-white/[0.06]" />
+      <div className="hidden sm:block w-px h-8 bg-white/[0.06]" />
       <div className="flex items-center gap-1">{[1,2,3,4].map(r => <button key={r} onClick={() => setRepeats(r)} disabled={isActive} className="w-7 h-7 rounded-lg text-[11px] font-bold transition-all cursor-pointer disabled:opacity-50 flex items-center justify-center" style={{ background:repeats===r?'rgba(167,139,250,0.15)':'rgba(255,255,255,0.02)', border:`1px solid ${repeats===r?'rgba(167,139,250,0.3)':'rgba(255,255,255,0.04)'}`, color:repeats===r?'#a78bfa':'#4b5563' }}>{r}x</button>)}</div>
-      <div className="w-px h-8 bg-white/[0.06]" />
-      <button onClick={() => setMetronomeOn(!metronomeOn)} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-all cursor-pointer" style={{ background:metronomeOn?'rgba(167,139,250,0.1)':'rgba(255,255,255,0.02)', border:`1px solid ${metronomeOn?'rgba(167,139,250,0.25)':'rgba(255,255,255,0.04)'}` }}>
+      <div className="hidden sm:block w-px h-8 bg-white/[0.06]" />
+      <button onClick={() => setMetronomeOn(!metronomeOn)} className="flex items-center gap-1.5 px-2 sm:px-2.5 py-1.5 rounded-lg transition-all cursor-pointer" style={{ background:metronomeOn?'rgba(167,139,250,0.1)':'rgba(255,255,255,0.02)', border:`1px solid ${metronomeOn?'rgba(167,139,250,0.25)':'rgba(255,255,255,0.04)'}` }}>
         <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke={metronomeOn?'#a78bfa':'#4b5563'} strokeWidth={1.8}><path d="M12 2L8 22h8L12 2z" strokeLinecap="round" strokeLinejoin="round" /><path d="M12 8l4-3" strokeLinecap="round" /><line x1="6" y1="22" x2="18" y2="22" strokeLinecap="round" /></svg>
-        <span className="text-[10px] font-medium" style={{ color:metronomeOn?'#a78bfa':'#4b5563' }}>{metronomeOn?'On':'Off'}</span>
+        <span className="text-[10px] font-medium hidden sm:inline" style={{ color:metronomeOn?'#a78bfa':'#4b5563' }}>{metronomeOn?'On':'Off'}</span>
       </button>
-      {metronomeOn && <input type="range" min={0} max={1} step={0.05} value={metronomeVol} onChange={e => setMetronomeVol(parseFloat(e.target.value))} className="w-16 h-1 rounded-full cursor-pointer" style={{ accentColor:'#a78bfa' }} />}
-      {hasBothHands && <span className="text-[9px] px-2 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-medium">Both Hands</span>}
-      <div className="ml-auto">
-        <button onClick={() => setFullscreen(!fullscreen)} className="w-8 h-8 rounded-lg bg-white/[0.03] border border-white/[0.05] hover:bg-white/[0.06] flex items-center justify-center transition-all cursor-pointer">
-          <svg className="w-4 h-4 text-[#6b7280]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            {fullscreen ? <path strokeLinecap="round" strokeLinejoin="round" d="M9 4v4H4M15 4v4h5M9 20v-4H4M15 20v-4h5" />
-              : <path strokeLinecap="round" strokeLinejoin="round" d="M4 8V4h4M20 8V4h-4M4 16v4h4M20 16v4h-4" />}
-          </svg>
-        </button>
-      </div>
+      {metronomeOn && <input type="range" min={0} max={1} step={0.05} value={metronomeVol} onChange={e => setMetronomeVol(parseFloat(e.target.value))} className="w-12 sm:w-16 h-1 rounded-full cursor-pointer" style={{ accentColor:'#a78bfa' }} />}
+      {hasBothHands && <span className="text-[9px] px-2 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-medium hidden sm:inline">Both Hands</span>}
+      <button onClick={() => setFullscreen(!fullscreen)} className="ml-auto w-8 h-8 rounded-lg bg-white/[0.03] border border-white/[0.05] hover:bg-white/[0.06] flex items-center justify-center transition-all cursor-pointer flex-shrink-0">
+        <svg className="w-4 h-4 text-[#6b7280]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          {fullscreen ? <path strokeLinecap="round" strokeLinejoin="round" d="M9 4v4H4M15 4v4h5M9 20v-4H4M15 20v-4h5" />
+            : <path strokeLinecap="round" strokeLinejoin="round" d="M4 8V4h4M20 8V4h-4M4 16v4h4M20 16v4h-4" />}
+        </svg>
+      </button>
     </div>
   )
 
@@ -538,11 +536,11 @@ export default function PracticePlayer({ notes, chords, notesLeft, chordsLeft, d
         {controlBar(true)}
       </div>
       <div className="flex-1 overflow-auto flex flex-col">
-        <div className="flex-shrink-0 p-4 border-b border-white/[0.04]" style={{ background:'rgba(12,14,20,0.5)' }}>
+        <div className="flex-shrink-0 p-3 sm:p-4 lg:p-6 border-b border-white/[0.04]" style={{ background:'rgba(12,14,20,0.5)' }}>
           <NotationWithGrid eventsRH={eventsRH} eventsLH={eventsLH} activeIdxRH={activeIdxRH} activeIdxLH={activeIdxLH} timeSig={timeSig} large onClickNote={startPlayback} />
         </div>
-        <div className="flex-1 flex items-center justify-center p-4" style={{ minHeight:200 }}>
-          <div className="w-full max-w-4xl overflow-x-auto">
+        <div className="flex-1 flex items-end justify-center p-3 sm:p-4 lg:p-6">
+          <div className="w-full overflow-x-auto">
             <KeyboardSVG keys={keysLg} rhNotes={rhActiveNotes} lhNotes={lhActiveNotes} rhFinger={rhFinger} lhFinger={lhFinger} allNotes={allNotes} large />
           </div>
         </div>
@@ -551,16 +549,16 @@ export default function PracticePlayer({ notes, chords, notesLeft, chordsLeft, d
   )
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 min-w-0">
       <div className="rounded-2xl border border-white/[0.05] p-3 lg:p-4" style={{ background:'linear-gradient(180deg, rgba(20,22,30,0.9) 0%, rgba(12,14,20,0.95) 100%)', backdropFilter:'blur(12px)' }}>
         {controlBar(false)}
       </div>
-      <div className="rounded-2xl overflow-hidden" style={{
+      <div className="rounded-2xl overflow-hidden min-w-0" style={{
         background:'linear-gradient(180deg, rgba(12,14,20,0.7) 0%, rgba(8,10,16,0.9) 100%)',
         border:'1px solid rgba(255,255,255,0.04)',
         boxShadow: playState==='playing' ? '0 0 40px -10px rgba(167,139,250,0.15)' : 'none',
       }}>
-        <div className="p-4 lg:p-5 border-b border-white/[0.04]">
+        <div className="p-3 sm:p-4 lg:p-5 border-b border-white/[0.04] min-w-0">
           <div className="flex items-center justify-between mb-2">
             <div className="text-[10px] uppercase tracking-widest text-[#4b5563] font-semibold">
               {hasBothHands ? 'Grand Staff' : 'Notation'}
@@ -569,7 +567,7 @@ export default function PracticePlayer({ notes, chords, notesLeft, chordsLeft, d
           </div>
           <NotationWithGrid eventsRH={eventsRH} eventsLH={eventsLH} activeIdxRH={activeIdxRH} activeIdxLH={activeIdxLH} timeSig={timeSig} onClickNote={startPlayback} />
         </div>
-        <div className="p-4 lg:p-5">
+        <div className="p-3 sm:p-4 lg:p-5 min-w-0">
           <div className="text-[10px] uppercase tracking-widest text-[#4b5563] font-semibold mb-2">Keyboard</div>
           <div className="overflow-x-auto pb-1">
             <KeyboardSVG keys={keys} rhNotes={rhActiveNotes} lhNotes={lhActiveNotes} rhFinger={rhFinger} lhFinger={lhFinger} allNotes={allNotes} />

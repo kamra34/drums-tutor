@@ -6,13 +6,10 @@ import { authenticateToken, AuthRequest } from '../middleware/auth'
 const createExerciseSchema = z.object({
   title: z.string().min(1).max(200),
   description: z.string().default(''),
-  patternData: z.object({
-    beats: z.number(),
-    subdivisions: z.number(),
-    tracks: z.record(z.array(z.number())),
-  }),
+  patternData: z.any(), // flexible: drums use {beats,subdivisions,tracks}, piano uses {notes,chordsLeft,...}
   config: z.any().optional(),
   category: z.string().default('reading'),
+  instrument: z.enum(['drums', 'piano']).default('drums'),
   difficulty: z.number().min(1).max(10).default(5),
   bpm: z.number().min(40).max(300).default(90),
   timeSignature: z.array(z.number()).length(2).default([4, 4]),
@@ -28,6 +25,7 @@ export function exerciseRouter(prisma: PrismaClient): Router {
   router.get('/', authenticateToken, async (req: AuthRequest, res) => {
     const category = req.query.category as string | undefined
     const difficulty = req.query.difficulty as string | undefined
+    const instrument = req.query.instrument as string | undefined
     const limit = (req.query.limit as string) || '50'
     const offset = (req.query.offset as string) || '0'
 
@@ -39,6 +37,7 @@ export function exerciseRouter(prisma: PrismaClient): Router {
     }
     if (category) where.category = category
     if (difficulty) where.difficulty = parseInt(difficulty, 10)
+    if (instrument) where.instrument = instrument
 
     const exercises = await prisma.exercise.findMany({
       where,

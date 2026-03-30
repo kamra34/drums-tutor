@@ -82,10 +82,10 @@ export default function SettingsPage() {
 
   return (
     <div className="min-h-screen" style={{ background: '#06080d' }}>
-      <div className="max-w-2xl mx-auto px-6 py-10">
+      <div className="max-w-5xl mx-auto px-3 sm:px-4 md:px-6 py-6 sm:py-8 md:py-10">
         {/* Hero header */}
-        <div className="mb-10">
-          <h1 className="text-3xl font-bold text-white tracking-tight">Settings</h1>
+        <div className="mb-6 sm:mb-8 md:mb-10">
+          <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">Settings</h1>
           <p className="text-[#6b7280] text-sm mt-1">Configure your tutor, kit, and preferences.</p>
         </div>
 

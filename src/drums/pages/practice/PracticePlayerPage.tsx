@@ -181,7 +181,7 @@ export default function PracticePlayerPage() {
   const status: PracticeStatus = practiceStore.status
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
+    <div className="p-3 sm:p-4 md:p-6 max-w-[1600px] mx-auto">
       <nav className="flex items-center gap-2 text-sm text-[#4b5563] mb-6">
         <Link to={isStudioPattern ? '/studio' : '/practice'} className="text-amber-500/80 hover:text-amber-400 transition-colors">
           {isStudioPattern ? 'Studio' : 'Practice'}
