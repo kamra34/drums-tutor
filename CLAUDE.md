@@ -2,7 +2,7 @@
 
 ## Overview
 
-HarmonyHub is a multi-instrument AI-powered music learning web app. Currently supports **Drums** (fully built) and **Piano** (curriculum in progress). Users sign up, choose an instrument, and get a structured curriculum with interactive lessons, practice modes, an AI tutor chatbot, and a pattern studio.
+HarmonyHub is a multi-instrument AI-powered music learning web app. Supports **Drums** (fully built) and **Piano** (fully built). Users sign up, choose an instrument, and get a structured curriculum with interactive lessons, practice modes, an AI tutor chatbot, and a pattern studio (drums).
 
 **GitHub**: kamra34/harmony_hub
 **Live frontend**: Vercel (deploys from `main` branch) — drums-tutor.vercel.app
@@ -13,48 +13,75 @@ HarmonyHub is a multi-instrument AI-powered music learning web app. Currently su
 
 ```
 harmony_hub/
-├── src/                    # Frontend (React + Vite + TypeScript + Tailwind)
-│   ├── shared/             # Shared across instruments (layout, auth, stores, services)
-│   ├── drums/              # Drum tutor (complete)
-│   └── piano/              # Piano tutor (curriculum in progress)
-├── server/                 # Backend (Express + Prisma + PostgreSQL)
+├── src/                        # Frontend (React + Vite + TypeScript + Tailwind v4)
+│   ├── shared/                 # Shared across instruments
+│   │   ├── components/layout/  # AppLayout, InstrumentLayout, Sidebar, TopNav
+│   │   ├── config/             # instrumentConfig.ts (tutor names, colors, nav items)
+│   │   ├── contexts/           # InstrumentContext (React context for current instrument)
+│   │   ├── pages/              # AuthPage, LandingPage, SettingsPage, AdminPage
+│   │   ├── services/           # apiClient, audioService, globalMetronome, storageService, tutorPersonas
+│   │   ├── stores/             # useAuthStore, useAiStore, useUserStore (drums), storeUtils
+│   │   ├── styles/             # themes.ts (per-instrument CSS variables)
+│   │   └── types/              # ai.ts, instrument.ts
+│   ├── drums/                  # Drum tutor (complete)
+│   │   ├── components/         # curriculum/, metronome/, practice/, studio/, visuals/ (14 visual components)
+│   │   ├── data/               # curriculum.ts (~2500 lines), drumMaps, patterns, practiceLibrary, lessonVisuals
+│   │   ├── pages/              # DashboardPage, CurriculumPage, LessonPage, ExercisePage, ChatPage, PracticeHubPage, studio/
+│   │   ├── services/           # aiService, midiService, scoringEngine, drumSounds, clickSounds
+│   │   ├── stores/             # useGlobalMetronomeStore, useMetronomeStore, useMidiStore, usePracticeStore
+│   │   └── types/              # curriculum.ts, midi.ts
+│   └── piano/                  # Piano tutor (complete)
+│       ├── components/
+│       │   ├── curriculum/     # LessonBlockRenderer, QuizBlock
+│       │   └── visuals/        # 12 interactive visual components (see below)
+│       ├── data/               # curriculum.ts (Modules 0-3), curriculum-modules-4-7.ts, lessonVisuals.ts
+│       ├── pages/              # DashboardPage, CurriculumPage, LessonPage, PracticeHubPage, PlaceholderPage
+│       │   └── practice/       # ScalePracticePage, ChordPracticePage, SelfAssessment
+│       ├── services/           # pianoSounds.ts (real sample playback + caching)
+│       ├── stores/             # usePianoProgressStore (separate from drums)
+│       └── types/              # curriculum.ts
+├── server/                     # Backend (Express + Prisma + PostgreSQL)
 │   ├── src/
-│   │   ├── index.ts        # Express app entry point
-│   │   └── routes/         # API routes (auth, exercises, sessions, progress, chats)
+│   │   ├── index.ts            # Express app entry point (CORS, routes, health check)
+│   │   ├── middleware/         # auth.ts (JWT authentication)
+│   │   └── routes/             # auth.ts, exercises.ts, sessions.ts, progress.ts, chats.ts
 │   ├── prisma/
-│   │   └── schema.prisma   # Database schema — READ THIS before any DB changes
-│   ├── Dockerfile          # ⚠️ Railway uses this, NOT package.json scripts
+│   │   └── schema.prisma       # Database schema — READ THIS before any DB changes
+│   ├── Dockerfile              # ⚠️ Railway uses this, NOT package.json scripts
 │   └── package.json
 ├── public/
-│   ├── audio/piano/        # Real piano samples (Salamander Grand Piano, CC BY 3.0)
-│   └── favicon.svg
-├── package.json            # Frontend package.json
-├── vite.config.ts
-└── tsconfig.app.json
+│   ├── audio/piano/            # 37 MP3 piano samples C3-C6 (Salamander Grand Piano, CC BY 3.0)
+│   ├── favicon.svg             # HarmonyHub icon (beamed notes, amber-to-indigo gradient)
+│   └── icons.svg
+├── CLAUDE.md                   # This file — auto-read by Claude Code
+├── package.json                # Frontend dependencies
+├── vite.config.ts              # Vite config with path aliases
+└── tsconfig.app.json           # TypeScript config with path aliases
 ```
 
 ## Critical Deployment Details
 
 ### Frontend (Vercel)
 - Deploys from `main` branch automatically
-- Free tier: can only deploy from `main` (not `dev`)
+- Free tier: can ONLY deploy from `main` (not `dev`)
 - Build command: `npm run build` → `tsc -b && vite build`
-- Vercel uses stricter TypeScript than local — always test with `npx tsc --noEmit` before pushing
+- **Vercel uses stricter TypeScript than local** — always test with `npx tsc --noEmit` before pushing
+- Common Vercel-only failures: `useRef()` needs explicit `undefined` arg, type casts may need `unknown` intermediate
 
 ### Backend (Railway)
 - **⚠️ Uses `server/Dockerfile`** — NOT `server/package.json` scripts
-- The Dockerfile defines build steps AND the CMD (start command)
+- The Dockerfile defines a multi-stage build (builder → runtime) AND the CMD
 - Any changes to build/start process MUST be made in `server/Dockerfile`
-- Current CMD: `npx prisma db push --skip-generate && node dist/index.js`
-- `prisma db push` runs at container start to sync schema with DB
-- Environment variables (DATABASE_URL, JWT_SECRET, ANTHROPIC_API_KEY, FRONTEND_URL) are set in Railway dashboard
+- Current CMD: `sh -c "npx prisma db push --skip-generate && node dist/index.js"`
+- `prisma db push` runs at container start to sync schema with DB automatically
+- Environment variables set in Railway dashboard: `DATABASE_URL`, `JWT_SECRET`, `ANTHROPIC_API_KEY`, `FRONTEND_URL`, `PORT`
 
 ### Database
 - PostgreSQL hosted on Railway
-- **Same database for local dev and production** — be careful with destructive operations
+- **⚠️ Same database for local dev and production** — be careful with destructive operations
 - Schema defined in `server/prisma/schema.prisma`
-- After schema changes: Dockerfile CMD auto-runs `prisma db push` on deploy
-- For local: run `cd server && npx prisma db push` manually
+- After schema changes: Railway auto-applies via `prisma db push` in Dockerfile CMD on next deploy
+- For local: run `cd server && npx prisma generate` then `npx prisma db push`
 
 ## Frontend Structure
 
@@ -64,111 +91,229 @@ harmony_hub/
 - `@piano/*` → `src/piano/*`
 
 ### Routing (src/App.tsx)
-All instrument pages are nested under their prefix:
-- `/` — Landing page (instrument selector)
-- `/drums/*` — All drum tutor pages
-- `/piano/*` — All piano tutor pages
-- `/settings`, `/admin` — Shared pages
+All instrument pages are nested under their prefix inside `<InstrumentLayout>`:
+- `/` — Landing page (instrument selector, auto-redirects to last used instrument)
+- `/drums/*` — All drum tutor pages (wrapped in InstrumentLayout → AppLayout)
+- `/piano/*` — All piano tutor pages (wrapped in InstrumentLayout → AppLayout)
+- `/settings`, `/admin` — Shared pages (wrapped in AppLayout only)
 
-**⚠️ IMPORTANT**: All `Link to=` and `navigate()` calls inside drum pages MUST use `/drums/` prefix (e.g., `/drums/curriculum`, `/drums/lesson/...`). Same for piano with `/piano/`. This was a major bug source during the restructure.
+**⚠️ CRITICAL ROUTING RULE**: All `Link to=` and `navigate()` calls inside drum pages MUST use `/drums/` prefix. Same for piano with `/piano/`. This was a major bug during restructure — ~40 routes broke when drums moved from `/` to `/drums/`.
 
-### InstrumentLayout
-Wraps each instrument's pages. Sets:
+### Piano Routes
+```
+/piano                          → PianoDashboard
+/piano/curriculum               → PianoCurriculumPage
+/piano/lesson/:moduleId/:lessonId → PianoLessonPage
+/piano/practice                 → PianoPracticeHubPage
+/piano/practice/scales          → ScalePracticePage
+/piano/practice/chords          → ChordPracticePage
+/piano/practice/sight-reading   → PlaceholderPage (coming soon)
+/piano/practice/ear-training    → PlaceholderPage (coming soon)
+/piano/chat                     → ChatPage (shared, reads instrument from context)
+```
+
+### InstrumentLayout (src/shared/components/layout/InstrumentLayout.tsx)
+Wraps each instrument's pages. Provides:
+- `InstrumentContext` — React context with current instrument ('drums' | 'piano')
+- CSS custom properties for theming (--accent, --accent-bg, --accent-glow, etc.)
 - Browser tab title and favicon per instrument
-- CSS custom properties for theming (--accent, --accent-bg, etc.)
-- InstrumentContext (React context providing current instrument)
+- Use `useInstrument()` hook to read current instrument in any child component
 
 ### Theming
-- Drums: amber/orange (#f59e0b)
-- Piano: soft lavender/violet (#a78bfa)
-- Defined in `src/shared/styles/themes.ts` and `src/shared/config/instrumentConfig.ts`
+- Drums: amber/orange (`#f59e0b`, secondary `#ea580c`)
+- Piano: soft lavender/violet (`#a78bfa`, secondary `#8b5cf6`)
+- Theme CSS vars defined in `src/shared/styles/themes.ts`
+- Instrument config (tutor name, colors, nav items) in `src/shared/config/instrumentConfig.ts`
 
-### State Management
-- **Zustand** with `persist` middleware (localStorage)
-- `useAuthStore` — authentication (shared)
-- `useUserStore` — drum progress (key: "drum-tutor-user")
-- `usePianoProgressStore` — piano progress (key: "piano-tutor-user")
-- `useAiStore` — AI chat state
-- `useMidiStore` — MIDI device connection (drums)
+### State Management (Zustand with persist)
+- `useAuthStore` — authentication, JWT token (shared)
+- `useUserStore` — drum progress, practice time, streak (persist key: `"drum-tutor-user"`)
+- `usePianoProgressStore` — piano progress, practice time, streak (persist key: `"piano-tutor-user"`)
+- `useAiStore` — AI chat state, conversations, API key (persist key: `"harmony-hub-ai"`)
+  - Tracks `currentInstrument` — clears conversations when switching instruments
+  - `loadConversations(instrument)` and `newConversation(instrument)` filter by instrument
+- `useMidiStore` — MIDI device connection (drums only)
+- `useGlobalMetronomeStore` — metronome state (drums only)
 
-## Backend Structure
+## AI Tutor System
 
-### API Routes (all prefixed with /api/)
-- `POST /api/auth/register`, `POST /api/auth/login` — JWT auth
-- `GET/POST/PUT/DELETE /api/exercises` — User-created patterns/exercises
-- `POST /api/sessions` — Record practice session results
-- `GET/POST /api/progress` — Sync lesson completion
-- `GET/POST /api/chats` — AI tutor conversations (uses Anthropic API)
+### Two Separate Tutors
+- **Max** (drums) — world-class drum instructor persona
+- **Clara** (piano) — world-class piano instructor persona
+- System prompts defined in `src/shared/services/tutorPersonas.ts`
+- `getTutorPersona(instrument)` returns the appropriate persona
 
-### Prisma Models
-- `User` — email, password hash, role
-- `Exercise` — patterns/exercises (has `instrument` field: "drums" | "piano")
-- `PracticeSession` — practice attempt scores (has `instrument` field)
-- `ChatConversation` / `ChatMessage` — AI tutor chats (has `instrument` field)
-- `LessonCompletion` — tracks completed lessons
+### How It Works
+- ChatPage (`src/drums/pages/ChatPage.tsx`) is shared by both instruments
+- Reads instrument from `useInstrument()` context
+- Uses `getInstrumentConfig(instrument)` for tutor name, greeting, suggestions, accent color
+- Conversations are scoped per-instrument in both frontend store and backend DB
+- Backend `GET /api/chats?instrument=drums` filters by instrument
+- Backend `POST /api/chats` accepts `instrument` in body
 
-### CORS
-Configured in `server/src/index.ts`. Allows origins from FRONTEND_URL env var and localhost ports.
+### AI Service (src/drums/services/aiService.ts)
+- Uses Anthropic API directly (client-side, API key stored in settings)
+- Model: `claude-sonnet-4-6` for chat, generates follow-up suggestions
+- `context.instrument` determines which persona (Max/Clara) is used
+- Skill profile context is generic — works for both drum and piano skill fields
+- Also generates conversation titles and daily suggestions
 
 ## Piano Curriculum System
 
-Based on **Alfred's Basic Adult Piano Course**. Current state: Modules 0-1 (19 lessons, 10 exercises).
+Based on **Alfred's Basic Adult Piano Course** with Faber's Piano Adventures concepts.
 
-### Data Flow
-```
-CURRICULUM (src/piano/data/curriculum.ts)
-  → CurriculumPage (module list with expand/collapse)
-  → LessonPage (single lesson viewer)
-  → LessonBlockRenderer (renders text/image/quiz blocks)
-  → LESSON_VISUALS mapping (src/piano/data/lessonVisuals.ts)
-  → Visual components (KeyboardDiagram, StaffGuide, etc.)
-```
+### Complete: 8 modules, 68 lessons, 48 exercises
 
-### Visual Components (src/piano/components/visuals/)
-- `KeyboardDiagram` — Interactive SVG keyboard, click-to-play with real samples
-- `StaffGuide` — Grand staff with treble/bass clef, note hover info
-- `HandPositionGuide` — Finger numbering with posture tips
-- `NoteValuesChart` — Note durations with animated playback
-- `MelodyPlayer` — Animated keyboard + note sequence for melody demos
+| Module | Title | Lessons | Exercises |
+|--------|-------|---------|-----------|
+| 0 | Introduction to the Piano | 9 | 4 |
+| 1 | Playing Your First Notes | 10 | 6 |
+| 2 | Hands Together & Rhythm | 9 | 6 |
+| 3 | Expanding Range & Technique | 8 | 6 |
+| 4 | Scales & Key Signatures | 8 | 8 |
+| 5 | Chords & Harmony | 8 | 7 |
+| 6 | Expression & Musicality | 8 | 5 |
+| 7 | Early Intermediate Foundations | 8 | 6 |
+
+### Milestone Checkpoints
+Rendered between modules in CurriculumPage to guide practice vs. theory:
+- After Module 1: "Ready to Play!" — practice exercises
+- After Module 3: "Hands-Together Player" — learn real pieces
+- After Module 5: "Song Player" — build repertoire
+
+### Curriculum Data
+- Modules 0-3: `src/piano/data/curriculum.ts` (~1900 lines)
+- Modules 4-7: `src/piano/data/curriculum-modules-4-7.ts` (~800 lines)
+- Imported and combined in curriculum.ts via `MODULES_4_7` spread
+- Helper functions: `getLessonById()`, `getModuleById()`, `getExerciseById()`
+
+### Visual Components (src/piano/components/visuals/) — 12 total
+| Component | Purpose |
+|-----------|---------|
+| `KeyboardDiagram` | Interactive SVG keyboard, click-to-play real samples, highlight keys, finger numbers |
+| `StaffGuide` | Grand staff with treble/bass clef tabs, hover note info, mnemonics |
+| `HandPositionGuide` | RH/LH finger numbering, posture tips |
+| `NoteValuesChart` | Note durations with animated playback, warm sustained demo tone, beat ruler |
+| `MelodyPlayer` | Animated keyboard + note sequence for melody playback (Ode to Joy, Aura Lee) |
+| `ChordDiagram` | Interactive chord selector, click to hear, shows notes + fingering on keyboard |
+| `DynamicsGuide` | Volume bars (pp→ff), tempo markings, articulation reference (3 tabs) |
+| `IntervalChart` | Half-step ruler, play intervals melodically then harmonically |
+| `PedalGuide` | Foot position SVG diagram, legato pedaling technique, common mistakes |
+| `ScaleVisual` | Scale on keyboard + playback, RH/LH fingering, multiple scale types |
+| `CircleOfFifths` | Interactive SVG circle, click key to see signature + relative minor + chords |
+| `KeySignatureChart` | Sharp/flat key lists, order mnemonics, quick identification tricks |
+| `FingeringGuide` | Scale/chord/technique fingering patterns with tips |
+
+### Lesson Visual Injection System
+- `src/piano/data/lessonVisuals.ts` maps lesson IDs to visual component entries
+- Each entry: `{ component: string, afterBlock: number, props?: Record<string, unknown> }`
+- `LessonBlockRenderer` inserts visuals at specified positions between content blocks
+- Props support allows passing data (e.g., melody notes to MelodyPlayer)
 
 ### Piano Audio (src/piano/services/pianoSounds.ts)
-- Real piano samples in `public/audio/piano/` (C3-C6, 37 MP3 files)
-- Loaded and cached via Web Audio API
-- Falls back to synthesis if sample unavailable
-- `playPianoNote(note, velocity?, duration?)` — main playback function
+- 37 real MP3 piano samples in `public/audio/piano/` (C3-C6, ~868KB total)
+- Source: Salamander Grand Piano via midi-js-soundfonts (MIT license)
+- `playPianoNote(note, velocity?, duration?)` — loads, caches, and plays samples
+- `preloadSamples(notes[])` / `preloadOctaves(startOctave, count)` — warm cache on mount
+- Falls back to triangle wave synthesis if sample unavailable
+- NoteValuesChart uses a separate warm sustained demo tone (not samples) for pedagogical clarity
 
-### Lesson Visual Props
-The visual system supports passing props from `lessonVisuals.ts`:
-```ts
-{ component: 'melody-player', afterBlock: 0, props: { title: '...', melody: [...] } }
-```
+## Piano Practice Mode
+
+### Practice Hub (src/piano/pages/PracticeHubPage.tsx)
+- 4 practice modes: Scale Practice, Chord Drills (active), Sight Reading, Ear Training (placeholders)
+- Shows practice stats (time, streak, sessions)
+- "How it works" explanation: Watch & Listen → Play Along → Self-Assess
+
+### Scale Practice (src/piano/pages/practice/ScalePracticePage.tsx)
+- 7 scales: C/G/F Major, A/D Natural Minor, D Harmonic Minor, Chromatic
+- Controls: scale selector, RH/LH hand, BPM (40-160), ascending/descending direction
+- Animated keyboard with highlighted scale notes, active note glow, finger numbers
+- Note sequence bar tracking current position
+- Metronome clicks + real piano sample playback
+- Session counter → self-assessment flow
+
+### Chord Practice (src/piano/pages/practice/ChordPracticePage.tsx)
+- 5 progressions: I-IV-V7 in C/G/F, Pop (I-V-vi-IV), Jazz (ii-V-I)
+- Chord cards with glow animation, beat dots, note names, finger numbers
+- BPM control, real piano playback with slight arpeggio spread
+
+### Self-Assessment (src/piano/pages/practice/SelfAssessment.tsx)
+- 5-star overall rating (Struggled → Excellent) with descriptions
+- Per-skill ratings: Note Reading, Rhythm, Technique, Coordination (1-5 each)
+- Updates `usePianoProgressStore.skillProfile` based on ratings
+- Records `ExerciseResult` for progress tracking
+- Encouraging completion screen
+
+## Piano Dashboard (src/piano/pages/DashboardPage.tsx)
+- Dynamic hero greeting based on progress/streak
+- Continue Learning button → next unfinished lesson
+- Progress ring (curriculum completion %)
+- Stats row: current module, practice time, streak, progress
+- Current module card with lesson list + progress bar
+- Quick access grid: Curriculum, Practice, Ask Clara, Settings
+- Skill profile with 5 piano skills + progress bars
+- Learning path overview showing all 8 modules
 
 ## Drum Tutor (Complete)
 
 ### Features
-- Full curriculum (3 modules, 24 lessons, 22 exercises)
-- Real-time MIDI input from electronic drum kits
-- Practice modes: Notation Reading, Beats, Rudiments, Fills, Daily, Free Play
-- Studio: Create/edit/save patterns, AI pattern generation, scan notation from photos
-- AI Tutor: Chat with "Max" (Anthropic Claude) for drumming advice
-- Global metronome with BPM control
+- Full curriculum (3 modules, 24 lessons, 22 exercises) with 14 visual components
+- Real-time MIDI input from electronic drum kits (Web MIDI API)
+- Practice modes: Notation Reading, Beats, Rudiments, Fills, Daily, Free Play, Play-along
+- Studio: Create/edit/save patterns, AI pattern generation (Anthropic), scan notation from photos
+- AI Tutor "Max" with drum-specific persona and context
+- Global metronome with BPM control and visual indicator
 
 ### Key Drum Files
 - `src/drums/data/curriculum.ts` — All lesson content (~2500 lines)
-- `src/drums/services/midiService.ts` — Web MIDI API connection
-- `src/drums/services/scoringEngine.ts` — Real-time hit detection + scoring
+- `src/drums/data/lessonVisuals.ts` — Visual component mapping for lessons
+- `src/drums/services/aiService.ts` — Anthropic API calls (chat, feedback, title gen, suggestions)
+- `src/drums/services/midiService.ts` — Web MIDI API connection + note parsing
+- `src/drums/services/scoringEngine.ts` — Real-time hit detection + accuracy scoring
 - `src/drums/services/drumSounds.ts` — Drum sample playback
+- `src/drums/pages/ChatPage.tsx` — **Shared chat UI** used by both drums and piano
+
+## Backend Structure
+
+### API Routes (all prefixed with /api/)
+- `POST /api/auth/register`, `POST /api/auth/login` — JWT authentication
+- `GET/POST/PUT/DELETE /api/exercises` — User-created patterns/exercises (filtered by instrument)
+- `POST /api/sessions` — Record practice session results
+- `GET/POST /api/progress` — Sync lesson completion
+- `GET /api/chats?instrument=drums` — List conversations filtered by instrument
+- `POST /api/chats` — Create conversation (accepts `instrument` in body)
+- `GET /api/chats/:id` — Get conversation with messages
+- `POST /api/chats/:id/messages` — Add message to conversation
+- `PATCH /api/chats/:id` — Update conversation title
+- `DELETE /api/chats/:id` — Delete conversation
+
+### Prisma Models (server/prisma/schema.prisma)
+- `User` — email, passwordHash, displayName, role (user/admin)
+- `Exercise` — title, category, patternData (JSON), config (JSON), instrument (drums/piano)
+- `PracticeSession` — exerciseId, score, accuracy, timingData, instrument
+- `ChatConversation` — userId, title, instrument (drums/piano)
+- `ChatMessage` — conversationId, role, content, hasImage
+- `LessonCompletion` — userId, lessonId, completedAt
+
+### CORS Configuration
+- `server/src/index.ts` — allows FRONTEND_URL env var + localhost ports
+- Currently allows all origins in dev (`callback(null, true)`)
 
 ## Git Workflow
 - `dev` branch for development
 - `main` branch for production (Vercel + Railway deploy from here)
-- Merge dev → main, push both when ready to deploy
-- Always return to `dev` after pushing
+- Workflow: develop on `dev` → push dev → checkout main → merge dev → push main → checkout dev
+- Always return to `dev` after pushing to main
 
 ## Common Gotchas
-1. **Routes**: Always use `/drums/` or `/piano/` prefix in instrument pages
-2. **Dockerfile**: Railway uses Dockerfile, not package.json scripts
-3. **Shared DB**: Local and prod share the same PostgreSQL — careful with seeds/migrations
-4. **Strict TS on Vercel**: `useRef()` needs explicit `undefined` arg, type casts may need `unknown` intermediate
-5. **CRLF warnings**: Windows dev environment, git handles conversion
-6. **Auth page favicon**: Must reset title/favicon in AuthPage and LandingPage on mount
+1. **Routes**: Always use `/drums/` or `/piano/` prefix in instrument pages — never bare `/curriculum`, `/practice`, etc.
+2. **Dockerfile**: Railway uses `server/Dockerfile`, NOT `server/package.json` scripts. CMD changes go in Dockerfile.
+3. **Shared DB**: Local and prod share the same PostgreSQL instance — destructive operations affect production.
+4. **Strict TS on Vercel**: `useRef<T>()` needs explicit `undefined` arg on Vercel. Type casts may need `unknown` intermediate.
+5. **CRLF warnings**: Windows dev environment. Git handles conversion — warnings are safe to ignore.
+6. **Auth page favicon**: Must reset document.title and favicon in AuthPage and LandingPage on mount (otherwise stale instrument icon persists).
+7. **AI store instrument scoping**: `useAiStore` tracks `currentInstrument` and clears conversations when switching. Always pass `instrument` to `loadConversations()` and `newConversation()`.
+8. **Piano vs Drum progress**: Completely separate Zustand stores with different persist keys. ChatPage reads the correct one based on instrument context.
+9. **Prisma client regeneration**: After schema changes locally, run `cd server && npx prisma generate` before `npx tsc`. The Dockerfile handles this automatically for Railway.
+10. **Piano samples**: 37 MP3 files in `public/audio/piano/`. Named `C3.mp3`, `Db3.mp3`, etc. Loaded and cached by `pianoSounds.ts`. Falls back to synthesis if missing.
