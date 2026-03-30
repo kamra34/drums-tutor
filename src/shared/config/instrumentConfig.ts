@@ -63,6 +63,7 @@ const PIANO_CONFIG: InstrumentConfig = {
     { to: '', label: 'Dashboard' },
     { to: 'curriculum', label: 'Curriculum' },
     { to: 'practice', label: 'Practice' },
+    { to: 'studio', label: 'Studio' },
     { to: 'chat', label: 'AI Tutor' },
   ],
 }

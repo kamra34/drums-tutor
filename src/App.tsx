@@ -37,6 +37,7 @@ import RepertoireBrowserPage from '@piano/pages/practice/RepertoireBrowserPage'
 import RepertoirePlayerPage from '@piano/pages/practice/RepertoirePlayerPage'
 import SightReadingPage from '@piano/pages/practice/SightReadingPage'
 import EarTrainingPage from '@piano/pages/practice/EarTrainingPage'
+import PianoStudioPage from '@piano/pages/StudioPage'
 import PianoExercisePage from '@piano/pages/ExercisePage'
 
 export default function App() {
@@ -113,6 +114,7 @@ export default function App() {
             <Route path="practice/chords" element={<ChordPracticePage />} />
             <Route path="practice/sight-reading" element={<SightReadingPage />} />
             <Route path="practice/ear-training" element={<EarTrainingPage />} />
+            <Route path="studio" element={<PianoStudioPage />} />
             <Route path="chat" element={<DrumChatPage />} />
           </Route>
         </Route>

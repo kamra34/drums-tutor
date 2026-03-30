@@ -36,9 +36,9 @@ harmony_hub/
 │       │   ├── visuals/        # 12 interactive visual components (see below)
 │       │   └── PracticePlayer.tsx  # Shared playback component (notation+grid+keyboard+controls)
 │       ├── data/               # curriculum.ts (Modules 0-3), curriculum-modules-4-7.ts, lessonVisuals.ts, repertoire.ts
-│       ├── pages/              # DashboardPage, CurriculumPage, LessonPage, ExercisePage, PracticeHubPage, PlaceholderPage
+│       ├── pages/              # DashboardPage, CurriculumPage, LessonPage, ExercisePage, PracticeHubPage, StudioPage, PlaceholderPage
 │       │   └── practice/       # ScalePracticePage, ChordPracticePage, ExerciseBrowserPage, RepertoireBrowserPage, RepertoirePlayerPage, SightReadingPage, EarTrainingPage, SelfAssessment
-│       ├── services/           # pianoSounds.ts (real sample playback + caching)
+│       ├── services/           # pianoSounds.ts (real sample playback + caching), studioAiService.ts (AI generation)
 │       ├── stores/             # usePianoProgressStore (separate from drums)
 │       └── types/              # curriculum.ts
 ├── server/                     # Backend (Express + Prisma + PostgreSQL)
@@ -114,6 +114,7 @@ All instrument pages are nested under their prefix inside `<InstrumentLayout>`:
 /piano/practice/chords          → ChordPracticePage (11 progressions + PracticePlayer)
 /piano/practice/sight-reading   → SightReadingPage (random passage generator + PracticePlayer)
 /piano/practice/ear-training    → EarTrainingPage (interval + chord identification)
+/piano/studio                   → PianoStudioPage (AI-powered exercise/song generator)
 /piano/chat                     → ChatPage (shared, reads instrument from context)
 ```
 
@@ -350,6 +351,39 @@ Reusable component providing the unified playback experience across ALL piano pa
 - Updates `usePianoProgressStore.skillProfile` based on ratings
 - Records `ExerciseResult` for progress tracking
 - Encouraging completion screen
+
+## Piano Studio (src/piano/pages/StudioPage.tsx)
+
+AI-powered creative workspace for generating custom piano exercises and arrangements.
+
+### Three Generation Modes
+- **Exercise** — Generate a specific exercise type (scale, chord-progression, melody, technique, sight-reading)
+- **Song** — Type a song name, AI creates a simplified arrangement
+- **Free Prompt** — Describe what you want in natural language (e.g., "Jazz walking bass with RH comping in Bb")
+
+### Parameters
+- Key (C, G, D, A, E, F, Bb, Am, Dm, Em, Gm)
+- Hands (RH, LH, Both)
+- Difficulty (1-7 slider)
+- BPM (30-200)
+- Bars (4, 8, 16)
+- Time signature (4/4, 3/4, 6/8)
+
+### AI Service (src/piano/services/studioAiService.ts)
+- Uses Anthropic API directly (same pattern as drum aiService)
+- Model: `claude-sonnet-4-6` with structured JSON system prompt
+- Clara generates note-accurate JSON with `notes`, `notesLeft`, `chordsLeft`
+- Validates response: checks note format, duration, array structure
+- Falls back gracefully on parse errors with user-friendly messages
+
+### Generated Pieces
+- Feed directly into PracticePlayer with full notation + keyboard + controls
+- In-session history (last 20 pieces) — click to reload any previous generation
+- Both-hands support when `hands: 'both'` is selected
+
+### Navigation
+- Added to sidebar nav (Dashboard, Curriculum, Practice, **Studio**, AI Tutor)
+- Route: `/piano/studio`
 
 ## Piano Dashboard (src/piano/pages/DashboardPage.tsx)
 - Dynamic hero greeting based on progress/streak
