@@ -125,30 +125,6 @@ function getNoteY(note: string, clef: 'treble'|'bass'): number {
   return 50 - ((oct-3)*7+(NOTE_POS[name]??0)-1)*5
 }
 
-function renderNoteHead(x: number, nY: number, ev: PlayEvent, isAct: boolean, isPast: boolean, color: string, sTop: number, lg: number) {
-  const col = isAct ? color : '#e2e8f0'
-  const notes = ev.type === 'note' ? [ev.note] : ev.notes
-  const yPositions = notes.map(n => {
-    const rawY = getNoteY(n, nY < 0 ? 'bass' : 'treble') // placeholder, actual clef handled by caller
-    return nY // overridden by caller
-  })
-  // This is called per-note, so just render one notehead
-  const isHalf = ev.duration >= 2, isWhole = ev.duration >= 4
-  const hasAcc = notes[0]?.includes('b') || notes[0]?.includes('#')
-  return (<g opacity={isPast ? 0.3 : 1}>
-    {isAct && <circle cx={x} cy={nY} r={14} fill={color} opacity={0.15}><animate attributeName="r" values="12;16;12" dur="0.6s" repeatCount="indefinite" /></circle>}
-    {hasAcc && <text x={x-12} y={nY+4} fontSize={11} fill={isAct?color:'#6b7280'} fontFamily="serif">{notes[0].includes('b')?'\u266D':'\u266F'}</text>}
-    {isWhole ? <ellipse cx={x} cy={nY} rx={7} ry={5} fill="none" stroke={col} strokeWidth={1.5} />
-      : <><ellipse cx={x} cy={nY} rx={6} ry={4.5} fill={isHalf?'none':col} stroke={col} strokeWidth={isHalf?1.5:0} transform={`rotate(-10 ${x} ${nY})`} />
-        <line x1={x+6} y1={nY} x2={x+6} y2={nY-28} stroke={col} strokeWidth={1.2} />
-        {ev.duration<=0.5 && <path d={`M${x+6} ${nY-28} q 8 8 2 18`} fill="none" stroke={col} strokeWidth={1.2} />}
-        {ev.duration<=0.25 && <path d={`M${x+6} ${nY-22} q 8 8 2 18`} fill="none" stroke={col} strokeWidth={1.2} />}</>}
-    {(ev.duration===1.5||ev.duration===3) && <circle cx={x+10} cy={nY-2} r={1.5} fill={col} />}
-    {ev.finger && <text x={x} y={nY+22} textAnchor="middle" fontSize={9} fill={isAct?color:'#4b5563'} fontWeight={600}>{ev.finger}</text>}
-    {ev.type==='chord' && <text x={x} y={nY-20} textAnchor="middle" fontSize={10} fill={isAct?color:'#6b7280'} fontWeight={600}>{ev.name}</text>}
-  </g>)
-}
-
 function NotationWithGrid({ eventsRH, eventsLH, activeIdxRH, activeIdxLH, timeSig, large, onClickNote }: {
   eventsRH: PlayEvent[]; eventsLH: PlayEvent[]; activeIdxRH: number; activeIdxLH: number
   timeSig: [number,number]; large?: boolean; onClickNote: (i: number) => void
@@ -163,124 +139,142 @@ function NotationWithGrid({ eventsRH, eventsLH, activeIdxRH, activeIdxLH, timeSi
   const gridH = large ? 44 : 38
   const svgH = grandStaffH + gridH
 
-  // Treble staff (RH)
   const tTop = large ? 38 : 30
   const tLines = [0,1,2,3,4].map(i => tTop + i * lg)
-  // Bass staff (LH) — only if both hands
   const bTop = tTop + 5 * lg + (large ? 40 : 30)
   const bLines = [0,1,2,3,4].map(i => bTop + i * lg)
   const gridY = grandStaffH
+
+  // ── Time-based alignment: compute start times for RH and LH ──
+  // RH start times (used for X positions — RH is the master timeline)
+  const rhStartTimes: number[] = []
+  let t = 0; for (const ev of eventsRH) { rhStartTimes.push(t); t += ev.duration }
+
+  // LH start times
+  const lhStartTimes: number[] = []
+  t = 0; for (const ev of eventsLH) { lhStartTimes.push(t); t += ev.duration }
+
+  // For each LH event, find the RH column index whose start time is closest
+  // This tells us which X position to render the LH note at
+  function lhToRHColumn(lhIdx: number): number {
+    if (eventsRH.length === 0) return lhIdx
+    const lhTime = lhStartTimes[lhIdx]
+    let bestCol = 0, bestDist = Infinity
+    for (let r = 0; r < rhStartTimes.length; r++) {
+      const dist = Math.abs(rhStartTimes[r] - lhTime)
+      if (dist < bestDist) { bestDist = dist; bestCol = r }
+    }
+    return bestCol
+  }
+
+  // For the grid: at each RH column, find if an LH event starts at the same time
+  function lhEventAtRHColumn(rhIdx: number): PlayEvent | null {
+    if (!hasBothHands || rhIdx >= rhStartTimes.length) return null
+    const rhTime = rhStartTimes[rhIdx]
+    for (let li = 0; li < lhStartTimes.length; li++) {
+      if (Math.abs(lhStartTimes[li] - rhTime) < 0.01) return eventsLH[li]
+    }
+    return null
+  }
+
+  // For the grid: find which LH event is ACTIVE at a given RH time (for display)
+  function lhActiveAtRHColumn(rhIdx: number): { ev: PlayEvent; idx: number } | null {
+    if (!hasBothHands || rhIdx >= rhStartTimes.length) return null
+    const rhTime = rhStartTimes[rhIdx]
+    for (let li = lhStartTimes.length - 1; li >= 0; li--) {
+      if (lhStartTimes[li] <= rhTime + 0.01) return { ev: eventsLH[li], idx: li }
+    }
+    return null
+  }
+
+  // Helper to render a notehead cluster (shared by RH and LH)
+  function renderNotes(x: number, ev: PlayEvent, isAct: boolean, isPast: boolean, clef: 'treble' | 'bass', color: string, staffTop: number) {
+    const notes = ev.type === 'note' ? [ev.note] : ev.notes
+    const centerY = staffTop + 2 * lg
+    const isHalf = ev.duration >= 2, isWhole = ev.duration >= 4
+    const col = isAct ? color : '#e2e8f0'
+    return (<g opacity={isPast ? 0.3 : 1}>
+      {notes.map((note, ni) => {
+        const nY = centerY - (getNoteY(note, clef) - 50)
+        const hasAcc = note.includes('b') || note.includes('#')
+        const ledgers: number[] = []
+        if (nY < staffTop - 2) for (let ly = staffTop - lg; ly >= nY - 2; ly -= lg) ledgers.push(ly)
+        if (nY > staffTop + 4 * lg + 2) for (let ly = staffTop + 5 * lg; ly <= nY + 2; ly += lg) ledgers.push(ly)
+        return (<g key={ni}>
+          {ledgers.map((ly, li) => <line key={li} x1={x - 10} y1={ly} x2={x + 10} y2={ly} stroke={isAct ? color : '#4b5563'} strokeWidth={0.8} />)}
+          {isAct && ni === 0 && <circle cx={x} cy={nY} r={14} fill={color} opacity={0.15}><animate attributeName="r" values="12;16;12" dur="0.6s" repeatCount="indefinite" /></circle>}
+          {hasAcc && <text x={x - 12} y={nY + 4} fontSize={11} fill={isAct ? color : '#6b7280'} fontFamily="serif">{note.includes('b') ? '\u266D' : '\u266F'}</text>}
+          {isWhole ? <ellipse cx={x} cy={nY} rx={7} ry={5} fill="none" stroke={col} strokeWidth={1.5} />
+            : <ellipse cx={x} cy={nY} rx={6} ry={4.5} fill={isHalf ? 'none' : col} stroke={col} strokeWidth={isHalf ? 1.5 : 0} transform={`rotate(-10 ${x} ${nY})`} />}
+        </g>)
+      })}
+      {!isWhole && notes.length > 0 && (() => {
+        const yPos = notes.map(n => centerY - (getNoteY(n, clef) - 50))
+        const top = Math.min(...yPos), bot = Math.max(...yPos)
+        return <line x1={x + 6} y1={bot} x2={x + 6} y2={top - 28} stroke={col} strokeWidth={1.2} />
+      })()}
+      {ev.duration <= 0.5 && notes.length > 0 && (() => { const nY = centerY - (getNoteY(notes[0], clef) - 50); return <path d={`M${x + 6} ${nY - 28} q 8 8 2 18`} fill="none" stroke={col} strokeWidth={1.2} /> })()}
+      {(ev.duration === 1.5 || ev.duration === 3) && notes.length > 0 && (() => { const nY = centerY - (getNoteY(notes[0], clef) - 50); return <circle cx={x + 10} cy={nY - 2} r={1.5} fill={col} /> })()}
+      {ev.finger && <text x={x} y={staffTop + 4 * lg + 22} textAnchor="middle" fontSize={9} fill={isAct ? color : '#4b5563'} fontWeight={600}>{ev.finger}</text>}
+      {ev.type === 'chord' && <text x={x} y={staffTop - 10} textAnchor="middle" fontSize={10} fill={isAct ? color : '#6b7280'} fontWeight={600}>{ev.name}</text>}
+    </g>)
+  }
 
   return (
     <div className="overflow-x-auto">
       <svg viewBox={`0 0 ${totalW} ${svgH}`} width={totalW} height={svgH} className="block min-w-full">
         {/* Treble staff */}
-        {tLines.map((y,i) => <line key={`t${i}`} x1={10} y1={y} x2={totalW-10} y2={y} stroke="#2d3748" strokeWidth={0.8} />)}
-        <text x={18} y={tTop+3.2*lg} fontSize={large?44:38} fill="#6b7280" fontFamily="serif">{'\u{1D11E}'}</text>
-        <text x={50} y={tTop+1.5*lg} fontSize={large?16:14} fill="#6b7280" fontWeight={700} fontFamily="serif">{timeSig[0]}</text>
-        <text x={50} y={tTop+3.2*lg} fontSize={large?16:14} fill="#6b7280" fontWeight={700} fontFamily="serif">{timeSig[1]}</text>
+        {tLines.map((y, i) => <line key={`t${i}`} x1={10} y1={y} x2={totalW - 10} y2={y} stroke="#2d3748" strokeWidth={0.8} />)}
+        <text x={18} y={tTop + 3.2 * lg} fontSize={large ? 44 : 38} fill="#6b7280" fontFamily="serif">{'\u{1D11E}'}</text>
+        <text x={50} y={tTop + 1.5 * lg} fontSize={large ? 16 : 14} fill="#6b7280" fontWeight={700} fontFamily="serif">{timeSig[0]}</text>
+        <text x={50} y={tTop + 3.2 * lg} fontSize={large ? 16 : 14} fill="#6b7280" fontWeight={700} fontFamily="serif">{timeSig[1]}</text>
 
-        {/* Bass staff (if both hands) */}
+        {/* Bass staff */}
         {hasBothHands && <>
-          {bLines.map((y,i) => <line key={`b${i}`} x1={10} y1={y} x2={totalW-10} y2={y} stroke="#2d3748" strokeWidth={0.8} />)}
-          <text x={18} y={bTop+2.5*lg} fontSize={large?44:38} fill="#6b7280" fontFamily="serif">{'\u{1D122}'}</text>
-          {/* Brace connecting staves */}
-          <line x1={10} y1={tTop} x2={10} y2={bTop+4*lg} stroke="#4b5563" strokeWidth={2} />
+          {bLines.map((y, i) => <line key={`b${i}`} x1={10} y1={y} x2={totalW - 10} y2={y} stroke="#2d3748" strokeWidth={0.8} />)}
+          <text x={18} y={bTop + 2.5 * lg} fontSize={large ? 44 : 38} fill="#6b7280" fontFamily="serif">{'\u{1D122}'}</text>
+          <line x1={10} y1={tTop} x2={10} y2={bTop + 4 * lg} stroke="#4b5563" strokeWidth={2} />
         </>}
 
-        {/* Grid divider */}
-        <line x1={10} y1={gridY} x2={totalW-10} y2={gridY} stroke="#1e2433" strokeWidth={1} />
+        <line x1={10} y1={gridY} x2={totalW - 10} y2={gridY} stroke="#1e2433" strokeWidth={1} />
 
-        {/* RH notes on treble staff */}
+        {/* RH notes — positioned by their own index (master timeline) */}
         {eventsRH.map((ev, i) => {
           const x = lp + i * sp
-          const isAct = i === activeIdxRH, isPast = activeIdxRH >= 0 && i < activeIdxRH
-          const notes = ev.type === 'note' ? [ev.note] : ev.notes
-          const centerY = tTop + 2*lg
-          const isHalf = ev.duration >= 2, isWhole = ev.duration >= 4
-          const col = isAct ? RH_COLOR : '#e2e8f0'
-          return (<g key={`rh${i}`} opacity={isPast ? 0.3 : 1}>
-            {notes.map((note, ni) => {
-              const nY = centerY - (getNoteY(note, 'treble') - 50)
-              const hasAcc = note.includes('b') || note.includes('#')
-              // Ledger lines
-              const ledgers: number[] = []
-              if (nY < tTop-2) for (let ly=tTop-lg; ly>=nY-2; ly-=lg) ledgers.push(ly)
-              if (nY > tTop+4*lg+2) for (let ly=tTop+5*lg; ly<=nY+2; ly+=lg) ledgers.push(ly)
-              return (<g key={ni}>
-                {ledgers.map((ly,li) => <line key={li} x1={x-10} y1={ly} x2={x+10} y2={ly} stroke={isAct?RH_COLOR:'#4b5563'} strokeWidth={0.8} />)}
-                {isAct && ni===0 && <circle cx={x} cy={nY} r={14} fill={RH_COLOR} opacity={0.15}><animate attributeName="r" values="12;16;12" dur="0.6s" repeatCount="indefinite" /></circle>}
-                {hasAcc && <text x={x-12} y={nY+4} fontSize={11} fill={isAct?RH_COLOR:'#6b7280'} fontFamily="serif">{note.includes('b')?'\u266D':'\u266F'}</text>}
-                {isWhole ? <ellipse cx={x} cy={nY} rx={7} ry={5} fill="none" stroke={col} strokeWidth={1.5} />
-                  : <ellipse cx={x} cy={nY} rx={6} ry={4.5} fill={isHalf?'none':col} stroke={col} strokeWidth={isHalf?1.5:0} transform={`rotate(-10 ${x} ${nY})`} />}
-              </g>)
-            })}
-            {!isWhole && notes.length > 0 && (() => {
-              const yPos = notes.map(n => centerY-(getNoteY(n,'treble')-50))
-              const top = Math.min(...yPos), bot = Math.max(...yPos)
-              return <line x1={x+6} y1={bot} x2={x+6} y2={top-28} stroke={col} strokeWidth={1.2} />
-            })()}
-            {ev.duration<=0.5 && notes.length>0 && (() => { const nY = centerY-(getNoteY(notes[0],'treble')-50); return <path d={`M${x+6} ${nY-28} q 8 8 2 18`} fill="none" stroke={col} strokeWidth={1.2} /> })()}
-            {(ev.duration===1.5||ev.duration===3) && notes.length>0 && (() => { const nY = centerY-(getNoteY(notes[0],'treble')-50); return <circle cx={x+10} cy={nY-2} r={1.5} fill={col} /> })()}
-            {ev.finger && <text x={x} y={tTop+4*lg+22} textAnchor="middle" fontSize={9} fill={isAct?RH_COLOR:'#4b5563'} fontWeight={600}>{ev.finger}</text>}
-            {ev.type==='chord' && <text x={x} y={tTop-10} textAnchor="middle" fontSize={10} fill={isAct?RH_COLOR:'#6b7280'} fontWeight={600}>{ev.name}</text>}
-          </g>)
+          return <g key={`rh${i}`}>{renderNotes(x, ev, i === activeIdxRH, activeIdxRH >= 0 && i < activeIdxRH, 'treble', RH_COLOR, tTop)}</g>
         })}
 
-        {/* LH notes on bass staff */}
-        {hasBothHands && eventsLH.map((ev, i) => {
-          const x = lp + i * sp
-          const isAct = i === activeIdxLH, isPast = activeIdxLH >= 0 && i < activeIdxLH
-          const notes = ev.type === 'note' ? [ev.note] : ev.notes
-          const centerY = bTop + 2*lg
-          const isHalf = ev.duration >= 2, isWhole = ev.duration >= 4
-          const col = isAct ? LH_COLOR : '#e2e8f0'
-          return (<g key={`lh${i}`} opacity={isPast ? 0.3 : 1}>
-            {notes.map((note, ni) => {
-              const nY = centerY - (getNoteY(note, 'bass') - 50)
-              const hasAcc = note.includes('b') || note.includes('#')
-              const ledgers: number[] = []
-              if (nY < bTop-2) for (let ly=bTop-lg; ly>=nY-2; ly-=lg) ledgers.push(ly)
-              if (nY > bTop+4*lg+2) for (let ly=bTop+5*lg; ly<=nY+2; ly+=lg) ledgers.push(ly)
-              return (<g key={ni}>
-                {ledgers.map((ly,li) => <line key={li} x1={x-10} y1={ly} x2={x+10} y2={ly} stroke={isAct?LH_COLOR:'#4b5563'} strokeWidth={0.8} />)}
-                {isAct && ni===0 && <circle cx={x} cy={nY} r={14} fill={LH_COLOR} opacity={0.15}><animate attributeName="r" values="12;16;12" dur="0.6s" repeatCount="indefinite" /></circle>}
-                {hasAcc && <text x={x-12} y={nY+4} fontSize={11} fill={isAct?LH_COLOR:'#6b7280'} fontFamily="serif">{note.includes('b')?'\u266D':'\u266F'}</text>}
-                {isWhole ? <ellipse cx={x} cy={nY} rx={7} ry={5} fill="none" stroke={col} strokeWidth={1.5} />
-                  : <ellipse cx={x} cy={nY} rx={6} ry={4.5} fill={isHalf?'none':col} stroke={col} strokeWidth={isHalf?1.5:0} transform={`rotate(-10 ${x} ${nY})`} />}
-              </g>)
-            })}
-            {!isWhole && notes.length > 0 && (() => {
-              const yPos = notes.map(n => centerY-(getNoteY(n,'bass')-50))
-              const top = Math.min(...yPos), bot = Math.max(...yPos)
-              return <line x1={x+6} y1={bot} x2={x+6} y2={top-28} stroke={col} strokeWidth={1.2} />
-            })()}
-            {ev.duration<=0.5 && notes.length>0 && (() => { const nY = centerY-(getNoteY(notes[0],'bass')-50); return <path d={`M${x+6} ${nY-28} q 8 8 2 18`} fill="none" stroke={col} strokeWidth={1.2} /> })()}
-            {ev.finger && <text x={x} y={bTop+4*lg+22} textAnchor="middle" fontSize={9} fill={isAct?LH_COLOR:'#4b5563'} fontWeight={600}>{ev.finger}</text>}
-            {ev.type==='chord' && <text x={x} y={bTop-10} textAnchor="middle" fontSize={10} fill={isAct?LH_COLOR:'#6b7280'} fontWeight={600}>{ev.name}</text>}
-          </g>)
+        {/* LH notes — positioned at the RH column matching their start time */}
+        {hasBothHands && eventsLH.map((ev, li) => {
+          const rhCol = lhToRHColumn(li)
+          const x = lp + rhCol * sp
+          return <g key={`lh${li}`}>{renderNotes(x, ev, li === activeIdxLH, activeIdxLH >= 0 && li < activeIdxLH, 'bass', LH_COLOR, bTop)}</g>
         })}
 
-        {/* Grid cells (aligned with RH/main events) */}
+        {/* Grid cells — one per RH event, with LH label when LH starts at that beat */}
         {mainEvents.map((ev, i) => {
           const x = lp + i * sp
-          const isAct = i === activeIdxRH || i === activeIdxLH
-          const isPast = (activeIdxRH >= 0 && i < activeIdxRH) || (activeIdxLH >= 0 && i < activeIdxLH)
-          const cellW = sp-4, cellH = gridH-8, cellX = x-cellW/2, cellY = gridY+4
-          const label = ev.type === 'chord' ? ev.name : ev.note
-          // Show LH label below if different
-          const lhEv = eventsLH[i]
-          const lhLabel = lhEv ? (lhEv.type === 'chord' ? lhEv.name : lhEv.note) : null
-          const showBothLabels = lhLabel && lhLabel !== label
-          return (<g key={`grid${i}`} className="cursor-pointer" onClick={() => onClickNote(i)} opacity={isPast?0.3:1}>
+          const isRHAct = i === activeIdxRH
+          const lhInfo = lhActiveAtRHColumn(i)
+          const isLHAct = lhInfo ? lhInfo.idx === activeIdxLH : false
+          const isAct = isRHAct || isLHAct
+          const isPast = activeIdxRH >= 0 && i < activeIdxRH
+          const cellW = sp - 4, cellH = gridH - 8, cellX = x - cellW / 2, cellY = gridY + 4
+          const rhLabel = ev.type === 'chord' ? ev.name : ev.note
+          // Show LH label if an LH event STARTS at this column
+          const lhStartsHere = lhEventAtRHColumn(i)
+          const lhLabel = lhStartsHere ? (lhStartsHere.type === 'chord' ? lhStartsHere.name : lhStartsHere.note) : null
+          const showBothLabels = lhLabel && lhLabel !== rhLabel
+
+          return (<g key={`grid${i}`} className="cursor-pointer" onClick={() => onClickNote(i)} opacity={isPast ? 0.3 : 1}>
             <rect x={cellX} y={cellY} width={cellW} height={cellH} rx={6}
-              fill={isAct?'rgba(167,139,250,0.15)':'rgba(255,255,255,0.02)'}
-              stroke={isAct?'rgba(167,139,250,0.4)':'rgba(255,255,255,0.04)'} strokeWidth={isAct?1.5:0.5} />
+              fill={isAct ? 'rgba(167,139,250,0.15)' : 'rgba(255,255,255,0.02)'}
+              stroke={isAct ? 'rgba(167,139,250,0.4)' : 'rgba(255,255,255,0.04)'} strokeWidth={isAct ? 1.5 : 0.5} />
             {isAct && <rect x={cellX} y={cellY} width={cellW} height={cellH} rx={6} fill="none" stroke="#a78bfa" strokeWidth={1.5} opacity={0.3}><animate attributeName="opacity" values="0.3;0.1;0.3" dur="0.6s" repeatCount="indefinite" /></rect>}
             {showBothLabels ? <>
-              <text x={x} y={cellY+cellH/2-1} textAnchor="middle" fontSize={large?10:9} fontWeight={isAct?700:500} fill={isAct?RH_COLOR:'#6b7280'}>{label}</text>
-              <text x={x} y={cellY+cellH/2+10} textAnchor="middle" fontSize={large?9:8} fontWeight={isAct?600:400} fill={isAct?LH_COLOR:'#4b5563'}>{lhLabel}</text>
-            </> : <text x={x} y={cellY+cellH/2+(large?4:3.5)} textAnchor="middle" fontSize={large?11:10} fontWeight={isAct?700:500} fill={isAct?'#fff':'#6b7280'}>{label}</text>}
+              <text x={x} y={cellY + cellH / 2 - 1} textAnchor="middle" fontSize={large ? 10 : 9} fontWeight={isAct ? 700 : 500} fill={isRHAct ? RH_COLOR : '#6b7280'}>{rhLabel}</text>
+              <text x={x} y={cellY + cellH / 2 + 10} textAnchor="middle" fontSize={large ? 9 : 8} fontWeight={isLHAct ? 600 : 400} fill={isLHAct ? LH_COLOR : '#4b5563'}>{lhLabel}</text>
+            </> : <text x={x} y={cellY + cellH / 2 + (large ? 4 : 3.5)} textAnchor="middle" fontSize={large ? 11 : 10} fontWeight={isAct ? 700 : 500} fill={isAct ? '#fff' : '#6b7280'}>{rhLabel}</text>}
           </g>)
         })}
       </svg>
