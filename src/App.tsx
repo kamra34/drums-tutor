@@ -29,6 +29,9 @@ import StudioPage from '@drums/pages/studio/StudioPage'
 import PianoDashboard from '@piano/pages/DashboardPage'
 import PianoCurriculumPage from '@piano/pages/CurriculumPage'
 import PianoLessonPage from '@piano/pages/LessonPage'
+import PianoPracticeHubPage from '@piano/pages/PracticeHubPage'
+import ScalePracticePage from '@piano/pages/practice/ScalePracticePage'
+import ChordPracticePage from '@piano/pages/practice/ChordPracticePage'
 import PianoPlaceholderPage from '@piano/pages/PlaceholderPage'
 
 export default function App() {
@@ -96,7 +99,11 @@ export default function App() {
             <Route index element={<PianoDashboard />} />
             <Route path="curriculum" element={<PianoCurriculumPage />} />
             <Route path="lesson/:moduleId/:lessonId" element={<PianoLessonPage />} />
-            <Route path="practice" element={<PianoPlaceholderPage title="Piano Practice" icon="🎹" description="Practice modes for piano coming soon." />} />
+            <Route path="practice" element={<PianoPracticeHubPage />} />
+            <Route path="practice/scales" element={<ScalePracticePage />} />
+            <Route path="practice/chords" element={<ChordPracticePage />} />
+            <Route path="practice/sight-reading" element={<PianoPlaceholderPage title="Sight Reading" icon="👁" description="Read and play short passages. Coming soon." />} />
+            <Route path="practice/ear-training" element={<PianoPlaceholderPage title="Ear Training" icon="👂" description="Identify intervals and chords by ear. Coming soon." />} />
             <Route path="chat" element={<DrumChatPage />} />
           </Route>
         </Route>
