@@ -49,7 +49,7 @@ export default function SelfAssessment({ exerciseName, sessionCount, onDone }: P
     // Update skill profile based on self-assessment
     const updates: Record<string, number> = {}
     for (const [key, value] of Object.entries(skillRatings)) {
-      const currentVal = (progress.skillProfile as Record<string, number>)[key] ?? 0
+      const currentVal = (progress.skillProfile as unknown as Record<string, number>)[key] ?? 0
       const delta = (value / 5) * ratingDef.skillDelta
       updates[key] = Math.min(100, currentVal + delta)
     }
