@@ -32,8 +32,12 @@ import PianoLessonPage from '@piano/pages/LessonPage'
 import PianoPracticeHubPage from '@piano/pages/PracticeHubPage'
 import ScalePracticePage from '@piano/pages/practice/ScalePracticePage'
 import ChordPracticePage from '@piano/pages/practice/ChordPracticePage'
+import ExerciseBrowserPage from '@piano/pages/practice/ExerciseBrowserPage'
+import RepertoireBrowserPage from '@piano/pages/practice/RepertoireBrowserPage'
+import RepertoirePlayerPage from '@piano/pages/practice/RepertoirePlayerPage'
+import SightReadingPage from '@piano/pages/practice/SightReadingPage'
+import EarTrainingPage from '@piano/pages/practice/EarTrainingPage'
 import PianoExercisePage from '@piano/pages/ExercisePage'
-import PianoPlaceholderPage from '@piano/pages/PlaceholderPage'
 
 export default function App() {
   const { isAuthenticated, isLoading, checkAuth } = useAuthStore()
@@ -102,10 +106,13 @@ export default function App() {
             <Route path="lesson/:moduleId/:lessonId" element={<PianoLessonPage />} />
             <Route path="exercise/:moduleId/:exerciseId" element={<PianoExercisePage />} />
             <Route path="practice" element={<PianoPracticeHubPage />} />
+            <Route path="practice/exercises" element={<ExerciseBrowserPage />} />
+            <Route path="practice/songs" element={<RepertoireBrowserPage />} />
+            <Route path="practice/songs/:pieceId" element={<RepertoirePlayerPage />} />
             <Route path="practice/scales" element={<ScalePracticePage />} />
             <Route path="practice/chords" element={<ChordPracticePage />} />
-            <Route path="practice/sight-reading" element={<PianoPlaceholderPage title="Sight Reading" icon="👁" description="Read and play short passages. Coming soon." />} />
-            <Route path="practice/ear-training" element={<PianoPlaceholderPage title="Ear Training" icon="👂" description="Identify intervals and chords by ear. Coming soon." />} />
+            <Route path="practice/sight-reading" element={<SightReadingPage />} />
+            <Route path="practice/ear-training" element={<EarTrainingPage />} />
             <Route path="chat" element={<DrumChatPage />} />
           </Route>
         </Route>

@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useSearchParams } from 'react-router-dom'
 import { getExerciseById, getModuleById } from '@piano/data/curriculum'
 import { playPianoNote, preloadSamples } from '@piano/services/pianoSounds'
 import { usePianoProgressStore } from '@piano/stores/usePianoProgressStore'
@@ -284,6 +284,8 @@ type PlayState = 'idle' | 'playing' | 'paused'
 
 export default function PianoExercisePage() {
   const { moduleId, exerciseId } = useParams<{ moduleId: string; exerciseId: string }>()
+  const [searchParams] = useSearchParams()
+  const fromPractice = searchParams.get('from') === 'practice'
   const module = moduleId ? getModuleById(moduleId) : undefined
   const exercise = exerciseId ? getExerciseById(exerciseId) : undefined
   const { addPracticeTime } = usePianoProgressStore()
@@ -746,9 +748,15 @@ export default function PianoExercisePage() {
     <div className="p-4 lg:p-6 max-w-5xl mx-auto">
       {/* Breadcrumb */}
       <nav className="flex items-center gap-1.5 text-xs text-[#4b5563] mb-5">
-        <Link to="/piano/curriculum" className="hover:text-[#a78bfa] transition-colors">Curriculum</Link>
-        <Chev />
-        <Link to="/piano/curriculum" state={{ expandModule: module.id }} className="hover:text-[#a78bfa] transition-colors truncate max-w-[150px]">{module.name}</Link>
+        {fromPractice ? (<>
+          <Link to="/piano/practice" className="hover:text-[#a78bfa] transition-colors">Practice</Link>
+          <Chev />
+          <Link to="/piano/practice/exercises" className="hover:text-[#a78bfa] transition-colors">Exercises</Link>
+        </>) : (<>
+          <Link to="/piano/curriculum" className="hover:text-[#a78bfa] transition-colors">Curriculum</Link>
+          <Chev />
+          <Link to="/piano/curriculum" state={{ expandModule: module.id }} className="hover:text-[#a78bfa] transition-colors truncate max-w-[150px]">{module.name}</Link>
+        </>)}
         <Chev />
         <span className="text-[#94a3b8] truncate">{exercise.title}</span>
       </nav>

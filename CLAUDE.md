@@ -33,10 +33,11 @@ harmony_hub/
 │   └── piano/                  # Piano tutor (complete)
 │       ├── components/
 │       │   ├── curriculum/     # LessonBlockRenderer, QuizBlock
-│       │   └── visuals/        # 12 interactive visual components (see below)
-│       ├── data/               # curriculum.ts (Modules 0-3), curriculum-modules-4-7.ts, lessonVisuals.ts
+│       │   ├── visuals/        # 12 interactive visual components (see below)
+│       │   └── PracticePlayer.tsx  # Shared playback component (notation+grid+keyboard+controls)
+│       ├── data/               # curriculum.ts (Modules 0-3), curriculum-modules-4-7.ts, lessonVisuals.ts, repertoire.ts
 │       ├── pages/              # DashboardPage, CurriculumPage, LessonPage, ExercisePage, PracticeHubPage, PlaceholderPage
-│       │   └── practice/       # ScalePracticePage, ChordPracticePage, SelfAssessment
+│       │   └── practice/       # ScalePracticePage, ChordPracticePage, ExerciseBrowserPage, RepertoireBrowserPage, RepertoirePlayerPage, SightReadingPage, EarTrainingPage, SelfAssessment
 │       ├── services/           # pianoSounds.ts (real sample playback + caching)
 │       ├── stores/             # usePianoProgressStore (separate from drums)
 │       └── types/              # curriculum.ts
@@ -104,12 +105,15 @@ All instrument pages are nested under their prefix inside `<InstrumentLayout>`:
 /piano                          → PianoDashboard
 /piano/curriculum               → PianoCurriculumPage
 /piano/lesson/:moduleId/:lessonId → PianoLessonPage
-/piano/exercise/:moduleId/:exerciseId → PianoExercisePage
-/piano/practice                 → PianoPracticeHubPage
-/piano/practice/scales          → ScalePracticePage
-/piano/practice/chords          → ChordPracticePage
-/piano/practice/sight-reading   → PlaceholderPage (coming soon)
-/piano/practice/ear-training    → PlaceholderPage (coming soon)
+/piano/exercise/:moduleId/:exerciseId → PianoExercisePage (?from=practice for breadcrumb)
+/piano/practice                 → PracticeHubPage (6 sections)
+/piano/practice/exercises       → ExerciseBrowserPage (all 48 curriculum exercises)
+/piano/practice/songs           → RepertoireBrowserPage (15 classic pieces)
+/piano/practice/songs/:pieceId  → RepertoirePlayerPage (song player)
+/piano/practice/scales          → ScalePracticePage (15 scales + PracticePlayer)
+/piano/practice/chords          → ChordPracticePage (11 progressions + PracticePlayer)
+/piano/practice/sight-reading   → SightReadingPage (random passage generator + PracticePlayer)
+/piano/practice/ear-training    → EarTrainingPage (interval + chord identification)
 /piano/chat                     → ChatPage (shared, reads instrument from context)
 ```
 
@@ -277,23 +281,58 @@ Everything visible on load — no multi-step wizard. Top-to-bottom:
 
 ## Piano Practice Mode
 
+### Shared PracticePlayer (src/piano/components/PracticePlayer.tsx)
+Reusable component providing the unified playback experience across all practice sections:
+- Accepts `notes?: NoteEvent[]`, `chords?: ChordEvent[]`, `defaultBpm`, `timeSignature`, `resetKey`
+- Renders: control bar (play/pause/stop, BPM, repeats 1-4x, metronome toggle + volume, fullscreen) + NotationWithGrid + KeyboardSVG
+- Tick-based playback engine (same as ExercisePage) with click-to-play-from-any-note
+- Fullscreen mode with larger sizing
+- `onSessionComplete` callback for parent to track session counts
+- Used by: ScalePracticePage, ChordPracticePage, RepertoirePlayerPage, SightReadingPage
+
 ### Practice Hub (src/piano/pages/PracticeHubPage.tsx)
-- 4 practice modes: Scale Practice, Chord Drills (active), Sight Reading, Ear Training (placeholders)
-- Shows practice stats (time, streak, sessions)
-- "How it works" explanation: Watch & Listen → Play Along → Self-Assess
+- 6 practice sections as cards: Curriculum Exercises, Play Songs, Scale Trainer, Chord Lab, Sight Reading, Ear Training
+- Stats header: practice time, streak, exercises completed, modules unlocked
+- "How it works" guide
 
-### Scale Practice (src/piano/pages/practice/ScalePracticePage.tsx)
-- 7 scales: C/G/F Major, A/D Natural Minor, D Harmonic Minor, Chromatic
-- Controls: scale selector, RH/LH hand, BPM (40-160), ascending/descending direction
-- Animated keyboard with highlighted scale notes, active note glow, finger numbers
-- Note sequence bar tracking current position
-- Metronome clicks + real piano sample playback
-- Session counter → self-assessment flow
+### Curriculum Exercises Browser (src/piano/pages/practice/ExerciseBrowserPage.tsx)
+- All 48 exercises from modules 0-7 grouped by module (expandable accordion)
+- Filter by exercise type (scale, chord-progression, melody, technique, sight-reading)
+- Lock/unlock based on curriculum lesson completion (same logic as CurriculumPage)
+- Progress bar per module, best score per exercise
+- Links to ExercisePage with `?from=practice` for proper breadcrumb navigation back
 
-### Chord Practice (src/piano/pages/practice/ChordPracticePage.tsx)
-- 5 progressions: I-IV-V7 in C/G/F, Pop (I-V-vi-IV), Jazz (ii-V-I)
-- Chord cards with glow animation, beat dots, note names, finger numbers
-- BPM control, real piano playback with slight arpeggio spread
+### Play Songs (src/piano/pages/practice/RepertoireBrowserPage.tsx + RepertoirePlayerPage.tsx)
+- 15 classic pieces in `src/piano/data/repertoire.ts` with full note data
+- 3 difficulty levels: Beginner (5), Easy (5), Intermediate (5)
+- Pieces: Twinkle Twinkle, Mary Had a Little Lamb, Happy Birthday, Jingle Bells, London Bridge, Fur Elise, Canon in D, Minuet in G, Scarborough Fair, Amazing Grace, Moonlight Sonata, Prelude in C, River Flows in You, The Entertainer, Clair de Lune
+- Browser with difficulty filter → player using PracticePlayer component
+- Self-assessment flow after practice sessions
+
+### Scale Trainer (src/piano/pages/practice/ScalePracticePage.tsx)
+- 15 scales: 7 major (C,G,D,A,E,F,Bb), 4 natural minor, 3 harmonic minor, 1 chromatic
+- Category filter tabs + scale pill selector
+- Hand toggle (RH/LH) + direction (Up & Down / Up only)
+- Feeds selected scale into PracticePlayer (unified notation + keyboard view)
+- Session counter → self-assessment
+
+### Chord Lab (src/piano/pages/practice/ChordPracticePage.tsx)
+- 11 progressions across 4 categories: Primary (I-IV-V7 in C/G/F), Pop (I-V-vi-IV, vi-IV-I-V, 50s), Jazz (ii-V-I in C/G/F), Technique (inversions, seventh chords)
+- Category filter + progression list with descriptions
+- Feeds into PracticePlayer for unified view
+
+### Sight Reading (src/piano/pages/practice/SightReadingPage.tsx)
+- Random passage generator with difficulty (Easy/Medium/Hard) and length (8-20 notes)
+- Stepwise motion with occasional leaps, mixed durations
+- Generated passage feeds into PracticePlayer for full notation + keyboard experience
+- "New Passage" button to regenerate
+
+### Ear Training (src/piano/pages/practice/EarTrainingPage.tsx)
+- Two modes: Intervals (12 intervals, Minor 2nd to Octave) and Chords (7 types including 7ths)
+- Difficulty levels: Easy (up to P5 / 3 chord types), Medium (all intervals / 4 chords), Hard (all 7)
+- Listen → select answer → correct/incorrect with song reference examples
+- Score tracking + streak counter
+- Uses its own listen-and-answer UI (not PracticePlayer)
 
 ### Self-Assessment (src/piano/pages/practice/SelfAssessment.tsx)
 - 5-star overall rating (Struggled → Excellent) with descriptions
