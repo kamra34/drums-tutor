@@ -67,9 +67,12 @@ export interface Exercise {
   keySignature?: string;
   timeSignature?: [number, number];
   targetBpm?: number;
-  // Musical content
-  notes?: NoteEvent[];           // For scale, melody, technique exercises
-  chords?: ChordEvent[];         // For chord-progression exercises
+  // Musical content — Right hand
+  notes?: NoteEvent[];           // RH: scale, melody, technique exercises
+  chords?: ChordEvent[];         // RH or LH chord-progression exercises (LH if no notes)
+  // Musical content — Left hand (for both-hands exercises)
+  notesLeft?: NoteEvent[];       // LH note sequence (parallel to RH notes)
+  chordsLeft?: ChordEvent[];     // LH chords (plays simultaneously with RH notes)
   instructions?: string[];       // Step-by-step guidance for the exercise
 }
 

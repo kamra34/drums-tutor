@@ -15,8 +15,9 @@ export interface RepertoirePiece {
   timeSignature: [number, number]
   targetBpm: number
   handsRequired: 'right' | 'left' | 'both'
-  notes: NoteEvent[]
-  chords?: ChordEvent[]
+  notes: NoteEvent[]           // RH melody
+  notesLeft?: NoteEvent[]      // LH notes (for both-hands pieces)
+  chordsLeft?: ChordEvent[]    // LH chords (for both-hands pieces)
   description: string
 }
 
@@ -267,10 +268,10 @@ export const REPERTOIRE: RepertoirePiece[] = [
     id: 'rep-amazing-grace',
     title: 'Amazing Grace',
     composer: 'John Newton / Traditional',
-    difficulty: 3, category: 'easy',
+    difficulty: 4, category: 'easy',
     keySignature: 'C', timeSignature: [3, 4], targetBpm: 80,
-    handsRequired: 'right',
-    description: 'Beloved hymn. Lyrical melody with a few wider intervals.',
+    handsRequired: 'both',
+    description: 'Beloved hymn with RH melody and LH chord accompaniment.',
     notes: [
       { note: 'G4', duration: 1, finger: 5 },
       { note: 'C5', duration: 2, finger: 3 }, { note: 'E5', duration: 0.5, finger: 5 },
@@ -291,6 +292,20 @@ export const REPERTOIRE: RepertoirePiece[] = [
       { note: 'C5', duration: 2, finger: 3 }, { note: 'A4', duration: 0.5, finger: 1 },
       { note: 'G4', duration: 0.5, finger: 5 },
       { note: 'C5', duration: 3, finger: 3 },
+    ],
+    chordsLeft: [
+      { name: 'C', notes: ['C3', 'E3', 'G3'], duration: 3, fingers: [5, 3, 1] },
+      { name: 'C', notes: ['C3', 'E3', 'G3'], duration: 3, fingers: [5, 3, 1] },
+      { name: 'C', notes: ['C3', 'E3', 'G3'], duration: 3, fingers: [5, 3, 1] },
+      { name: 'F', notes: ['F3', 'A3', 'C4'], duration: 3, fingers: [5, 3, 1] },
+      { name: 'C', notes: ['C3', 'E3', 'G3'], duration: 3, fingers: [5, 3, 1] },
+      { name: 'C', notes: ['C3', 'E3', 'G3'], duration: 3, fingers: [5, 3, 1] },
+      { name: 'G7', notes: ['G3', 'B3', 'F4'], duration: 3, fingers: [5, 3, 1] },
+      { name: 'C', notes: ['C3', 'E3', 'G3'], duration: 3, fingers: [5, 3, 1] },
+      { name: 'F', notes: ['F3', 'A3', 'C4'], duration: 3, fingers: [5, 3, 1] },
+      { name: 'C', notes: ['C3', 'E3', 'G3'], duration: 3, fingers: [5, 3, 1] },
+      { name: 'G7', notes: ['G3', 'B3', 'F4'], duration: 3, fingers: [5, 3, 1] },
+      { name: 'C', notes: ['C3', 'E3', 'G3'], duration: 3, fingers: [5, 3, 1] },
     ],
   },
 
@@ -339,10 +354,10 @@ export const REPERTOIRE: RepertoirePiece[] = [
     composer: 'J.S. Bach (WTC Book I)',
     difficulty: 5, category: 'intermediate',
     keySignature: 'C', timeSignature: [4, 4], targetBpm: 66,
-    handsRequired: 'right',
-    description: 'The iconic broken-chord pattern. Each bar is one chord arpeggiated.',
+    handsRequired: 'both',
+    description: 'The iconic broken-chord pattern. RH arpeggios over LH bass notes.',
     notes: [
-      // Bar 1: C major
+      // Bar 1: C major arpeggio (RH)
       { note: 'C4', duration: 0.5 }, { note: 'E4', duration: 0.5 },
       { note: 'G4', duration: 0.5 }, { note: 'C5', duration: 0.5 },
       { note: 'E5', duration: 0.5 }, { note: 'G4', duration: 0.5 },
@@ -362,6 +377,16 @@ export const REPERTOIRE: RepertoirePiece[] = [
       { note: 'G4', duration: 0.5 }, { note: 'C5', duration: 0.5 },
       { note: 'E5', duration: 0.5 }, { note: 'G4', duration: 0.5 },
       { note: 'C5', duration: 0.5 }, { note: 'E5', duration: 0.5 },
+    ],
+    notesLeft: [
+      // Bar 1: C bass (held)
+      { note: 'C3', duration: 4, finger: 5 },
+      // Bar 2: C bass (Dm7 over C pedal)
+      { note: 'C3', duration: 4, finger: 5 },
+      // Bar 3: G bass
+      { note: 'G3', duration: 4, finger: 5 },
+      // Bar 4: C bass
+      { note: 'C3', duration: 4, finger: 5 },
     ],
   },
   {

@@ -167,18 +167,18 @@ Wraps each instrument's pages. Provides:
 
 Based on **Alfred's Basic Adult Piano Course** with Faber's Piano Adventures concepts.
 
-### Complete: 8 modules, 68 lessons, 48 interactive exercises
+### Complete: 8 modules, 68 lessons, 48 interactive exercises (7 both-hands)
 
-| Module | Title | Lessons | Exercises | Black Keys |
+| Module | Title | Lessons | Exercises | Both Hands |
 |--------|-------|---------|-----------|------------|
-| 0 | Introduction to the Piano | 9 | 4 | No |
+| 0 | Introduction to the Piano | 9 | 4 | 1 (Finger Drill) |
 | 1 | Playing Your First Notes | 10 | 6 | No |
-| 2 | Hands Together & Rhythm | 9 | 6 | No |
-| 3 | Expanding Range & Technique | 8 | 6 | Yes (Db, Eb, Gb) |
-| 4 | Scales & Key Signatures | 8 | 8 | Yes (Gb/F#, Bb, Db/C#) |
-| 5 | Chords & Harmony | 8 | 7 | Yes (Gb/F#, Bb) |
-| 6 | Expression & Musicality | 8 | 5 | Reuses M4-5 |
-| 7 | Early Intermediate Foundations | 8 | 6 | Yes (Ab, Gb, Bb, Eb) |
+| 2 | Hands Together & Rhythm | 9 | 6 | 3 (Parallel, Contrary, Chords) |
+| 3 | Expanding Range & Technique | 8 | 6 | No |
+| 4 | Scales & Key Signatures | 8 | 8 | 1 (C Major HT) |
+| 5 | Chords & Harmony | 8 | 7 | 1 (When the Saints) |
+| 6 | Expression & Musicality | 8 | 5 | No |
+| 7 | Early Intermediate Foundations | 8 | 6 | 1 (Comprehensive Review) |
 
 ### Milestone Checkpoints
 Rendered between modules in CurriculumPage to guide practice vs. theory:
@@ -196,12 +196,15 @@ Rendered between modules in CurriculumPage to guide practice vs. theory:
 All 48 exercises contain real musical content (not just metadata):
 - `NoteEvent` — `{ note: string, duration: number, finger?: number }` for scales, melodies, technique
 - `ChordEvent` — `{ name: string, notes: string[], duration: number, fingers?: number[] }` for chord progressions
-- `Exercise.notes` — ordered note sequences with fingering (e.g., Ode to Joy, C major scale)
-- `Exercise.chords` — chord sequences with all chord tones (e.g., I-IV-V7-I in C)
+- `Exercise.notes` — RH note sequences with fingering (e.g., Ode to Joy, C major scale)
+- `Exercise.chords` — RH chord sequences (used as main events if no notes)
+- `Exercise.notesLeft` — LH note sequences for both-hands exercises (parallel to RH)
+- `Exercise.chordsLeft` — LH chord accompaniment for both-hands exercises
 - `Exercise.instructions` — step-by-step pedagogical guidance (5 steps per exercise)
 - Duration is in beats (1 = quarter, 0.5 = eighth, 0.25 = sixteenth, 2 = half, 4 = whole)
 - Exercises with only `chords` play as chord events; exercises with `notes` play as note sequences
-- Some exercises (e.g., When the Saints) have both `notes` (RH melody) and `chords` (LH accompaniment)
+- Both-hands exercises use `notesLeft`/`chordsLeft` for the LH part, played simultaneously with RH
+- Convention: `notes`/`chords` = RH, `notesLeft`/`chordsLeft` = LH
 
 ### Visual Components (src/piano/components/visuals/) — 12 total
 | Component | Purpose |
@@ -282,13 +285,16 @@ Everything visible on load — no multi-step wizard. Top-to-bottom:
 ## Piano Practice Mode
 
 ### Shared PracticePlayer (src/piano/components/PracticePlayer.tsx)
-Reusable component providing the unified playback experience across all practice sections:
-- Accepts `notes?: NoteEvent[]`, `chords?: ChordEvent[]`, `defaultBpm`, `timeSignature`, `resetKey`
-- Renders: control bar (play/pause/stop, BPM, repeats 1-4x, metronome toggle + volume, fullscreen) + NotationWithGrid + KeyboardSVG
-- Tick-based playback engine (same as ExercisePage) with click-to-play-from-any-note
+Reusable component providing the unified playback experience across ALL piano pages:
+- Accepts `notes?`, `chords?` (RH), `notesLeft?`, `chordsLeft?` (LH), `defaultBpm`, `timeSignature`, `resetKey`
+- **Both-hands support**: builds two parallel event schedules (RH + LH), plays simultaneously
+- **Grand staff notation**: treble (RH, purple) + bass (LH, teal) when both hands present, single staff otherwise
+- **Two-color keyboard**: RH = purple (#a78bfa), LH = teal (#2dd4bf), both = deeper purple; separate finger bubbles per hand
+- Control bar: play/pause/stop, BPM, repeats 1-4x, metronome toggle + volume, fullscreen, "Both Hands" badge
+- Click-to-play-from-any-note on grid cells
 - Fullscreen mode with larger sizing
 - `onSessionComplete` callback for parent to track session counts
-- Used by: ScalePracticePage, ChordPracticePage, RepertoirePlayerPage, SightReadingPage
+- Used by: ExercisePage, ScalePracticePage, ChordPracticePage, RepertoirePlayerPage, SightReadingPage
 
 ### Practice Hub (src/piano/pages/PracticeHubPage.tsx)
 - 6 practice sections as cards: Curriculum Exercises, Play Songs, Scale Trainer, Chord Lab, Sight Reading, Ear Training
@@ -303,8 +309,9 @@ Reusable component providing the unified playback experience across all practice
 - Links to ExercisePage with `?from=practice` for proper breadcrumb navigation back
 
 ### Play Songs (src/piano/pages/practice/RepertoireBrowserPage.tsx + RepertoirePlayerPage.tsx)
-- 15 classic pieces in `src/piano/data/repertoire.ts` with full note data
+- 15 classic pieces in `src/piano/data/repertoire.ts` with full note data (2 both-hands)
 - 3 difficulty levels: Beginner (5), Easy (5), Intermediate (5)
+- Both-hands pieces: Amazing Grace (RH melody + LH chords), Prelude in C (RH arpeggios + LH bass)
 - Pieces: Twinkle Twinkle, Mary Had a Little Lamb, Happy Birthday, Jingle Bells, London Bridge, Fur Elise, Canon in D, Minuet in G, Scarborough Fair, Amazing Grace, Moonlight Sonata, Prelude in C, River Flows in You, The Entertainer, Clair de Lune
 - Browser with difficulty filter → player using PracticePlayer component
 - Self-assessment flow after practice sessions
@@ -415,4 +422,5 @@ Reusable component providing the unified playback experience across all practice
 10. **Piano samples**: 37 MP3 files in `public/audio/piano/`. Named `C3.mp3`, `Db3.mp3`, etc. Loaded and cached by `pianoSounds.ts`. Falls back to synthesis if missing.
 11. **Exercise playback engine**: Uses tick-based `requestAnimationFrame`, NOT pre-scheduled `setTimeout`/Web Audio scheduling. This is critical for stop/pause to work — pre-scheduling can't be cancelled. Notes and metronome clicks are triggered in the tick loop when elapsed time passes their start time, tracked by `playedNotesRef` and `playedClicksRef` Sets.
 12. **Exercise notation chords**: When rendering chord events in notation, ALL notes in `ev.notes` must be rendered as stacked noteheads, not just `ev.notes[0]`. A C chord = 3 noteheads (C, E, G), not 1.
-13. **Exercise type routing**: Piano exercises use `NoteEvent[]` and `ChordEvent[]` content data (unlike drums which use `PatternData`). If an exercise has `notes`, those are the primary playback events. If only `chords`, chord events are used. Some exercises have both (melody + accompaniment) but currently only `notes` play.
+13. **Exercise both-hands**: `notes`/`chords` = RH, `notesLeft`/`chordsLeft` = LH. PracticePlayer handles dual scheduling automatically. ExercisePage delegates ALL playback to PracticePlayer (~150 lines, no embedded engine). When adding both-hands data, ensure RH and LH total durations match (or the longer one determines total playback time).
+14. **ExercisePage is thin**: ExercisePage only handles header, breadcrumbs, instructions, and self-assessment. All playback (notation, keyboard, controls, fullscreen) is in the shared PracticePlayer component. Do NOT re-add playback logic to ExercisePage.

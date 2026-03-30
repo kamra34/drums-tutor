@@ -554,23 +554,29 @@ const MODULE_0_EXERCISES: Exercise[] = [
     targetBpm: 60,
     notes: [
       // RH ascending
-      { note: 'C4', duration: 1, finger: 1 },
-      { note: 'D4', duration: 1, finger: 2 },
-      { note: 'E4', duration: 1, finger: 3 },
-      { note: 'F4', duration: 1, finger: 4 },
+      { note: 'C4', duration: 1, finger: 1 }, { note: 'D4', duration: 1, finger: 2 },
+      { note: 'E4', duration: 1, finger: 3 }, { note: 'F4', duration: 1, finger: 4 },
       { note: 'G4', duration: 2, finger: 5 },
       // RH descending
-      { note: 'G4', duration: 1, finger: 5 },
-      { note: 'F4', duration: 1, finger: 4 },
-      { note: 'E4', duration: 1, finger: 3 },
-      { note: 'D4', duration: 1, finger: 2 },
+      { note: 'G4', duration: 1, finger: 5 }, { note: 'F4', duration: 1, finger: 4 },
+      { note: 'E4', duration: 1, finger: 3 }, { note: 'D4', duration: 1, finger: 2 },
       { note: 'C4', duration: 2, finger: 1 },
     ],
+    notesLeft: [
+      // LH ascending (parallel)
+      { note: 'C3', duration: 1, finger: 5 }, { note: 'D3', duration: 1, finger: 4 },
+      { note: 'E3', duration: 1, finger: 3 }, { note: 'F3', duration: 1, finger: 2 },
+      { note: 'G3', duration: 2, finger: 1 },
+      // LH descending
+      { note: 'G3', duration: 1, finger: 1 }, { note: 'F3', duration: 1, finger: 2 },
+      { note: 'E3', duration: 1, finger: 3 }, { note: 'D3', duration: 1, finger: 4 },
+      { note: 'C3', duration: 2, finger: 5 },
+    ],
     instructions: [
-      'Right hand: place thumb (1) on C4, each finger on the next white key',
-      'Play 1-2-3-4-5 (C-D-E-F-G) slowly, saying finger numbers aloud',
-      'Now play 5-4-3-2-1 (G-F-E-D-C) going back down',
-      'Repeat with left hand: pinky (5) on C3, going up to G3',
+      'Both hands play simultaneously in parallel motion',
+      'RH: thumb (1) on C4, ascending C-D-E-F-G then back down',
+      'LH: pinky (5) on C3, ascending C-D-E-F-G then back down',
+      'Both hands hit each note at the same time',
       'Keep fingers curved and wrist relaxed throughout',
     ],
   },
@@ -1764,6 +1770,13 @@ const MODULE_2_EXERCISES: Exercise[] = [
       { note: 'E4', duration: 1, finger: 3 }, { note: 'D4', duration: 1, finger: 2 },
       { note: 'C4', duration: 3, finger: 1 },
     ],
+    notesLeft: [
+      { note: 'C3', duration: 1, finger: 5 }, { note: 'D3', duration: 1, finger: 4 },
+      { note: 'E3', duration: 1, finger: 3 }, { note: 'F3', duration: 1, finger: 2 },
+      { note: 'G3', duration: 2, finger: 1 }, { note: 'F3', duration: 1, finger: 2 },
+      { note: 'E3', duration: 1, finger: 3 }, { note: 'D3', duration: 1, finger: 4 },
+      { note: 'C3', duration: 3, finger: 5 },
+    ],
     instructions: [
       'Both hands play the same notes at the same time (parallel motion)',
       'RH: 1-2-3-4-5-4-3-2-1 on C4-G4 | LH: 5-4-3-2-1-2-3-4-5 on C3-G3',
@@ -1778,16 +1791,23 @@ const MODULE_2_EXERCISES: Exercise[] = [
     order: 1, exerciseType: 'technique', difficulty: 3, handsRequired: 'both',
     keySignature: 'C', timeSignature: [4, 4], targetBpm: 56,
     notes: [
-      // RH goes up while LH goes down — show RH
       { note: 'C4', duration: 1, finger: 1 }, { note: 'D4', duration: 1, finger: 2 },
       { note: 'E4', duration: 1, finger: 3 }, { note: 'F4', duration: 1, finger: 4 },
       { note: 'G4', duration: 2, finger: 5 }, { note: 'F4', duration: 1, finger: 4 },
       { note: 'E4', duration: 1, finger: 3 }, { note: 'D4', duration: 1, finger: 2 },
       { note: 'C4', duration: 3, finger: 1 },
     ],
+    notesLeft: [
+      // Contrary: LH goes DOWN while RH goes UP, then reverses
+      { note: 'C4', duration: 1, finger: 1 }, { note: 'B3', duration: 1, finger: 2 },
+      { note: 'A3', duration: 1, finger: 3 }, { note: 'G3', duration: 1, finger: 4 },
+      { note: 'F3', duration: 2, finger: 5 }, { note: 'G3', duration: 1, finger: 4 },
+      { note: 'A3', duration: 1, finger: 3 }, { note: 'B3', duration: 1, finger: 2 },
+      { note: 'C4', duration: 3, finger: 1 },
+    ],
     instructions: [
-      'Both hands start on C (RH on C4, LH on C4)',
-      'RH moves UP (C-D-E-F-G) while LH moves DOWN (C-B3-A3-G3-F3)',
+      'Both hands start on C4 — then move in OPPOSITE directions',
+      'RH moves UP (C-D-E-F-G) while LH moves DOWN (C-B-A-G-F)',
       'Hands move away from each other — this is contrary motion',
       'Then reverse: hands come back together to meet on C',
       'This builds independence — each hand does something different',
@@ -1824,21 +1844,27 @@ const MODULE_2_EXERCISES: Exercise[] = [
   },
   {
     id: 'p2-e4', moduleId: 'piano-2', title: 'C Major Chord Practice',
-    description: 'Play the C major chord (C-E-G). Hold, release, repeat.',
+    description: 'Play the C major chord (C-E-G) with both hands simultaneously.',
     order: 3, exerciseType: 'chord-progression', difficulty: 2, handsRequired: 'both',
     keySignature: 'C', timeSignature: [4, 4], targetBpm: 60,
     chords: [
       { name: 'C', notes: ['C4', 'E4', 'G4'], duration: 4, fingers: [1, 3, 5] },
       { name: 'C', notes: ['C4', 'E4', 'G4'], duration: 4, fingers: [1, 3, 5] },
+      { name: 'C', notes: ['C4', 'E4', 'G4'], duration: 4, fingers: [1, 3, 5] },
+      { name: 'C', notes: ['C4', 'E4', 'G4'], duration: 4, fingers: [1, 3, 5] },
+    ],
+    chordsLeft: [
+      { name: 'C', notes: ['C3', 'E3', 'G3'], duration: 4, fingers: [5, 3, 1] },
+      { name: 'C', notes: ['C3', 'E3', 'G3'], duration: 4, fingers: [5, 3, 1] },
       { name: 'C', notes: ['C3', 'E3', 'G3'], duration: 4, fingers: [5, 3, 1] },
       { name: 'C', notes: ['C3', 'E3', 'G3'], duration: 4, fingers: [5, 3, 1] },
     ],
     instructions: [
-      'C major chord = C, E, G played together',
-      'RH: thumb (1) on C, middle (3) on E, pinky (5) on G',
-      'Press all three keys at the exact same time — listen for a clean sound',
-      'Hold for 4 beats, release, then play again',
-      'Then try with LH: pinky (5) on C3, middle (3) on E3, thumb (1) on G3',
+      'C major chord = C, E, G played together — BOTH hands at once',
+      'RH: thumb (1) on C4, middle (3) on E4, pinky (5) on G4',
+      'LH: pinky (5) on C3, middle (3) on E3, thumb (1) on G3',
+      'Press all six keys simultaneously — listen for a rich, full sound',
+      'Hold for 4 beats, release cleanly, then play again',
     ],
   },
   {
@@ -1862,10 +1888,18 @@ const MODULE_2_EXERCISES: Exercise[] = [
   },
   {
     id: 'p2-e6', moduleId: 'piano-2', title: 'C — G7 — C Progression',
-    description: 'Alternate between C major and G7 chords. Feel the tension and resolution.',
+    description: 'LH plays chords while RH plays simple melody notes on top.',
     order: 5, exerciseType: 'chord-progression', difficulty: 3, handsRequired: 'both',
     keySignature: 'C', timeSignature: [4, 4], targetBpm: 60,
-    chords: [
+    notes: [
+      // RH plays chord tones as whole notes
+      { note: 'E4', duration: 4, finger: 3 },
+      { note: 'D4', duration: 4, finger: 2 },
+      { note: 'E4', duration: 4, finger: 3 },
+      { note: 'D4', duration: 4, finger: 2 },
+      { note: 'C4', duration: 4, finger: 1 },
+    ],
+    chordsLeft: [
       { name: 'C', notes: ['C3', 'E3', 'G3'], duration: 4, fingers: [5, 3, 1] },
       { name: 'G7', notes: ['G3', 'B3', 'F4'], duration: 4, fingers: [5, 3, 1] },
       { name: 'C', notes: ['C3', 'E3', 'G3'], duration: 4, fingers: [5, 3, 1] },
@@ -1873,11 +1907,11 @@ const MODULE_2_EXERCISES: Exercise[] = [
       { name: 'C', notes: ['C3', 'E3', 'G3'], duration: 4, fingers: [5, 3, 1] },
     ],
     instructions: [
-      'This is the most fundamental chord progression in Western music: I - V7 - I',
-      'Play C chord for 4 beats, then move to G7 for 4 beats, then back to C',
-      'Move between chords smoothly — minimize the gap',
-      'Feel how G7 creates tension and C resolves it — this is the engine of all harmony',
-      'Repeat the full cycle 4 times',
+      'This is your first TRUE both-hands exercise!',
+      'LH plays the chord progression: C → G7 → C → G7 → C',
+      'RH plays a simple melody note on top of each chord (E, D, E, D, C)',
+      'Start by learning each hand separately, then combine very slowly',
+      'Feel how G7 creates tension and C resolves it',
     ],
   },
 ]

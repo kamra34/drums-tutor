@@ -81,6 +81,16 @@ const MODULE_4_EXERCISES: Exercise[] = [
       { note: 'E4', duration: 1, finger: 3 }, { note: 'D4', duration: 1, finger: 2 },
       { note: 'C4', duration: 2, finger: 1 },
     ],
+    notesLeft: [
+      { note: 'C3', duration: 1, finger: 5 }, { note: 'D3', duration: 1, finger: 4 },
+      { note: 'E3', duration: 1, finger: 3 }, { note: 'F3', duration: 1, finger: 2 },
+      { note: 'G3', duration: 1, finger: 1 }, { note: 'A3', duration: 1, finger: 3 },
+      { note: 'B3', duration: 1, finger: 2 }, { note: 'C4', duration: 2, finger: 1 },
+      { note: 'B3', duration: 1, finger: 2 }, { note: 'A3', duration: 1, finger: 3 },
+      { note: 'G3', duration: 1, finger: 1 }, { note: 'F3', duration: 1, finger: 2 },
+      { note: 'E3', duration: 1, finger: 3 }, { note: 'D3', duration: 1, finger: 4 },
+      { note: 'C3', duration: 2, finger: 5 },
+    ],
     instructions: [
       'RH: 1-2-3-1-2-3-4-5 | LH: 5-4-3-2-1-3-2-1',
       'The thumb-unders happen at DIFFERENT points for each hand',
@@ -442,7 +452,7 @@ const MODULE_5_EXERCISES: Exercise[] = [
       { note: 'C4', duration: 2, finger: 1 }, { note: 'D4', duration: 2, finger: 2 },
       { note: 'C4', duration: 4, finger: 1 },
     ],
-    chords: [
+    chordsLeft: [
       { name: 'C', notes: ['C3', 'E3', 'G3'], duration: 4, fingers: [5, 3, 1] },
       { name: 'G7', notes: ['G3', 'B3', 'F4'], duration: 4, fingers: [5, 3, 1] },
       { name: 'C', notes: ['C3', 'E3', 'G3'], duration: 4, fingers: [5, 3, 1] },
@@ -452,7 +462,7 @@ const MODULE_5_EXERCISES: Exercise[] = [
       { name: 'C', notes: ['C3', 'E3', 'G3'], duration: 4, fingers: [5, 3, 1] },
     ],
     instructions: [
-      'A complete arrangement: RH plays melody, LH plays chords',
+      'A complete both-hands arrangement: RH plays melody, LH plays chords',
       'Learn RH melody alone first — it stays in C Position',
       'Then learn LH chords alone — C, F, G7 progression',
       'Combine hands very slowly — one measure at a time',
@@ -827,18 +837,23 @@ const MODULE_7_EXERCISES: Exercise[] = [
       { note: 'E4', duration: 1, finger: 3 }, { note: 'D4', duration: 1, finger: 2 },
       { note: 'C4', duration: 2, finger: 1 },
     ],
-    chords: [
-      { name: 'C', notes: ['C3', 'E3', 'G3'], duration: 4, fingers: [5, 3, 1] },
-      { name: 'F', notes: ['F3', 'A3', 'C4'], duration: 4, fingers: [5, 3, 1] },
-      { name: 'G7', notes: ['G3', 'B3', 'F4'], duration: 4, fingers: [5, 3, 1] },
-      { name: 'C', notes: ['C3', 'E3', 'G3'], duration: 4, fingers: [5, 3, 1] },
+    notesLeft: [
+      // LH plays C major scale one octave lower
+      { note: 'C3', duration: 1, finger: 5 }, { note: 'D3', duration: 1, finger: 4 },
+      { note: 'E3', duration: 1, finger: 3 }, { note: 'F3', duration: 1, finger: 2 },
+      { note: 'G3', duration: 1, finger: 1 }, { note: 'A3', duration: 1, finger: 3 },
+      { note: 'B3', duration: 1, finger: 2 }, { note: 'C4', duration: 1, finger: 1 },
+      { note: 'B3', duration: 1, finger: 2 }, { note: 'A3', duration: 1, finger: 3 },
+      { note: 'G3', duration: 1, finger: 1 }, { note: 'F3', duration: 1, finger: 2 },
+      { note: 'E3', duration: 1, finger: 3 }, { note: 'D3', duration: 1, finger: 4 },
+      { note: 'C3', duration: 2, finger: 5 },
     ],
     instructions: [
-      'Part 1: Play C major scale with dynamic wave (pp→ff→pp)',
-      'Part 2: Play I-IV-V7-I chords with legato pedaling',
-      'Part 3: Play Ode to Joy with phrasing, dynamics, and pedal',
-      'This exercise combines everything from the entire curriculum',
-      'Perform each part 3 times without stopping — this is your graduation piece!',
+      'Both hands play C major scale in parallel — the ultimate graduation test',
+      'RH: 1-2-3-1-2-3-4-5 on C4-C5 | LH: 5-4-3-2-1-3-2-1 on C3-C4',
+      'Add dynamics: crescendo ascending, diminuendo descending',
+      'This exercise combines scales, both-hands coordination, and expression',
+      'Perform 3 times without stopping — this is your graduation piece!',
     ],
   },
 ]

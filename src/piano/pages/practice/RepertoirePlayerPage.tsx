@@ -70,6 +70,8 @@ export default function RepertoirePlayerPage() {
       {/* Player */}
       <PracticePlayer
         notes={piece.notes}
+        notesLeft={piece.notesLeft}
+        chordsLeft={piece.chordsLeft}
         defaultBpm={piece.targetBpm}
         timeSignature={piece.timeSignature}
         resetKey={piece.id}
