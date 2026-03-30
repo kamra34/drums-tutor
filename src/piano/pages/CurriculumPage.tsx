@@ -214,6 +214,26 @@ export default function CurriculumPage() {
           )
         })}
       </div>
+
+      {/* Sources disclaimer */}
+      <div className="mt-8 px-5 py-4 rounded-2xl border border-white/[0.04]" style={{ background: 'linear-gradient(135deg, rgba(12,14,20,0.5) 0%, rgba(10,12,18,0.6) 100%)' }}>
+        <div className="flex items-start gap-3">
+          <svg className="w-4 h-4 mt-0.5 text-[#4b5563] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+          </svg>
+          <div>
+            <p className="text-xs text-[#6b7280] leading-relaxed">
+              <span className="font-medium text-[#94a3b8]">Curriculum sources:</span>{' '}
+              This curriculum follows the pedagogical structure and topic progression of{' '}
+              <span className="text-[#94a3b8]">Alfred's Basic Adult Piano Course</span>{' '}
+              (Palmer, Manus & Lethco) with supplementary concepts from{' '}
+              <span className="text-[#94a3b8]">Faber's Adult Piano Adventures</span>.{' '}
+              All lesson content, explanations, quizzes, and interactive visuals are original to HarmonyHub.
+              These books are recommended as companion references for further study.
+            </p>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }

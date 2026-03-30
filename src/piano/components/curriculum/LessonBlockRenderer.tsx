@@ -7,6 +7,10 @@ import HandPositionGuide from '../visuals/HandPositionGuide'
 import NoteValuesChart from '../visuals/NoteValuesChart'
 import MelodyPlayer from '../visuals/MelodyPlayer'
 import type { MelodyPlayerProps } from '../visuals/MelodyPlayer'
+import ChordDiagram from '../visuals/ChordDiagram'
+import DynamicsGuide from '../visuals/DynamicsGuide'
+import IntervalChart from '../visuals/IntervalChart'
+import PedalGuide from '../visuals/PedalGuide'
 
 function escapeHtml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -96,6 +100,14 @@ function VisualComponent({ entry }: { entry: LessonVisualEntry }) {
       return <NoteValuesChart />
     case 'melody-player':
       return <MelodyPlayer {...(entry.props as unknown as MelodyPlayerProps)} />
+    case 'chord-diagram':
+      return <ChordDiagram />
+    case 'dynamics-guide':
+      return <DynamicsGuide />
+    case 'interval-chart':
+      return <IntervalChart />
+    case 'pedal-guide':
+      return <PedalGuide />
     default:
       return null
   }

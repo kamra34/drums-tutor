@@ -132,4 +132,62 @@ export const LESSON_VISUALS: Record<string, LessonVisualEntry[]> = {
   'p1-l10': [
     { component: 'note-values-chart', afterBlock: 0 },
   ],
+
+  // ── Module 2: Hands Together & Rhythm ──────────────────────────────────
+
+  'p2-l1': [
+    { component: 'keyboard-diagram', afterBlock: 0 },
+  ],
+  'p2-l2': [
+    { component: 'keyboard-diagram', afterBlock: 0 },
+  ],
+  'p2-l3': [
+    { component: 'keyboard-diagram', afterBlock: 0 },
+  ],
+  'p2-l4': [
+    { component: 'note-values-chart', afterBlock: 0 },
+  ],
+  'p2-l5': [
+    { component: 'dynamics-guide', afterBlock: 0 },
+  ],
+  'p2-l6': [
+    { component: 'dynamics-guide', afterBlock: 0 },
+  ],
+  'p2-l7': [
+    { component: 'note-values-chart', afterBlock: 0 },
+  ],
+  'p2-l8': [
+    { component: 'chord-diagram', afterBlock: 0 },
+  ],
+  'p2-l9': [
+    { component: 'chord-diagram', afterBlock: 0 },
+  ],
+
+  // ── Module 3: Expanding Range & Technique ──────────────────────────────
+
+  'p3-l1': [
+    { component: 'keyboard-diagram', afterBlock: 0 },
+  ],
+  'p3-l2': [
+    { component: 'keyboard-diagram', afterBlock: 0 },
+  ],
+  'p3-l3': [
+    { component: 'keyboard-diagram', afterBlock: 0 },
+    { component: 'interval-chart', afterBlock: 1 },
+  ],
+  'p3-l4': [
+    { component: 'interval-chart', afterBlock: 0 },
+  ],
+  'p3-l5': [
+    { component: 'pedal-guide', afterBlock: 0 },
+  ],
+  'p3-l6': [
+    { component: 'note-values-chart', afterBlock: 0 },
+  ],
+  'p3-l7': [
+    { component: 'note-values-chart', afterBlock: 0 },
+  ],
+  'p3-l8': [
+    { component: 'keyboard-diagram', afterBlock: 0 },
+  ],
 }

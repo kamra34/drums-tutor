@@ -1159,6 +1159,718 @@ const MODULE_1_EXERCISES: Exercise[] = [
   },
 ]
 
+// ── Module 2: Hands Together & Rhythm ────────────────────────────────────────
+
+const MODULE_2_LESSONS: Lesson[] = [
+  {
+    id: 'p2-l1', moduleId: 'piano-2', title: 'Hands Together: First Steps', order: 0, completed: false,
+    content: [
+      { type: 'text', content: `Playing with both hands simultaneously is the defining challenge of piano. Do not worry if it feels impossible at first — **everyone** struggles with this. Your brain needs time to develop independent control of each hand.
+
+## The Golden Rule
+
+**Never** try to play both hands together until each hand can play its part **perfectly alone**. If you cannot play the right hand from memory without looking, you are not ready for hands together.
+
+## Starting Exercise: Mirror Motion
+
+Both hands play the same notes at the same time (called **parallel motion**):
+
+1. Place both hands in C Position (RH on C4-G4, LH on C3-G3)
+2. Play C with both hands simultaneously (RH finger 1 + LH finger 5)
+3. Play D with both hands (RH finger 2 + LH finger 4)
+4. Continue up: E, F, G... then back down: G, F, E, D, C
+
+This is the easiest way to start because both hands do the same thing.
+
+## Practice Method: The Slow-Add Technique
+
+1. Play RH alone 5 times, slowly
+2. Play LH alone 5 times, at the same tempo
+3. Play JUST the first measure with both hands — very slowly
+4. Add one measure at a time
+5. Never speed up until you can play it perfectly slow` },
+      { type: 'quiz', question: 'What should you do before attempting to play hands together?', options: ['Start very fast and slow down', 'Play each hand perfectly alone first', 'Only practice the right hand', 'Skip to the hardest section'], correctIndex: 1, explanation: 'Each hand must be able to play its part perfectly alone before combining them. This is the most efficient path — trying to learn both at once is slower.' },
+    ],
+  },
+  {
+    id: 'p2-l2', moduleId: 'piano-2', title: 'Parallel Motion in C Position', order: 1, completed: false,
+    content: [
+      { type: 'text', content: `**Parallel motion** means both hands move in the same direction at the same time. In C Position, this means both hands play C-D-E-F-G together, going up, then back down.
+
+## Why Parallel Motion First?
+
+It is the easiest type of hands-together playing because:
+- Both hands move the **same direction**
+- Both hands play at the **same time**
+- You only need to think about **one line** of music
+
+## Exercise 1: C Position Parallel Scale
+
+Both hands in C Position. Play together, slowly:
+
+**C — D — E — F — G — F — E — D — C**
+
+RH: 1 — 2 — 3 — 4 — 5 — 4 — 3 — 2 — 1
+LH: 5 — 4 — 3 — 2 — 1 — 2 — 3 — 4 — 5
+
+## Exercise 2: Parallel Thirds
+
+Play notes a third apart in each hand (skip one white key):
+
+**C+E — D+F — E+G** (ascending) then back down
+
+This introduces playing different notes in each hand while still moving in parallel.
+
+## Common Issues
+
+- **One hand rushes ahead** — slow down until both stay perfectly together
+- **One hand plays louder** — listen carefully and match the volume
+- **Tension in shoulders** — relax! Drop your shoulders every few bars` },
+      { type: 'quiz', question: 'In parallel motion, both hands move in...', options: ['Opposite directions', 'The same direction at the same time', 'Different rhythms', 'Random directions'], correctIndex: 1, explanation: 'Parallel motion means both hands move in the same direction simultaneously — both go up together, both go down together.' },
+    ],
+  },
+  {
+    id: 'p2-l3', moduleId: 'piano-2', title: 'Contrary Motion Basics', order: 2, completed: false,
+    content: [
+      { type: 'text', content: `**Contrary motion** means the hands move in **opposite directions** — one goes up while the other goes down. This is harder than parallel motion because each hand does something different.
+
+## Why Learn Contrary Motion?
+
+- It appears constantly in real piano music
+- It develops **hand independence** — the core piano skill
+- It strengthens the weaker connections between your brain and fingers
+
+## Exercise: C Position Contrary Motion
+
+Start with both thumbs on the same note area, then move outward:
+
+RH starts on C4 going up: **C — D — E — F — G**
+LH starts on C4 going down: **C — B3 — A3 — G3 — F3**
+
+Then reverse — hands move inward back to C.
+
+## Tips for Contrary Motion
+
+1. **Start extremely slowly** — half the speed you think you need
+2. **Focus on the thumbs** — they are the pivot point
+3. **Look at both hands equally** — do not fixate on one
+4. **Count out loud** — "1, 2, 3, 4" to keep hands synchronized
+5. The motion should feel **symmetrical** — like opening and closing a book` },
+      { type: 'quiz', question: 'In contrary motion, the hands...', options: ['Play the same notes', 'Move in opposite directions', 'Play at different tempos', 'Always play chords'], correctIndex: 1, explanation: 'Contrary motion means the hands move in opposite directions — when one goes up, the other goes down. Like opening a book.' },
+    ],
+  },
+  {
+    id: 'p2-l4', moduleId: 'piano-2', title: 'Dotted Half Notes and Ties', order: 3, completed: false,
+    content: [
+      { type: 'text', content: `## The Dotted Half Note 𝅗𝅥.
+
+A **dot** after any note adds **half of that note's value** to it:
+
+- Half note = 2 beats
+- Dot adds half of 2 = 1 beat
+- **Dotted half note = 3 beats**
+
+This is the most common dotted note for beginners. It fills a complete measure of **3/4 time** (waltz time).
+
+## The Dot Rule (applies to ALL notes)
+
+| Original note | Beats | + Dot (half the value) | Total |
+| ------------- | ----- | ---------------------- | ----- |
+| Whole note | 4 | + 2 | 6 beats |
+| Half note | 2 | + 1 | **3 beats** |
+| Quarter note | 1 | + 0.5 | 1.5 beats |
+
+## Ties
+
+A **tie** is a curved line connecting two notes of the **same pitch**. You play the first note and **hold it** for the combined duration of both notes. Do not strike the second note.
+
+Example: A half note (2) tied to a quarter note (1) = hold for **3 beats total**.
+
+### Tie vs Slur
+
+- **Tie**: connects two notes of the **same pitch** — hold the note
+- **Slur**: connects notes of **different pitches** — play them legato (smoothly connected)
+
+They look similar (both are curved lines), but ties always connect the same note.` },
+      { type: 'quiz', question: 'How many beats does a dotted half note last?', options: ['2 beats', '2.5 beats', '3 beats', '4 beats'], correctIndex: 2, explanation: 'A half note = 2 beats. The dot adds half its value (1 beat). So a dotted half note = 2 + 1 = 3 beats.' },
+    ],
+  },
+  {
+    id: 'p2-l5', moduleId: 'piano-2', title: 'Slurs and Legato Playing', order: 4, completed: false,
+    content: [
+      { type: 'text', content: `**Legato** (Italian for "tied" or "bound") means playing notes **smoothly connected** with no gaps between them. This is the default way to play piano — unless marked otherwise.
+
+## How to Play Legato
+
+The technique is simple in concept, tricky in practice:
+
+1. Press the first key
+2. Press the next key while **still holding** the first
+3. Release the first key **at the exact moment** the second key goes down
+4. There should be the tiniest overlap — never a gap
+
+Think of it like walking: one foot is always on the ground before the other lifts.
+
+## Slurs in Sheet Music
+
+A **slur** is a curved line over or under a group of notes. It means:
+- Play all the notes within the slur **legato**
+- **Lift slightly** at the end of the slur before the next phrase
+- The first note of a slur is often slightly emphasized
+- The last note is often slightly shortened
+
+Slurs define **musical phrases** — like sentences in speech.
+
+## Practice: Legato Five-Finger Pattern
+
+Play C-D-E-F-G very slowly in C Position. Listen for:
+- Is there a gap between notes? (bad — practice slower)
+- Can you hear both notes sounding at once? (brief overlap is correct)
+- Is the volume even? (each note should be the same loudness)
+
+> Legato is the foundation of beautiful piano tone. Invest time here — it pays off in everything you play later.` },
+      { type: 'quiz', question: 'What does legato mean?', options: ['Play short and detached', 'Play smoothly connected with no gaps', 'Play very loudly', 'Play with the pedal'], correctIndex: 1, explanation: 'Legato means playing smoothly connected — each note flows into the next with no silence between them. It is the default playing style on piano.' },
+    ],
+  },
+  {
+    id: 'p2-l6', moduleId: 'piano-2', title: 'Dynamics: Piano, Mezzo Forte, Forte', order: 5, completed: false,
+    content: [
+      { type: 'text', content: `**Dynamics** are the volume levels in music. They are written in Italian abbreviations and tell you how loud or soft to play.
+
+## The Three Essential Dynamics
+
+| Symbol | Name | Meaning | How to achieve it |
+| ------ | ---- | ------- | ----------------- |
+| **p** | *piano* | Soft | Use less arm weight, lighter finger touch |
+| **mf** | *mezzo forte* | Moderately loud | Natural, comfortable playing weight |
+| **f** | *forte* | Loud | More arm weight, firm fingers, deeper key press |
+
+## Important: Volume Comes from ARM WEIGHT, Not Finger Force
+
+This is the most common beginner mistake. To play louder:
+- **Do**: Let the weight of your arm drop into the keys through firm fingertips
+- **Do NOT**: Press harder with your fingers while keeping your arm tense
+
+Think of your arm as a weight hanging from your shoulder. To play loud, let more of that weight fall into the keys. To play soft, support more of the weight with your shoulder.
+
+## Gradual Changes
+
+- **Crescendo** (cresc. or <) — gradually get louder
+- **Diminuendo** (dim. or >) — gradually get softer
+
+These are more expressive than sudden dynamic changes and appear constantly in music.
+
+## Practice: Dynamic Control
+
+Play the C Position scale (C-D-E-F-G-F-E-D-C):
+1. First time: all **p** (soft)
+2. Second time: all **f** (loud)
+3. Third time: **crescendo** from p to f going up, **diminuendo** from f to p going down
+
+Listen to the difference. Can you make the soft notes still sound clear? Can you make the loud notes sound full without banging?` },
+      { type: 'quiz', question: 'What does "mf" mean?', options: ['Very soft', 'Moderately soft', 'Moderately loud', 'Very loud'], correctIndex: 2, explanation: 'mf stands for "mezzo forte" — moderately loud. It is the default dynamic level when no marking is given.' },
+    ],
+  },
+  {
+    id: 'p2-l7', moduleId: 'piano-2', title: 'Eighth Notes', order: 6, completed: false,
+    content: [
+      { type: 'text', content: `## The Eighth Note 𝅘𝅥𝅮
+
+An eighth note lasts **half a beat** — two eighth notes fill the space of one quarter note.
+
+### How to Recognize Them
+
+- Single eighth note: filled oval + stem + **one flag**
+- Paired eighth notes: filled ovals + stems + **one beam** connecting them
+
+When eighth notes appear in pairs or groups, their flags are replaced by a **beam** (a thick line connecting the stems). This makes them easier to read.
+
+## Counting Eighth Notes
+
+Use "and" between the beat numbers:
+
+**"1 and 2 and 3 and 4 and"**
+
+Written as: **1 & 2 & 3 & 4 &**
+
+Each number AND each "and" is one eighth note.
+
+## Mixing Quarter and Eighth Notes
+
+This is where rhythm gets interesting:
+
+| Beat | 1 | & | 2 | & | 3 | & | 4 | & |
+| ---- | - | - | - | - | - | - | - | - |
+| Pattern 1 | ♩ | | ♩ | | ♫ | ♫ | ♩ | |
+| Counting | 1 | | 2 | | 3 | & | 4 | |
+
+Pattern 1 has: quarter, quarter, two eighths, quarter.
+
+## Practice
+
+Clap this rhythm while counting:
+
+**1 — 2 — 3 & 4 —** (quarter, quarter, eighth-eighth, quarter)
+
+Then play it on C in your right hand. The eighth notes should feel exactly twice as fast as the quarter notes.` },
+      { type: 'quiz', question: 'How many eighth notes fit in one quarter note?', options: ['1', '2', '3', '4'], correctIndex: 1, explanation: 'Two eighth notes equal one quarter note. Each eighth note lasts half a beat.' },
+    ],
+  },
+  {
+    id: 'p2-l8', moduleId: 'piano-2', title: 'Your First Chords: C and G7', order: 7, completed: false,
+    content: [
+      { type: 'text', content: `A **chord** is three or more notes played simultaneously. Chords provide the **harmony** — the supporting backdrop for melodies. Learning chords is one of the most rewarding steps because suddenly you can accompany songs.
+
+## C Major Chord
+
+The simplest chord, built from three notes of the C major scale:
+
+- **C** (root) — finger 1
+- **E** (third) — finger 3
+- **G** (fifth) — finger 5
+
+Play all three notes at exactly the same time. The sound should be bright, stable, and resolved — like "home."
+
+## G7 Chord (G Dominant Seventh)
+
+The chord that pulls you back to C:
+
+- **G** — finger 1 (or 5 in LH)
+- **B** — finger 2 (or 3 in LH)
+- **D** — finger 3 (or 2 in LH)
+- **F** — finger 5 (or 1 in LH)
+
+G7 has a feeling of **tension** — it wants to resolve to C. This C → G7 → C movement is the most fundamental progression in all Western music.
+
+## Playing Chords: Technique
+
+- Press all notes **simultaneously** — not rolled/arpeggiated
+- Use **arm weight** to push down evenly
+- Keep fingers **curved and firm** — do not collapse
+- Listen: are all notes equally loud? No note should stick out
+
+## Left Hand Accompaniment Pattern
+
+Try this simple pattern:
+1. LH plays C chord (C3-E3-G3) — hold for 4 beats
+2. LH plays G7 chord (G2-B2-D3-F3) — hold for 4 beats
+3. Back to C chord
+4. Repeat
+
+This is the basis of thousands of songs!` },
+      { type: 'quiz', question: 'What notes make up the C major chord?', options: ['C-D-E', 'C-E-G', 'C-F-G', 'C-D-G'], correctIndex: 1, explanation: 'The C major chord is built from the 1st (C), 3rd (E), and 5th (G) notes of the C major scale.' },
+    ],
+  },
+  {
+    id: 'p2-l9', moduleId: 'piano-2', title: 'Key of C Major', order: 8, completed: false,
+    content: [
+      { type: 'text', content: `## What Is a Key?
+
+A **key** defines which set of notes a piece of music uses. The **key of C major** uses only the white keys — no sharps or flats. That is why it is the easiest key to learn first.
+
+## The C Major Scale
+
+The C major scale is the sequence of all white keys from C to C:
+
+**C — D — E — F — G — A — B — C**
+
+This pattern of **whole steps and half steps** is what defines a major scale:
+
+**W — W — H — W — W — W — H**
+
+Where W = whole step (skip one key) and H = half step (very next key).
+
+The two half steps occur between **E-F** and **B-C** — these are the only pairs of white keys with no black key between them.
+
+## Key Signature
+
+The key of C major has **no sharps and no flats** in its key signature. In sheet music, you will see an empty space between the clef and the time signature — that means C major (or its relative minor, A minor).
+
+## Why Keys Matter
+
+When you see "Key of C Major" at the start of a piece:
+- You know the scale is C-D-E-F-G-A-B
+- The primary chords are C (I), F (IV), G7 (V7)
+- The "home base" note and chord is C
+- No black keys are needed (unless marked with accidentals)
+
+## The Three Primary Chords in C
+
+| Chord | Roman numeral | Notes | Function |
+| ----- | ------------- | ----- | -------- |
+| **C** | I | C-E-G | Home (tonic) |
+| **F** | IV | F-A-C | Departure (subdominant) |
+| **G7** | V7 | G-B-D-F | Tension (dominant) |
+
+These three chords can accompany a huge number of songs. Try playing: **C — F — G7 — C**. Hear how it creates a journey that returns home?` },
+      { type: 'quiz', question: 'How many sharps or flats does the key of C major have?', options: ['1 sharp', '1 flat', '2 sharps', 'None — all white keys'], correctIndex: 3, explanation: 'C major is the only major key with no sharps or flats. Its key signature is empty, and it uses only the white keys.' },
+    ],
+  },
+]
+
+const MODULE_2_EXERCISES: Exercise[] = [
+  { id: 'p2-e1', moduleId: 'piano-2', title: 'Parallel Motion Scale', description: 'Play C-D-E-F-G and back with both hands in parallel, slowly and evenly.', order: 0, exerciseType: 'technique', difficulty: 3, handsRequired: 'both', keySignature: 'C', targetBpm: 60 },
+  { id: 'p2-e2', moduleId: 'piano-2', title: 'Contrary Motion Scale', description: 'Both hands start on C, move outward to G/F, then return to C.', order: 1, exerciseType: 'technique', difficulty: 3, handsRequired: 'both', keySignature: 'C', targetBpm: 56 },
+  { id: 'p2-e3', moduleId: 'piano-2', title: 'Eighth Note Rhythm', description: 'Clap and play: quarter-quarter-eighth-eighth-quarter. Count 1-2-3&4.', order: 2, exerciseType: 'technique', difficulty: 2, handsRequired: 'right', keySignature: 'C', targetBpm: 72 },
+  { id: 'p2-e4', moduleId: 'piano-2', title: 'C Major Chord Practice', description: 'Play the C major chord (C-E-G) with both hands. Hold for 4 beats, release, repeat.', order: 3, exerciseType: 'chord-progression', difficulty: 2, handsRequired: 'both', keySignature: 'C' },
+  { id: 'p2-e5', moduleId: 'piano-2', title: 'G7 Chord Practice', description: 'Play G7 (G-B-D-F) with the left hand. Hold, release, repeat.', order: 4, exerciseType: 'chord-progression', difficulty: 2, handsRequired: 'left', keySignature: 'C' },
+  { id: 'p2-e6', moduleId: 'piano-2', title: 'C — G7 — C Progression', description: 'Alternate between C major and G7 chords. 4 beats each. Feel the tension and resolution.', order: 5, exerciseType: 'chord-progression', difficulty: 3, handsRequired: 'both', keySignature: 'C', targetBpm: 60 },
+]
+
+// ── Module 3: Expanding Range & Technique ───────────────────────────────────
+
+const MODULE_3_LESSONS: Lesson[] = [
+  {
+    id: 'p3-l1', moduleId: 'piano-3', title: 'G Position: Right Hand', order: 0, completed: false,
+    content: [
+      { type: 'text', content: `You have mastered C Position. Now it is time to move to **G Position** — your second home on the keyboard. This expands your range and introduces a new set of notes.
+
+## Setting Up G Position — Right Hand
+
+1. Move your right hand up so **finger 1 (thumb)** is on **G4**
+2. Place each finger on the next white key:
+   - Finger 1 → **G**
+   - Finger 2 → **A**
+   - Finger 3 → **B**
+   - Finger 4 → **C** (C5 — one octave above Middle C)
+   - Finger 5 → **D** (D5)
+
+## New Notes: A and B
+
+You already know C, D, E, F, G from C Position. G Position introduces:
+- **A** — between G and B on the keyboard
+- **B** — the white key just left of the group of 3 black keys (from above)
+
+## On the Staff
+
+In treble clef G Position:
+| Note | Staff position |
+| ---- | -------------- |
+| G4 | Second line |
+| A4 | Second space |
+| B4 | Third line |
+| C5 | Third space |
+| D5 | Fourth line |
+
+## Practice
+
+Play the G Position five-finger pattern: **G — A — B — C — D — C — B — A — G**
+
+Then play the C Position pattern followed immediately by the G Position pattern. Practice the **shift** — sliding your hand from one position to the other smoothly.` },
+      { type: 'quiz', question: 'In G Position (right hand), which note does finger 1 play?', options: ['C', 'D', 'G', 'A'], correctIndex: 2, explanation: 'In G Position, finger 1 (thumb) plays G. The five notes are G-A-B-C-D.' },
+    ],
+  },
+  {
+    id: 'p3-l2', moduleId: 'piano-3', title: 'G Position: Left Hand', order: 1, completed: false,
+    content: [
+      { type: 'text', content: `## Setting Up G Position — Left Hand
+
+1. Place **finger 5 (pinky)** on **G2** (or G3 depending on the piece)
+2. Each finger on the next white key going right:
+   - Finger 5 → **G**
+   - Finger 4 → **A**
+   - Finger 3 → **B**
+   - Finger 2 → **C**
+   - Finger 1 → **D**
+
+## Bass Clef G Position
+
+In bass clef:
+| Note | Finger | Staff position |
+| ---- | ------ | -------------- |
+| G2 | 5 | Bottom line |
+| A2 | 4 | Bottom space |
+| B2 | 3 | Second line |
+| C3 | 2 | Second space |
+| D3 | 1 | Third line |
+
+## Switching Between C and G Position
+
+This is a critical skill. Practice:
+1. Play C Position LH: C-D-E-F-G (5-4-3-2-1)
+2. Shift to G Position: G-A-B-C-D (5-4-3-2-1)
+3. Back to C Position
+
+The shift should be smooth — lift the hand slightly, move to the new position, and place fingers without looking down. Eventually this should feel as natural as moving your hand on a keyboard while typing.
+
+## Both Hands in G Position
+
+Try the parallel motion exercise from Module 2, but in G Position:
+
+**G — A — B — C — D — C — B — A — G**
+
+RH: 1-2-3-4-5-4-3-2-1
+LH: 5-4-3-2-1-2-3-4-5` },
+      { type: 'quiz', question: 'In Left Hand G Position, which finger plays G?', options: ['Finger 1', 'Finger 3', 'Finger 5', 'Finger 2'], correctIndex: 2, explanation: 'In the left hand G Position, finger 5 (pinky) plays G — the same finger-to-lowest-note pattern as C Position.' },
+    ],
+  },
+  {
+    id: 'p3-l3', moduleId: 'piano-3', title: 'Sharps, Flats, and Naturals', order: 2, completed: false,
+    content: [
+      { type: 'text', content: `Now we introduce the **black keys** and the symbols that refer to them.
+
+## Sharp (♯)
+
+A **sharp** raises a note by one **half step** (the very next key to the right, whether black or white).
+
+- C♯ = the black key to the right of C
+- F♯ = the black key to the right of F
+- E♯ = F (because E to F is already a half step — no black key between them)
+
+## Flat (♭)
+
+A **flat** lowers a note by one **half step** (the very next key to the left).
+
+- B♭ = the black key to the left of B
+- E♭ = the black key to the left of E
+- C♭ = B (because B to C is already a half step)
+
+## Natural (♮)
+
+A **natural** cancels a sharp or flat, returning the note to its original white key.
+
+## Enharmonic Equivalents
+
+The same black key can have two names:
+- C♯ = D♭ (same key!)
+- F♯ = G♭ (same key!)
+- G♯ = A♭ (same key!)
+
+Which name is used depends on the musical context (the key signature).
+
+## How Accidentals Work in Sheet Music
+
+- An accidental applies to **that note for the rest of the measure**
+- It is cancelled by a bar line (new measure = reset)
+- A natural sign cancels it earlier if needed
+- Key signature accidentals apply to **every occurrence** of that note throughout the piece` },
+      { type: 'quiz', question: 'What does a sharp do to a note?', options: ['Lowers it by one half step', 'Raises it by one half step', 'Makes it louder', 'Holds it longer'], correctIndex: 1, explanation: 'A sharp raises a note by one half step — moving to the very next key to the right on the keyboard.' },
+    ],
+  },
+  {
+    id: 'p3-l4', moduleId: 'piano-3', title: 'Half Steps and Whole Steps', order: 3, completed: false,
+    content: [
+      { type: 'text', content: `Understanding **half steps** and **whole steps** is essential for scales, chords, and all of music theory. These are the two smallest building blocks of Western music.
+
+## Half Step (Semitone)
+
+A **half step** is the distance from one key to the **very next key** — including black keys. It is the smallest interval on the piano.
+
+Examples:
+- C to C♯ = half step
+- E to F = half step (no black key between them!)
+- B to C = half step (no black key between them!)
+
+## Whole Step (Tone)
+
+A **whole step** = two half steps. Skip one key.
+
+Examples:
+- C to D = whole step (skips C♯)
+- E to F♯ = whole step (skips F)
+- A to B = whole step (skips A♯/B♭)
+
+## The Major Scale Formula
+
+Every major scale follows the same pattern of whole and half steps:
+
+**W — W — H — W — W — W — H**
+
+Applied to C major:
+- C →(W)→ D →(W)→ E →(H)→ F →(W)→ G →(W)→ A →(W)→ B →(H)→ C
+
+The half steps always fall between notes **3-4** and **7-8** of the scale.
+
+## Why This Matters
+
+This formula lets you build a major scale starting on **any note**. Want G major? Start on G, apply W-W-H-W-W-W-H, and you get G-A-B-C-D-E-F♯-G. The F♯ is required to maintain the pattern!` },
+      { type: 'quiz', question: 'Which pairs of white keys are a half step apart (no black key between them)?', options: ['C-D and F-G', 'E-F and B-C', 'D-E and A-B', 'All white keys are whole steps'], correctIndex: 1, explanation: 'E-F and B-C are the only pairs of white keys with no black key between them — they are natural half steps.' },
+    ],
+  },
+  {
+    id: 'p3-l5', moduleId: 'piano-3', title: 'The Damper Pedal', order: 4, completed: false,
+    content: [
+      { type: 'text', content: `The **damper pedal** (also called the sustain pedal) is the rightmost pedal on the piano. It is the most frequently used pedal and transforms the sound of the instrument.
+
+## What It Does
+
+When you press the damper pedal:
+1. All the **dampers** lift off the strings
+2. Notes continue to ring **after you release the keys**
+3. Other strings **vibrate sympathetically**, creating a richer sound
+4. The overall sound becomes warmer and more connected
+
+## When to Use It
+
+- To connect notes that your fingers cannot reach (e.g., wide jumps)
+- To create a sustained, resonant sound for slow passages
+- To blend harmonies together
+- To add warmth and depth to the tone
+
+## When NOT to Use It
+
+- Fast passages with changing harmonies — everything blurs together
+- When the music requires a dry, crisp articulation
+- As a crutch for bad legato technique
+
+## Pedal Markings in Sheet Music
+
+- **Ped.** or **⌐** = press the pedal
+- ***** or **꜔** = release the pedal
+- A bracket line under the staff shows pedal duration
+
+## Your First Pedal Exercise
+
+1. Play a C major chord (C-E-G)
+2. Press the pedal **after** striking the chord
+3. Release the keys — the chord keeps ringing
+4. Play a G7 chord (G-B-D-F)
+5. **Lift and re-press** the pedal quickly (legato pedaling)
+6. The old chord clears and the new chord sustains
+
+This lift-and-re-press technique is called **legato pedaling** and is the most important pedal skill to learn.` },
+      { type: 'quiz', question: 'What happens when you press the damper pedal?', options: ['Notes play louder', 'Notes continue to ring after you release the keys', 'The piano plays softer', 'It changes the pitch'], correctIndex: 1, explanation: 'The damper pedal lifts all dampers, allowing strings to vibrate freely. Notes sustain even after you release the keys.' },
+    ],
+  },
+  {
+    id: 'p3-l6', moduleId: 'piano-3', title: 'Eighth Note Patterns and Counting', order: 5, completed: false,
+    content: [
+      { type: 'text', content: `Now let us develop fluency with eighth notes by learning common patterns that appear in real music.
+
+## Pattern 1: Steady Eighths
+
+All eighth notes, counted evenly:
+
+**1 & 2 & 3 & 4 &** (8 equal notes per measure)
+
+Play C-D-E-F-G-F-E-D as steady eighth notes. Every note should be exactly the same length.
+
+## Pattern 2: Quarter + Eighth Pairs
+
+Alternating quarter and eighth-note pairs:
+
+**1 — 2 & 3 — 4 &**
+
+This is: quarter, eighth-eighth, quarter, eighth-eighth.
+
+## Pattern 3: Pickup Eighths
+
+Eighth notes leading into a strong beat:
+
+**— — — & | 1 — 2 — 3 — 4 —**
+
+The "& " before beat 1 is called an **anacrusis** or **pickup**. It creates a sense of forward momentum.
+
+## Counting Tips
+
+- **Never rush eighth notes** — they should be exactly half a beat, not faster
+- **Tap your foot on the beat** (1, 2, 3, 4) and say "and" between taps
+- The "and" should fall exactly halfway between foot taps
+- If you cannot count it, you cannot play it — always count first, play second
+
+## Common Mistake: The "Gallop"
+
+Beginners often play eighth notes unevenly — the first eighth is long and the second is short, like a horse galloping. They should be **perfectly equal**. Record yourself and listen back to check.` },
+      { type: 'quiz', question: 'How should two consecutive eighth notes sound?', options: ['First long, second short', 'First short, second long', 'Perfectly equal in length', 'Random lengths'], correctIndex: 2, explanation: 'Eighth notes should be perfectly equal — each one exactly half a beat. Uneven eighths (the "gallop") is a common beginner mistake.' },
+    ],
+  },
+  {
+    id: 'p3-l7', moduleId: 'piano-3', title: 'New Time Signature: 6/8', order: 6, completed: false,
+    content: [
+      { type: 'text', content: `## 6/8 Time
+
+- **6** eighth notes per measure
+- An **eighth note** gets one beat
+
+But here is the key: 6/8 does **not** feel like 6 equal beats. It feels like **2 groups of 3**:
+
+**ONE** two three **FOUR** five six
+
+This creates a lilting, swaying feel — think of a jig, a lullaby, or a gentle waltz.
+
+## 6/8 vs 3/4
+
+Both have 6 eighth notes per measure, but they feel completely different:
+- **3/4**: THREE groups of TWO — **ONE** two **THREE** four **FIVE** six
+- **6/8**: TWO groups of THREE — **ONE** two three **FOUR** five six
+
+The grouping changes which beats are strong, creating a different rhythmic feel.
+
+## Counting 6/8
+
+Count: **1** 2 3 **4** 5 6
+
+Beats 1 and 4 are the strong beats. Conduct it like a slow 2 — two big beats with three subdivisions each.
+
+## Common Note Values in 6/8
+
+| Note | Duration in 6/8 |
+| ---- | --------------- |
+| Dotted half note | Entire measure (6 eighth notes) |
+| Dotted quarter note | Half a measure (3 eighth notes) |
+| Quarter note | 2 eighth notes |
+| Eighth note | 1 beat |
+
+Notice: the **dotted quarter note** becomes very important in 6/8 — it fills exactly one "big beat" (one group of 3).` },
+      { type: 'quiz', question: 'How does 6/8 time feel?', options: ['6 equal beats', '3 groups of 2', '2 groups of 3', '1 group of 6'], correctIndex: 2, explanation: '6/8 time feels like 2 big beats, each divided into 3 — giving it that characteristic lilting, swaying quality.' },
+    ],
+  },
+  {
+    id: 'p3-l8', moduleId: 'piano-3', title: 'Review: C Position vs G Position', order: 7, completed: false,
+    content: [
+      { type: 'text', content: `Let us consolidate everything by comparing your two hand positions and practicing switching between them.
+
+## C Position vs G Position
+
+| | C Position | G Position |
+| ---- | ---------- | ---------- |
+| **RH notes** | C-D-E-F-G | G-A-B-C-D |
+| **RH fingers** | 1-2-3-4-5 | 1-2-3-4-5 |
+| **LH notes** | C-D-E-F-G | G-A-B-C-D |
+| **LH fingers** | 5-4-3-2-1 | 5-4-3-2-1 |
+| **New notes** | — | A, B |
+| **Shared notes** | C, D, E, F, G | G, C, D |
+
+## Position Shifting Exercise
+
+Play this sequence without stopping:
+
+1. **C Position RH**: C-D-E-F-G (quarter notes)
+2. **Shift** to G Position (lift, move, place)
+3. **G Position RH**: G-A-B-C-D (quarter notes)
+4. **Shift** back to C Position
+5. **C Position RH**: G-F-E-D-C (descending)
+
+The shift should take **no extra time** — the music does not pause while you move. Practice the physical motion of shifting until it is automatic.
+
+## What You Have Learned So Far
+
+By completing Modules 0-3, you can now:
+- Read treble and bass clef
+- Play in two positions (C and G)
+- Play hands together (parallel and contrary motion)
+- Read quarter, half, whole, dotted half, and eighth notes
+- Understand time signatures (4/4, 3/4, 6/8)
+- Play basic chords (C, G7)
+- Use dynamics (p, mf, f)
+- Use the damper pedal
+- Understand sharps, flats, and half/whole steps
+
+**You are no longer a complete beginner.** Module 4 will introduce scales, key signatures, and the circle of fifths — the gateway to playing in any key.` },
+      { type: 'quiz', question: 'What notes overlap between C Position and G Position?', options: ['Only C', 'C, D, and G', 'G, C, and D', 'All seven notes'], correctIndex: 2, explanation: 'G appears in both positions, and C and D appear in G Position as fingers 4-5. The shared notes are G, C, and D.' },
+    ],
+  },
+]
+
+const MODULE_3_EXERCISES: Exercise[] = [
+  { id: 'p3-e1', moduleId: 'piano-3', title: 'G Position RH Scale', description: 'Play G-A-B-C-D-C-B-A-G with correct right hand fingers.', order: 0, exerciseType: 'scale', difficulty: 2, handsRequired: 'right', keySignature: 'G', targetBpm: 66 },
+  { id: 'p3-e2', moduleId: 'piano-3', title: 'G Position LH Scale', description: 'Play G-A-B-C-D-C-B-A-G with correct left hand fingers.', order: 1, exerciseType: 'scale', difficulty: 2, handsRequired: 'left', keySignature: 'G', targetBpm: 66 },
+  { id: 'p3-e3', moduleId: 'piano-3', title: 'Position Shift: C to G', description: 'Play C Position scale, shift smoothly to G Position scale, no pause.', order: 2, exerciseType: 'technique', difficulty: 3, handsRequired: 'right', targetBpm: 60 },
+  { id: 'p3-e4', moduleId: 'piano-3', title: 'Accidentals Practice', description: 'Play C-C#-D-Eb-E-F-F#-G on the keyboard, naming each note aloud.', order: 3, exerciseType: 'technique', difficulty: 2, handsRequired: 'right' },
+  { id: 'p3-e5', moduleId: 'piano-3', title: 'Damper Pedal Exercise', description: 'Play C chord, pedal, play G7, legato pedal change. Repeat 5 times.', order: 4, exerciseType: 'technique', difficulty: 3, handsRequired: 'both' },
+  { id: 'p3-e6', moduleId: 'piano-3', title: '6/8 Rhythm Clapping', description: 'Clap the pattern: dotted-quarter, dotted-quarter in 6/8. Feel the two big beats.', order: 5, exerciseType: 'technique', difficulty: 2, handsRequired: 'right' },
+]
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // Module Definitions
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -1181,6 +1893,24 @@ export const CURRICULUM: Module[] = [
     lessons: MODULE_1_LESSONS,
     exercises: MODULE_1_EXERCISES,
     unlockRequirements: { requiredModuleComplete: 'piano-0' },
+  },
+  {
+    id: 'piano-2',
+    name: 'Hands Together & Rhythm',
+    description: 'Parallel and contrary motion, dotted notes, ties, dynamics, eighth notes, first chords, and the key of C major.',
+    order: 2,
+    lessons: MODULE_2_LESSONS,
+    exercises: MODULE_2_EXERCISES,
+    unlockRequirements: { requiredModuleComplete: 'piano-1' },
+  },
+  {
+    id: 'piano-3',
+    name: 'Expanding Range & Technique',
+    description: 'G Position, sharps, flats, half/whole steps, the damper pedal, eighth note patterns, and 6/8 time.',
+    order: 3,
+    lessons: MODULE_3_LESSONS,
+    exercises: MODULE_3_EXERCISES,
+    unlockRequirements: { requiredModuleComplete: 'piano-2' },
   },
 ]
 
