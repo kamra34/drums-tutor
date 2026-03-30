@@ -19,12 +19,12 @@ const DRUM_THEME: InstrumentTheme = {
 }
 
 const PIANO_THEME: InstrumentTheme = {
-  '--accent': '#6366f1',
-  '--accent-secondary': '#3b82f6',
-  '--accent-bg': 'rgba(99,102,241,0.1)',
-  '--accent-glow': 'rgba(99,102,241,0.15)',
-  '--accent-text': '#a5b4fc',
-  '--accent-border': 'rgba(99,102,241,0.2)',
+  '--accent': '#a78bfa',
+  '--accent-secondary': '#8b5cf6',
+  '--accent-bg': 'rgba(167,139,250,0.1)',
+  '--accent-glow': 'rgba(167,139,250,0.15)',
+  '--accent-text': '#c4b5fd',
+  '--accent-border': 'rgba(167,139,250,0.2)',
 }
 
 const THEMES: Record<Instrument, InstrumentTheme> = {

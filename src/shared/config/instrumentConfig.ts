@@ -55,8 +55,8 @@ const PIANO_CONFIG: InstrumentConfig = {
     'What are the most common chord progressions?',
     'Create a beginner practice routine for me',
   ],
-  accentColor: '#6366f1',
-  accentSecondary: '#3b82f6',
+  accentColor: '#a78bfa',
+  accentSecondary: '#8b5cf6',
   showMidi: false,
   showMetronome: true,
   navItems: [

@@ -27,6 +27,8 @@ import StudioPage from '@drums/pages/studio/StudioPage'
 
 // ── Piano pages ──────────────────────────────────────────────────────────────
 import PianoDashboard from '@piano/pages/DashboardPage'
+import PianoCurriculumPage from '@piano/pages/CurriculumPage'
+import PianoLessonPage from '@piano/pages/LessonPage'
 import PianoPlaceholderPage from '@piano/pages/PlaceholderPage'
 
 export default function App() {
@@ -92,7 +94,8 @@ export default function App() {
         <Route path="piano" element={<InstrumentLayout />}>
           <Route element={<AppLayout />}>
             <Route index element={<PianoDashboard />} />
-            <Route path="curriculum" element={<PianoPlaceholderPage title="Piano Curriculum" icon="📚" description="Structured lessons for piano coming soon." />} />
+            <Route path="curriculum" element={<PianoCurriculumPage />} />
+            <Route path="lesson/:moduleId/:lessonId" element={<PianoLessonPage />} />
             <Route path="practice" element={<PianoPlaceholderPage title="Piano Practice" icon="🎹" description="Practice modes for piano coming soon." />} />
             <Route path="chat" element={<DrumChatPage />} />
           </Route>

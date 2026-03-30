@@ -36,7 +36,7 @@ export default function LandingPage() {
         background: 'radial-gradient(circle, rgba(245,158,11,0.06) 0%, transparent 60%)',
       }} />
       <div className="absolute -bottom-40 -right-40 w-[500px] h-[500px] rounded-full pointer-events-none" style={{
-        background: 'radial-gradient(circle, rgba(99,102,241,0.06) 0%, transparent 60%)',
+        background: 'radial-gradient(circle, rgba(167,139,250,0.06) 0%, transparent 60%)',
       }} />
 
       <div className="relative z-10 text-center px-6">
@@ -93,11 +93,11 @@ export default function LandingPage() {
           {/* Piano */}
           <button
             onClick={() => selectInstrument('piano')}
-            className="group relative w-64 rounded-3xl p-8 border border-white/[0.04] hover:border-indigo-500/20 transition-all duration-300 cursor-pointer overflow-hidden"
+            className="group relative w-64 rounded-3xl p-8 border border-white/[0.04] hover:border-violet-400/20 transition-all duration-300 cursor-pointer overflow-hidden"
             style={{ background: 'linear-gradient(150deg, rgba(10,10,18,0.9) 0%, rgba(8,10,20,0.95) 100%)' }}
           >
             <div className="absolute -top-10 -right-10 w-32 h-32 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" style={{
-              background: 'radial-gradient(circle, rgba(99,102,241,0.12) 0%, transparent 70%)',
+              background: 'radial-gradient(circle, rgba(167,139,250,0.12) 0%, transparent 70%)',
             }} />
             <div className="relative">
               <div className="text-6xl mb-4">🎹</div>
@@ -105,7 +105,7 @@ export default function LandingPage() {
               <p className="text-xs text-[#6b7280] leading-relaxed">
                 Scales, chords, sight-reading, and ear training with AI guidance.
               </p>
-              <div className="mt-4 flex items-center justify-center gap-1.5 text-indigo-400/70 text-xs font-medium group-hover:text-indigo-400 transition-colors">
+              <div className="mt-4 flex items-center justify-center gap-1.5 text-violet-400/70 text-xs font-medium group-hover:text-violet-400 transition-colors">
                 Start playing
                 <svg className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
