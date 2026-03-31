@@ -45,14 +45,95 @@ function buildOctaves(start: number, count: number) {
 }
 const KB = buildOctaves(3, 3)
 
-type Mode = 'exercise' | 'custom'
+const STUDIO_TEMPLATES = [
+  {
+    id: 'c-major-scale', name: 'C Major Scale', category: 'Warm-up',
+    description: 'The foundation of piano playing — ascending and descending',
+    color: '#a78bfa', icon: '🎵',
+    notes: [
+      { note: 'C4', duration: 1 }, { note: 'D4', duration: 1 }, { note: 'E4', duration: 1 }, { note: 'F4', duration: 1 },
+      { note: 'G4', duration: 1 }, { note: 'A4', duration: 1 }, { note: 'B4', duration: 1 }, { note: 'C5', duration: 1 },
+      { note: 'B4', duration: 1 }, { note: 'A4', duration: 1 }, { note: 'G4', duration: 1 }, { note: 'F4', duration: 1 },
+      { note: 'E4', duration: 1 }, { note: 'D4', duration: 1 }, { note: 'C4', duration: 2 },
+    ] as NoteEvent[],
+    bpm: 80, timeSig: [4, 4] as [number, number], key: 'C',
+  },
+  {
+    id: 'five-finger', name: 'Five Finger Pattern', category: 'Technique',
+    description: 'Build finger independence in C position with numbered fingering',
+    color: '#6366f1', icon: '🖐️',
+    notes: [
+      { note: 'C4', duration: 0.5, finger: 1 }, { note: 'D4', duration: 0.5, finger: 2 },
+      { note: 'E4', duration: 0.5, finger: 3 }, { note: 'F4', duration: 0.5, finger: 4 },
+      { note: 'G4', duration: 0.5, finger: 5 }, { note: 'F4', duration: 0.5, finger: 4 },
+      { note: 'E4', duration: 0.5, finger: 3 }, { note: 'D4', duration: 0.5, finger: 2 },
+      { note: 'C4', duration: 0.5, finger: 1 }, { note: 'D4', duration: 0.5, finger: 2 },
+      { note: 'E4', duration: 0.5, finger: 3 }, { note: 'F4', duration: 0.5, finger: 4 },
+      { note: 'G4', duration: 1, finger: 5 },
+    ] as NoteEvent[],
+    bpm: 72, timeSig: [4, 4] as [number, number], key: 'C',
+  },
+  {
+    id: 'broken-chords', name: 'Broken Chords in C', category: 'Arpeggios',
+    description: 'Arpeggiate through I-IV-V chords with flowing motion',
+    color: '#ec4899', icon: '🌊',
+    notes: [
+      { note: 'C4', duration: 0.5 }, { note: 'E4', duration: 0.5 }, { note: 'G4', duration: 0.5 }, { note: 'E4', duration: 0.5 },
+      { note: 'F4', duration: 0.5 }, { note: 'A4', duration: 0.5 }, { note: 'C5', duration: 0.5 }, { note: 'A4', duration: 0.5 },
+      { note: 'G4', duration: 0.5 }, { note: 'B4', duration: 0.5 }, { note: 'D5', duration: 0.5 }, { note: 'B4', duration: 0.5 },
+      { note: 'C4', duration: 1 }, { note: 'E4', duration: 1 }, { note: 'G4', duration: 1 }, { note: 'C5', duration: 1 },
+    ] as NoteEvent[],
+    bpm: 76, timeSig: [4, 4] as [number, number], key: 'C',
+  },
+  {
+    id: 'morning-theme', name: 'Morning Theme', category: 'Melody',
+    description: 'A gentle melodic exercise with mixed rhythms in C major',
+    color: '#f59e0b', icon: '🌅',
+    notes: [
+      { note: 'E4', duration: 1 }, { note: 'G4', duration: 0.5 }, { note: 'A4', duration: 0.5 },
+      { note: 'G4', duration: 1 }, { note: 'E4', duration: 1 },
+      { note: 'D4', duration: 0.5 }, { note: 'E4', duration: 0.5 }, { note: 'F4', duration: 1 }, { note: 'E4', duration: 1 },
+      { note: 'C4', duration: 2 }, { note: 'D4', duration: 1 }, { note: 'E4', duration: 1 },
+      { note: 'F4', duration: 0.5 }, { note: 'G4', duration: 0.5 }, { note: 'A4', duration: 1 }, { note: 'G4', duration: 2 },
+    ] as NoteEvent[],
+    bpm: 84, timeSig: [4, 4] as [number, number], key: 'C',
+  },
+  {
+    id: 'blues-scale', name: 'C Blues Scale', category: 'Style',
+    description: 'Learn the bluesy sound with the iconic blues scale',
+    color: '#3b82f6', icon: '🎷',
+    notes: [
+      { note: 'C4', duration: 0.5 }, { note: 'Eb4', duration: 0.5 }, { note: 'F4', duration: 0.5 }, { note: 'Gb4', duration: 0.5 },
+      { note: 'G4', duration: 0.5 }, { note: 'Bb4', duration: 0.5 }, { note: 'C5', duration: 1 },
+      { note: 'Bb4', duration: 0.5 }, { note: 'G4', duration: 0.5 }, { note: 'Gb4', duration: 0.5 }, { note: 'F4', duration: 0.5 },
+      { note: 'Eb4', duration: 0.5 }, { note: 'C4', duration: 1.5 },
+    ] as NoteEvent[],
+    bpm: 70, timeSig: [4, 4] as [number, number], key: 'C',
+  },
+  {
+    id: 'rhythm-mix', name: 'Rhythm Mix', category: 'Timing',
+    description: 'Practice mixed note values — quarters, eighths, and sixteenths',
+    color: '#10b981', icon: '🥁',
+    notes: [
+      { note: 'C4', duration: 1 }, { note: 'E4', duration: 0.5 }, { note: 'E4', duration: 0.5 },
+      { note: 'G4', duration: 2 },
+      { note: 'F4', duration: 0.5 }, { note: 'E4', duration: 0.5 }, { note: 'D4', duration: 0.5 }, { note: 'C4', duration: 0.5 },
+      { note: 'D4', duration: 1 }, { note: 'G4', duration: 1 },
+      { note: 'E4', duration: 0.25 }, { note: 'F4', duration: 0.25 }, { note: 'E4', duration: 0.25 }, { note: 'D4', duration: 0.25 },
+      { note: 'C4', duration: 2 },
+    ] as NoteEvent[],
+    bpm: 76, timeSig: [4, 4] as [number, number], key: 'C',
+  },
+]
+
+type Mode = 'exercise' | 'custom' | 'templates' | null
 
 export default function PianoStudioPage() {
   const { apiKey, isConfigured } = useAiStore()
   const { user } = useAuthStore()
   const { id: editId } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const [mode, setMode] = useState<Mode>('exercise')
+  const [mode, setMode] = useState<Mode>(null)
 
   // Exercise state
   const [exerciseType, setExerciseType] = useState<typeof EXERCISE_TYPES[number]>('melody')
@@ -126,6 +207,8 @@ export default function PianoStudioPage() {
           setBuilderNotes(pd.notes)
           setBuilderBpm(ex.bpm || 80)
           setBuilderTimeSig((ex.timeSignature as [number, number]) || [4, 4])
+        } else {
+          setMode('exercise')
         }
       } catch { setError('Failed to load exercise') }
     })()
@@ -183,6 +266,7 @@ export default function PianoStudioPage() {
 
   const handleNewPattern = useCallback(() => {
     setSavedId(null); setExerciseTitle(''); setPiece(null); setBuilderNotes([]); setSelectedIdx(null)
+    setMode(null)
     navigate('/piano/studio')
   }, [navigate])
 
@@ -244,8 +328,294 @@ export default function PianoStudioPage() {
     } finally { setGenerating(false) }
   }
 
+  const handleTemplateSelect = useCallback((tmpl: typeof STUDIO_TEMPLATES[number]) => {
+    const p: GeneratedPiece = {
+      title: tmpl.name,
+      description: tmpl.description,
+      notes: tmpl.notes,
+      keySignature: tmpl.key,
+      timeSignature: tmpl.timeSig,
+      targetBpm: tmpl.bpm,
+      difficulty: 1,
+      hands: 'right',
+    }
+    setPiece(p); setPieceKey(k => k + 1)
+    setExerciseTitle(tmpl.name)
+    setHistory(h => [p, ...h].slice(0, 20))
+  }, [])
+
   return (
     <div className="p-2 sm:p-3 md:p-4 lg:p-6 max-w-[1800px] mx-auto">
+      {/* ══════════════════════════════════════════════════════════════ */}
+      {/* STUDIO LANDING — shown when no mode is selected              */}
+      {/* ══════════════════════════════════════════════════════════════ */}
+      {mode === null ? (
+        <div>
+          {/* Keyframe animations */}
+          <style>{`
+            @keyframes studioOrb1 { 0%, 100% { transform: translateY(0px) scale(1); opacity: 0.15; } 50% { transform: translateY(-25px) scale(1.08); opacity: 0.22; } }
+            @keyframes studioOrb2 { 0%, 100% { transform: translateY(0px) scale(1); opacity: 0.1; } 50% { transform: translateY(15px) scale(1.06); opacity: 0.16; } }
+            @keyframes studioOrb3 { 0%, 100% { transform: translate(0,0) scale(1); opacity: 0.06; } 50% { transform: translate(-10px, -15px) scale(1.1); opacity: 0.1; } }
+            @keyframes studioPulseRing { 0% { transform: scale(1); opacity: 0.12; } 100% { transform: scale(1.8); opacity: 0; } }
+            @keyframes studioShimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+          `}</style>
+
+          {/* ── Immersive Hero Section ── */}
+          <div className="relative rounded-2xl sm:rounded-3xl overflow-hidden mb-8 sm:mb-10" style={{
+            background: 'linear-gradient(160deg, rgba(139,92,246,0.14) 0%, rgba(167,139,250,0.07) 25%, rgba(59,7,100,0.05) 50%, rgba(12,14,20,0.97) 85%)',
+            border: '1px solid rgba(167,139,250,0.1)',
+          }}>
+            {/* Animated background orbs */}
+            <div className="absolute inset-0 overflow-hidden pointer-events-none">
+              <div className="absolute w-[500px] h-[500px] rounded-full" style={{
+                top: '-12%', left: '3%',
+                background: 'radial-gradient(circle, rgba(167,139,250,0.2) 0%, transparent 60%)',
+                animation: 'studioOrb1 8s ease-in-out infinite',
+              }} />
+              <div className="absolute w-[400px] h-[400px] rounded-full" style={{
+                bottom: '-25%', right: '8%',
+                background: 'radial-gradient(circle, rgba(139,92,246,0.15) 0%, transparent 60%)',
+                animation: 'studioOrb2 10s ease-in-out infinite',
+              }} />
+              <div className="absolute w-[280px] h-[280px] rounded-full" style={{
+                top: '25%', right: '22%',
+                background: 'radial-gradient(circle, rgba(196,181,253,0.1) 0%, transparent 55%)',
+                animation: 'studioOrb3 12s ease-in-out infinite',
+              }} />
+              {/* Subtle grid overlay */}
+              <div className="absolute inset-0 opacity-[0.025]" style={{
+                backgroundImage: 'linear-gradient(rgba(167,139,250,0.4) 1px, transparent 1px), linear-gradient(90deg, rgba(167,139,250,0.4) 1px, transparent 1px)',
+                backgroundSize: '60px 60px',
+              }} />
+            </div>
+
+            <div className="relative px-6 py-14 sm:py-18 md:py-22 lg:py-28 text-center">
+              {/* Studio badge */}
+              <div className="inline-flex items-center gap-2.5 px-5 py-2 rounded-full mb-8" style={{
+                background: 'rgba(167,139,250,0.06)',
+                border: '1px solid rgba(167,139,250,0.18)',
+                backdropFilter: 'blur(12px)',
+              }}>
+                <div className="w-2 h-2 rounded-full animate-pulse" style={{ background: accent }} />
+                <span className="text-[11px] font-bold tracking-[0.2em] uppercase" style={{ color: accent }}>Piano Studio</span>
+              </div>
+
+              {/* Title */}
+              <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black tracking-tight mb-5 leading-[1.05]">
+                <span className="text-white">Create Your</span>
+                <br />
+                <span className="bg-clip-text text-transparent" style={{
+                  backgroundImage: 'linear-gradient(135deg, #c4b5fd 0%, #a78bfa 25%, #8b5cf6 50%, #c084fc 75%, #e879f9 100%)',
+                  backgroundSize: '200% auto',
+                  animation: 'studioShimmer 6s linear infinite',
+                }}>
+                  Masterpiece
+                </span>
+              </h1>
+
+              <p className="text-sm sm:text-base md:text-lg text-[#8b95a5] max-w-2xl mx-auto leading-relaxed">
+                Three powerful creative spaces to compose, build, and explore piano exercises.
+                <br className="hidden sm:block" />
+                From AI-powered generation to hands-on note crafting.
+              </p>
+            </div>
+          </div>
+
+          {/* ── Three Creation Pathway Cards ── */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5 lg:gap-6 mb-8 sm:mb-10">
+
+            {/* Card 1: AI Composer */}
+            <button onClick={() => setMode('exercise')}
+              className="group relative rounded-2xl overflow-hidden text-left transition-all duration-500 hover:scale-[1.03] hover:-translate-y-2 cursor-pointer focus:outline-none"
+              style={{
+                background: 'linear-gradient(180deg, rgba(167,139,250,0.1) 0%, rgba(139,92,246,0.04) 40%, rgba(12,14,20,0.95) 100%)',
+                border: '1px solid rgba(167,139,250,0.15)',
+              }}>
+              {/* Hover glow overlay */}
+              <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700"
+                style={{ background: 'radial-gradient(ellipse at 50% 0%, rgba(167,139,250,0.2) 0%, transparent 65%)' }} />
+              {/* Top accent line on hover */}
+              <div className="absolute top-0 left-[10%] right-[10%] h-[2px] rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+                style={{ background: `linear-gradient(90deg, transparent, ${accent}, transparent)` }} />
+
+              <div className="relative pt-10 pb-6 flex justify-center">
+                <div className="relative">
+                  <div className="w-20 h-20 rounded-2xl flex items-center justify-center" style={{
+                    background: 'rgba(167,139,250,0.1)',
+                    border: '1px solid rgba(167,139,250,0.2)',
+                    boxShadow: '0 0 40px -10px rgba(167,139,250,0.3)',
+                  }}>
+                    <svg className="w-10 h-10" viewBox="0 0 40 40" fill="none">
+                      <path d="M20 4l3 9h9l-7.5 5.5 3 9L20 22l-7.5 5.5 3-9L8 13h9l3-9z" fill="#a78bfa" opacity="0.9"/>
+                      <path d="M10 28l1.5 4.5h4.5l-3.5 2.5 1.5 4.5-3.5-2.5L7 39.5l1.5-4.5L5 32.5h4.5L10 28z" fill="#c4b5fd" opacity="0.5"/>
+                      <path d="M32 22l1 3h3l-2.5 2 1 3-2.5-2-2.5 2 1-3L28 25h3l1-3z" fill="#c4b5fd" opacity="0.4"/>
+                    </svg>
+                  </div>
+                  {/* Pulse ring */}
+                  <div className="absolute inset-0 rounded-2xl" style={{ animation: 'studioPulseRing 3s ease-out infinite', background: accent }} />
+                </div>
+              </div>
+
+              <div className="relative px-6 pb-8">
+                <div className="flex items-center gap-2 mb-2">
+                  <h3 className="text-lg font-bold text-white">AI Composer</h3>
+                  <span className="px-2 py-0.5 rounded-full text-[8px] font-bold uppercase tracking-wider" style={{
+                    background: 'rgba(167,139,250,0.12)', border: '1px solid rgba(167,139,250,0.2)', color: accent,
+                  }}>AI</span>
+                </div>
+                <p className="text-[13px] text-[#6b7280] mb-5 leading-relaxed">
+                  Describe your vision and let Clara compose a custom exercise tailored to your level.
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {['Scales', 'Melodies', 'Chords', 'Technique', 'Any Genre'].map(t => (
+                    <span key={t} className="px-2.5 py-1 rounded-full text-[9px] font-semibold" style={{
+                      background: 'rgba(167,139,250,0.06)', border: '1px solid rgba(167,139,250,0.12)', color: '#8b95a5',
+                    }}>{t}</span>
+                  ))}
+                </div>
+              </div>
+            </button>
+
+            {/* Card 2: Note Builder */}
+            <button onClick={() => setMode('custom')}
+              className="group relative rounded-2xl overflow-hidden text-left transition-all duration-500 hover:scale-[1.03] hover:-translate-y-2 cursor-pointer focus:outline-none"
+              style={{
+                background: 'linear-gradient(180deg, rgba(99,102,241,0.1) 0%, rgba(59,130,246,0.04) 40%, rgba(12,14,20,0.95) 100%)',
+                border: '1px solid rgba(99,102,241,0.15)',
+              }}>
+              <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700"
+                style={{ background: 'radial-gradient(ellipse at 50% 0%, rgba(99,102,241,0.2) 0%, transparent 65%)' }} />
+              <div className="absolute top-0 left-[10%] right-[10%] h-[2px] rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+                style={{ background: 'linear-gradient(90deg, transparent, #6366f1, transparent)' }} />
+
+              <div className="relative pt-10 pb-6 flex justify-center">
+                <div className="relative">
+                  <div className="w-20 h-20 rounded-2xl flex items-center justify-center" style={{
+                    background: 'rgba(99,102,241,0.1)',
+                    border: '1px solid rgba(99,102,241,0.2)',
+                    boxShadow: '0 0 40px -10px rgba(99,102,241,0.3)',
+                  }}>
+                    <svg className="w-10 h-10" viewBox="0 0 40 40" fill="none">
+                      <rect x="4" y="8" width="7" height="24" rx="1.5" fill="#e2e8f0" opacity="0.9"/>
+                      <rect x="12.5" y="8" width="7" height="24" rx="1.5" fill="#e2e8f0" opacity="0.9"/>
+                      <rect x="21" y="8" width="7" height="24" rx="1.5" fill="#e2e8f0" opacity="0.9"/>
+                      <rect x="29.5" y="8" width="7" height="24" rx="1.5" fill="#e2e8f0" opacity="0.9"/>
+                      <rect x="9" y="8" width="5" height="15" rx="1" fill="#6366f1" opacity="0.85"/>
+                      <rect x="17.5" y="8" width="5" height="15" rx="1" fill="#6366f1" opacity="0.85"/>
+                      <rect x="27.5" y="8" width="5" height="15" rx="1" fill="#6366f1" opacity="0.85"/>
+                    </svg>
+                  </div>
+                  <div className="absolute inset-0 rounded-2xl" style={{ animation: 'studioPulseRing 3s ease-out infinite 0.5s', background: '#6366f1' }} />
+                </div>
+              </div>
+
+              <div className="relative px-6 pb-8">
+                <div className="flex items-center gap-2 mb-2">
+                  <h3 className="text-lg font-bold text-white">Note Builder</h3>
+                  <span className="px-2 py-0.5 rounded-full text-[8px] font-bold uppercase tracking-wider" style={{
+                    background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.2)', color: '#818cf8',
+                  }}>Manual</span>
+                </div>
+                <p className="text-[13px] text-[#6b7280] mb-5 leading-relaxed">
+                  Click keys on a 3-octave piano to craft exercises note by note with full control.
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {['3 Octaves', 'Fingering', 'Any Duration', 'Reorder', 'Edit Notes'].map(t => (
+                    <span key={t} className="px-2.5 py-1 rounded-full text-[9px] font-semibold" style={{
+                      background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.12)', color: '#8b95a5',
+                    }}>{t}</span>
+                  ))}
+                </div>
+              </div>
+            </button>
+
+            {/* Card 3: Templates */}
+            <button onClick={() => setMode('templates')}
+              className="group relative rounded-2xl overflow-hidden text-left transition-all duration-500 hover:scale-[1.03] hover:-translate-y-2 cursor-pointer focus:outline-none"
+              style={{
+                background: 'linear-gradient(180deg, rgba(244,114,182,0.1) 0%, rgba(251,146,60,0.04) 40%, rgba(12,14,20,0.95) 100%)',
+                border: '1px solid rgba(244,114,182,0.15)',
+              }}>
+              <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700"
+                style={{ background: 'radial-gradient(ellipse at 50% 0%, rgba(244,114,182,0.2) 0%, transparent 65%)' }} />
+              <div className="absolute top-0 left-[10%] right-[10%] h-[2px] rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+                style={{ background: 'linear-gradient(90deg, transparent, #f472b6, transparent)' }} />
+
+              <div className="relative pt-10 pb-6 flex justify-center">
+                <div className="relative">
+                  <div className="w-20 h-20 rounded-2xl flex items-center justify-center" style={{
+                    background: 'rgba(244,114,182,0.1)',
+                    border: '1px solid rgba(244,114,182,0.2)',
+                    boxShadow: '0 0 40px -10px rgba(244,114,182,0.3)',
+                  }}>
+                    <svg className="w-10 h-10" viewBox="0 0 40 40" fill="none">
+                      <rect x="6" y="14" width="28" height="18" rx="3" fill="#f472b6" opacity="0.25"/>
+                      <rect x="4" y="10" width="28" height="18" rx="3" fill="#f472b6" opacity="0.4"/>
+                      <rect x="8" y="6" width="28" height="18" rx="3" fill="#f472b6" opacity="0.12" stroke="#f472b6" strokeWidth="1.5" strokeOpacity="0.4"/>
+                      <path d="M14 12h12M14 16h8M14 20h10" stroke="#f9a8d4" strokeWidth="1.5" strokeLinecap="round" opacity="0.7"/>
+                    </svg>
+                  </div>
+                  <div className="absolute inset-0 rounded-2xl" style={{ animation: 'studioPulseRing 3s ease-out infinite 1s', background: '#f472b6' }} />
+                </div>
+              </div>
+
+              <div className="relative px-6 pb-8">
+                <div className="flex items-center gap-2 mb-2">
+                  <h3 className="text-lg font-bold text-white">Templates</h3>
+                  <span className="px-2 py-0.5 rounded-full text-[8px] font-bold uppercase tracking-wider" style={{
+                    background: 'rgba(244,114,182,0.12)', border: '1px solid rgba(244,114,182,0.2)', color: '#f472b6',
+                  }}>Quick Start</span>
+                </div>
+                <p className="text-[13px] text-[#6b7280] mb-5 leading-relaxed">
+                  Jump in with curated exercises — scales, arpeggios, melodies, and more ready to play.
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {['Scales', 'Arpeggios', 'Blues', 'Melodies', 'Rhythm'].map(t => (
+                    <span key={t} className="px-2.5 py-1 rounded-full text-[9px] font-semibold" style={{
+                      background: 'rgba(244,114,182,0.06)', border: '1px solid rgba(244,114,182,0.12)', color: '#8b95a5',
+                    }}>{t}</span>
+                  ))}
+                </div>
+              </div>
+            </button>
+          </div>
+
+          {/* ── Recent Creations ── */}
+          {myPatterns.length > 0 && (
+            <div className="rounded-2xl overflow-hidden" style={{
+              background: 'linear-gradient(135deg, rgba(12,14,20,0.8) 0%, rgba(15,17,23,0.9) 100%)',
+              border: '1px solid rgba(255,255,255,0.04)',
+            }}>
+              <div className="px-5 py-4 flex items-center justify-between" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                <div className="flex items-center gap-3">
+                  <span className="text-[11px] font-bold text-[#4b5563] uppercase tracking-[0.15em]">Recent Creations</span>
+                  <span className="px-2 py-0.5 rounded-full text-[9px] font-bold" style={{
+                    background: 'rgba(167,139,250,0.08)', color: accent,
+                  }}>{myPatterns.length}</span>
+                </div>
+              </div>
+              <div className="p-4 flex gap-3 overflow-x-auto">
+                {myPatterns.slice(0, 8).map(ex => (
+                  <button key={ex.id} onClick={() => navigate(`/piano/studio/${ex.id}`)}
+                    className="flex-shrink-0 w-[180px] p-3.5 rounded-xl text-left transition-all hover:bg-white/[0.04] cursor-pointer group"
+                    style={{ border: '1px solid rgba(255,255,255,0.04)' }}>
+                    <div className="text-[12px] font-semibold text-[#c4c9d4] truncate group-hover:text-white transition-colors">{ex.title}</div>
+                    <div className="flex gap-2 mt-1.5 text-[9px] text-[#4b5563]">
+                      <span>{(ex.timeSignature ?? [4,4]).join('/')}</span>
+                      <span>{ex.bpm} bpm</span>
+                      <span className="px-1.5 py-0.5 rounded" style={{
+                        background: ex.isAiGenerated ? 'rgba(167,139,250,0.08)' : 'rgba(99,102,241,0.08)',
+                        color: ex.isAiGenerated ? '#a78bfa' : '#818cf8',
+                      }}>{ex.isAiGenerated ? 'AI' : 'Custom'}</span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      ) : (<>
+
       {/* Header */}
       <div className="relative rounded-xl sm:rounded-2xl overflow-hidden mb-4 sm:mb-6" style={{
         background: 'linear-gradient(135deg, rgba(167,139,250,0.08) 0%, rgba(139,92,246,0.04) 50%, rgba(12,14,20,0.8) 100%)',
@@ -255,10 +625,11 @@ export default function PianoStudioPage() {
           style={{ background: 'radial-gradient(circle, #a78bfa 0%, transparent 70%)' }} />
         <div className="relative p-3 sm:p-4 md:p-5 lg:p-6">
           <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl"
-              style={{ background: `${accent}15`, border: `1px solid ${accent}25` }}>
-              ✨
-            </div>
+            <button onClick={() => setMode(null)}
+              className="w-10 h-10 rounded-xl flex items-center justify-center transition-all hover:bg-white/[0.06] cursor-pointer"
+              style={{ background: `${accent}10`, border: `1px solid ${accent}20` }}>
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke={accent} strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
+            </button>
             <div>
               <h1 className="text-lg sm:text-xl lg:text-2xl font-extrabold text-white tracking-tight">Piano Studio</h1>
               <p className="text-xs text-[#6b7280]">Create and generate piano exercises</p>
@@ -267,8 +638,9 @@ export default function PianoStudioPage() {
           {/* Mode tabs in header — like drum studio */}
           <div className="flex gap-2">
             {([
-              { id: 'exercise' as Mode, label: 'AI Exercise', icon: '✨' },
-              { id: 'custom' as Mode, label: 'Custom Builder', icon: '🎹' },
+              { id: 'exercise' as Mode, label: 'AI Composer', icon: '✨' },
+              { id: 'custom' as Mode, label: 'Note Builder', icon: '🎹' },
+              { id: 'templates' as Mode, label: 'Templates', icon: '📋' },
             ]).map(tab => (
               <button key={tab.id} onClick={() => setMode(tab.id)}
                 className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
@@ -541,8 +913,66 @@ export default function PianoStudioPage() {
         )}
       </>)}
 
+      {/* ═══════════════════════════════════════════════════════════════════════ */}
+      {/* TEMPLATES MODE — curated exercise starting points                     */}
+      {/* ═══════════════════════════════════════════════════════════════════════ */}
+      {mode === 'templates' && (
+        <div className="space-y-6">
+          {/* Template grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {STUDIO_TEMPLATES.map(tmpl => (
+              <button key={tmpl.id} onClick={() => handleTemplateSelect(tmpl)}
+                className="group relative rounded-xl overflow-hidden text-left p-5 transition-all duration-300 hover:scale-[1.02] hover:-translate-y-1 cursor-pointer focus:outline-none"
+                style={{
+                  background: `linear-gradient(135deg, ${tmpl.color}12 0%, rgba(12,14,20,0.9) 100%)`,
+                  border: `1px solid ${tmpl.color}20`,
+                }}>
+                {/* Hover glow */}
+                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+                  style={{ background: `radial-gradient(ellipse at 30% 0%, ${tmpl.color}18 0%, transparent 60%)` }} />
+
+                <div className="relative">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-11 h-11 rounded-xl flex items-center justify-center text-xl"
+                      style={{ background: `${tmpl.color}12`, border: `1px solid ${tmpl.color}25` }}>
+                      {tmpl.icon}
+                    </div>
+                    <div>
+                      <span className="text-[9px] font-bold uppercase tracking-wider block" style={{ color: tmpl.color }}>{tmpl.category}</span>
+                      <h4 className="text-sm font-bold text-white">{tmpl.name}</h4>
+                    </div>
+                  </div>
+                  <p className="text-[11px] text-[#6b7280] mb-4 leading-relaxed">{tmpl.description}</p>
+                  <div className="flex items-center gap-3 text-[10px] text-[#4b5563]">
+                    <span className="flex items-center gap-1">
+                      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 19V6l12-3v13" /><circle cx="6" cy="18" r="3" fill="currentColor" opacity="0.3"/></svg>
+                      {tmpl.notes.length} notes
+                    </span>
+                    <span>{tmpl.bpm} BPM</span>
+                    <span>{tmpl.timeSig[0]}/{tmpl.timeSig[1]}</span>
+                    <span className="ml-auto text-[9px] font-semibold opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: tmpl.color }}>
+                      Play &rarr;
+                    </span>
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+
+          {/* Save bar + Player for selected template */}
+          {piece && (
+            <div className="space-y-4">
+              <SaveBar title={exerciseTitle} onTitleChange={setExerciseTitle} onSave={handleSave}
+                saving={saving} saveSuccess={saveSuccess} savedId={savedId} disabled={!piece || !user} notLoggedIn={!user} />
+              <PiecePlayer piece={piece} pieceKey={pieceKey} />
+            </div>
+          )}
+        </div>
+      )}
+
       </div>{/* end main content area */}
       </div>{/* end grid with sidebar */}
+      </>)}
     </div>
   )
 }

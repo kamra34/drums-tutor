@@ -16,12 +16,12 @@ interface DrumXmlMapping {
   midiUnpitched: number
   displayStep: string
   displayOctave: number
-  notehead: 'x' | 'normal' | 'diamond'
+  notehead: 'x' | 'normal' | 'diamond' | 'circle-x'
 }
 
 const DRUM_MAP: Partial<Record<DrumPad, DrumXmlMapping>> = {
   [DrumPad.CrashCymbal]: { instrumentId: 'I-CR', instrumentName: 'Crash Cymbal',  midiUnpitched: 49, displayStep: 'A', displayOctave: 5, notehead: 'x' },
-  [DrumPad.HiHatOpen]:   { instrumentId: 'I-HO', instrumentName: 'Open Hi-Hat',   midiUnpitched: 46, displayStep: 'G', displayOctave: 5, notehead: 'x' },
+  [DrumPad.HiHatOpen]:   { instrumentId: 'I-HO', instrumentName: 'Open Hi-Hat',   midiUnpitched: 46, displayStep: 'G', displayOctave: 5, notehead: 'circle-x' },
   [DrumPad.HiHatClosed]: { instrumentId: 'I-HH', instrumentName: 'Closed Hi-Hat', midiUnpitched: 42, displayStep: 'G', displayOctave: 5, notehead: 'x' },
   [DrumPad.RideCymbal]:  { instrumentId: 'I-RD', instrumentName: 'Ride Cymbal',   midiUnpitched: 51, displayStep: 'F', displayOctave: 5, notehead: 'x' },
   [DrumPad.RideBell]:    { instrumentId: 'I-RB', instrumentName: 'Ride Bell',     midiUnpitched: 53, displayStep: 'F', displayOctave: 5, notehead: 'diamond' },
@@ -105,69 +105,43 @@ export function patternToMusicXml(
     if (!hasAnyHit) {
       xml += `\n      <note><rest measure="yes"/><duration>${slotsPerBar}</duration><voice>1</voice><type>whole</type></note>`
     } else {
-      // Pre-compute beam assignments per slot
-      // Group consecutive notes within each beat, assign begin/continue/end
+      // Per-beat adaptive: check if each beat has off-beat hits
+      function beatHasOffBeats(beatStart: number): boolean {
+        for (let s = 1; s < subdivisions; s++) {
+          if ((beatStart + s) < slotsPerBar && slotHits[beatStart + s]?.length > 0) return true
+        }
+        return false
+      }
+
+      // Pre-compute beam assignments per slot (only for beats that need sub-beat resolution)
       const beamMap = buildBeamMap(slotHits, subdivisions, slotsPerBar)
 
       let restAccum = 0
 
-      for (let s = 0; s < slotsPerBar; s++) {
-        const hits = slotHits[s]
+      for (let beatIdx = 0; beatIdx < slotsPerBar / subdivisions; beatIdx++) {
+        const beatStart = beatIdx * subdivisions
+        const hasOff = beatHasOffBeats(beatStart)
 
-        if (hits.length === 0) {
-          restAccum += 1
-          continue
-        }
-
-        // Flush rest
-        if (restAccum > 0) {
-          xml += writeRests(restAccum, subdivisions, noteType)
-          restAccum = 0
-        }
-
-        // Sort: highest staff position first
-        hits.sort((a, b) => {
-          const ma = DRUM_MAP[a.pad]!, mb = DRUM_MAP[b.pad]!
-          return (mb.displayOctave * 10 + 'CDEFGAB'.indexOf(mb.displayStep[0]))
-               - (ma.displayOctave * 10 + 'CDEFGAB'.indexOf(ma.displayStep[0]))
-        })
-
-        // Beam tag for this slot (only on primary note, not chord notes)
-        const beamTag = beamMap[s] ?? ''
-
-        // Primary note
-        const primary = hits[0]
-        const pm = DRUM_MAP[primary.pad]!
-        xml += `\n      <note>`
-        xml += `<unpitched><display-step>${pm.displayStep}</display-step><display-octave>${pm.displayOctave}</display-octave></unpitched>`
-        xml += `<duration>1</duration>`
-        xml += `<instrument id="${pm.instrumentId}"/>`
-        xml += `<voice>1</voice>`
-        xml += `<type>${noteType}</type>`
-        if (isTriplet) xml += `<time-modification><actual-notes>3</actual-notes><normal-notes>2</normal-notes></time-modification>`
-        xml += `<stem>up</stem>`
-        if (pm.notehead !== 'normal') xml += `<notehead>${pm.notehead}</notehead>`
-        if (primary.hv === 2) xml += `<notations><articulations><accent/></articulations></notations>`
-        if (primary.hv === 3) xml += `<notehead parentheses="yes">normal</notehead>`
-        if (beamTag) xml += beamTag
-        xml += `</note>`
-
-        // Chord notes (no beam tags — they inherit from primary)
-        for (let i = 1; i < hits.length; i++) {
-          const h = hits[i]
-          const hm = DRUM_MAP[h.pad]!
-          xml += `\n      <note><chord/>`
-          xml += `<unpitched><display-step>${hm.displayStep}</display-step><display-octave>${hm.displayOctave}</display-octave></unpitched>`
-          xml += `<duration>1</duration>`
-          xml += `<instrument id="${hm.instrumentId}"/>`
-          xml += `<voice>1</voice>`
-          xml += `<type>${noteType}</type>`
-          if (isTriplet) xml += `<time-modification><actual-notes>3</actual-notes><normal-notes>2</normal-notes></time-modification>`
-          xml += `<stem>up</stem>`
-          if (hm.notehead !== 'normal') xml += `<notehead>${hm.notehead}</notehead>`
-          if (h.hv === 2) xml += `<notations><articulations><accent/></articulations></notations>`
-          if (h.hv === 3) xml += `<notehead parentheses="yes">normal</notehead>`
-          xml += `</note>`
+        if (hasOff) {
+          // This beat needs sub-beat resolution — emit each slot individually
+          for (let s = beatStart; s < beatStart + subdivisions; s++) {
+            const hits = slotHits[s]
+            if (hits.length === 0) {
+              restAccum += 1
+              continue
+            }
+            if (restAccum > 0) { xml += writeRests(restAccum, subdivisions, noteType); restAccum = 0 }
+            xml += writeHits(hits, 1, noteType, isTriplet, beamMap[s] ?? '')
+          }
+        } else {
+          // This beat only has a downbeat hit (or is empty) — use quarter note
+          const hits = slotHits[beatStart]
+          if (hits.length === 0) {
+            restAccum += subdivisions // one full beat of rest
+          } else {
+            if (restAccum > 0) { xml += writeRests(restAccum, subdivisions, noteType); restAccum = 0 }
+            xml += writeHits(hits, subdivisions, 'quarter', false, '')
+          }
         }
       }
 
@@ -204,6 +178,60 @@ ${measures.join('\n')}
 // ── Beam map builder ─────────────────────────────────────────────────────────
 // Groups consecutive notes within each beat and assigns beam begin/continue/end.
 // For subdivisions >= 4 (sixteenths), adds beam number="2" for the inner grouping.
+
+function writeHits(
+  hits: { pad: DrumPad; hv: HitValue }[],
+  duration: number,
+  type: string,
+  isTriplet: boolean,
+  beamTag: string,
+): string {
+  let xml = ''
+
+  // Sort: highest staff position first
+  const sorted = [...hits].sort((a, b) => {
+    const ma = DRUM_MAP[a.pad]!, mb = DRUM_MAP[b.pad]!
+    return (mb.displayOctave * 10 + 'CDEFGAB'.indexOf(mb.displayStep[0]))
+         - (ma.displayOctave * 10 + 'CDEFGAB'.indexOf(ma.displayStep[0]))
+  })
+
+  // Primary note
+  const primary = sorted[0]
+  const pm = DRUM_MAP[primary.pad]!
+  xml += `\n      <note>`
+  xml += `<unpitched><display-step>${pm.displayStep}</display-step><display-octave>${pm.displayOctave}</display-octave></unpitched>`
+  xml += `<duration>${duration}</duration>`
+  xml += `<instrument id="${pm.instrumentId}"/>`
+  xml += `<voice>1</voice>`
+  xml += `<type>${type}</type>`
+  if (isTriplet) xml += `<time-modification><actual-notes>3</actual-notes><normal-notes>2</normal-notes></time-modification>`
+  xml += `<stem>up</stem>`
+  if (pm.notehead !== 'normal') xml += `<notehead>${pm.notehead}</notehead>`
+  if (primary.hv === 2) xml += `<notations><articulations><accent/></articulations></notations>`
+  if (primary.hv === 3) xml += `<notehead parentheses="yes">normal</notehead>`
+  if (beamTag) xml += beamTag
+  xml += `</note>`
+
+  // Chord notes
+  for (let i = 1; i < sorted.length; i++) {
+    const h = sorted[i]
+    const hm = DRUM_MAP[h.pad]!
+    xml += `\n      <note><chord/>`
+    xml += `<unpitched><display-step>${hm.displayStep}</display-step><display-octave>${hm.displayOctave}</display-octave></unpitched>`
+    xml += `<duration>${duration}</duration>`
+    xml += `<instrument id="${hm.instrumentId}"/>`
+    xml += `<voice>1</voice>`
+    xml += `<type>${type}</type>`
+    if (isTriplet) xml += `<time-modification><actual-notes>3</actual-notes><normal-notes>2</normal-notes></time-modification>`
+    xml += `<stem>up</stem>`
+    if (hm.notehead !== 'normal') xml += `<notehead>${hm.notehead}</notehead>`
+    if (h.hv === 2) xml += `<notations><articulations><accent/></articulations></notations>`
+    if (h.hv === 3) xml += `<notehead parentheses="yes">normal</notehead>`
+    xml += `</note>`
+  }
+
+  return xml
+}
 
 function buildBeamMap(
   slotHits: { pad: DrumPad; hv: HitValue }[][],

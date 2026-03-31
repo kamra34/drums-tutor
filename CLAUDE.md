@@ -356,11 +356,18 @@ Reusable component providing the unified playback experience across ALL piano pa
 
 ## Piano Studio (src/piano/pages/StudioPage.tsx)
 
-Two-mode creative workspace: AI exercise generation and a manual Custom Builder.
+Three-mode creative workspace with an immersive landing page.
 
-### Two Modes (tabs in header, like drum studio)
-- **AI Exercise** — Generate exercises with type (scale, chord-progression, melody, technique, sight-reading), genre (Classical, Jazz, Blues, Pop, Latin, Film/Cinematic), length (short/medium/long), key, hands, time sig, difficulty
-- **Custom Builder** — Full-width layout: click notes on a 3-octave keyboard (C3-C6) to build exercises manually. Duration selector, finger numbers, visual note timeline with measure bars, reorder/edit/delete per note.
+### Landing Page
+- Animated hero with gradient orbs, shimmering title
+- Three pathway cards: AI Composer, Note Builder, Templates
+- Recent Creations strip showing saved exercises
+- Back arrow in each mode returns to landing; "Compose" card always opens fresh empty state
+
+### Three Modes
+- **AI Composer** — Generate exercises with type (scale, chord-progression, melody, technique, sight-reading), genre (Classical, Jazz, Blues, Pop, Latin, Film/Cinematic), length (short/medium/long), key, hands, time sig, difficulty
+- **Note Builder** — Full-width layout: click notes on a 3-octave keyboard (C3-C6) to build exercises manually. Duration selector, finger numbers, visual note timeline with measure bars, reorder/edit/delete per note.
+- **Templates** — 6 curated exercise templates (C Major Scale, Five Finger Pattern, Broken Chords, Morning Theme, Blues Scale, Rhythm Mix) with pre-built note data. Click to load into player, save to customize.
 
 ### AI Service (src/piano/services/studioAiService.ts)
 - Uses Anthropic API directly (same pattern as drum aiService)
@@ -427,7 +434,7 @@ All pages use progressive responsive classes: `p-2 sm:p-3 md:p-4 lg:p-6` for pad
 - Full curriculum (3 modules, 24 lessons, 22 exercises) with 14 visual components
 - Real-time MIDI input from electronic drum kits (Web MIDI API)
 - Practice modes: Notation Reading, Beats, Rudiments, Fills, Daily, Free Play, Play-along
-- Studio: Create/edit/save patterns, AI pattern generation (Anthropic), scan notation from photos
+- Studio: Immersive landing page with 3 pathway cards (Compose, AI Builder, Scan). Compose mode supports bar-by-bar editing with per-bar resolution, dual editors (grid + notation staff), and full pattern preview with playback
 - AI Tutor "Max" with drum-specific persona and context
 - Global metronome with BPM control and visual indicator
 
@@ -438,6 +445,8 @@ All pages use progressive responsive classes: `p-2 sm:p-3 md:p-4 lg:p-6` for pad
 - `src/drums/services/midiService.ts` — Web MIDI API connection + note parsing
 - `src/drums/services/scoringEngine.ts` — Real-time hit detection + accuracy scoring
 - `src/drums/services/drumSounds.ts` — Drum sample playback
+- `src/drums/services/drumMusicXml.ts` — PatternData → MusicXML with per-beat adaptive note types
+- `src/drums/components/studio/NotationInput.tsx` — Interactive SVG percussion staff editor (click to place notes)
 - `src/drums/pages/ChatPage.tsx` — **Shared chat UI** used by both drums and piano
 
 ## Backend Structure
@@ -492,7 +501,9 @@ All pages use progressive responsive classes: `p-2 sm:p-3 md:p-4 lg:p-6` for pad
 17. **Mobile audio unlock**: Mobile browsers require `AudioContext.resume()` during a user gesture. All AudioContexts must call `registerAudioContext()` from `@shared/services/audioUnlock`. The `main.tsx` global listener handles first-tap unlock (including iOS silent buffer trick). Never create/resume an AudioContext inside `.then()` or `setTimeout` — do it synchronously in the gesture callstack.
 18. **Beat labels**: Use `subdivisionLabel(stepIndex, subdivisions)` and `isDownbeat()` from `@drums/utils/beatLabels` for counting labels in grids. Supports quarter (`1 2 3 4`), eighth (`1 + 2 +`), triplet (`1 t t 2 t t`), and sixteenth (`1 e + a 2 e + a`).
 19. **Multi-bar pattern display**: When expanding 1-bar `patternData` for multi-bar display, the `tracks` arrays must be **tiled** (repeated N times), not just the `beats` count. Otherwise cells beyond the first bar show as empty rests.
-20. **Drum notation uses OSMD** (OpenSheetMusicDisplay), not VexFlow. `drumMusicXml.ts` converts `PatternData` → MusicXML string, `OsmdNotation.tsx` renders it via `forwardRef` with cursor control (`cursorShow/Next/Reset/Hide`). Key settings: `FlatBeams=true`, `percussionOneLineCutoff=0` (always 5-line staff), `StretchLastSystemLine=true`, `NewSystemAtXMLNewSystemAttribute=true`. Line breaks forced every 4 bars via `<print new-system="yes"/>`. Custom playback cursor is a DOM div positioned using OSMD's `GraphicSheet` note coordinates.
-21. **Drum pattern subdivisions**: Always use the correct subdivision for the actual note density. `subdivisions=1` for quarter notes, `2` for eighths, `3` for triplets, `4` for sixteenths. Never use `subdivisions=4` for a pattern that only has notes on eighth positions — it creates double beams and wrong beat labels.
+20. **Drum notation uses OSMD** (OpenSheetMusicDisplay), not VexFlow. `drumMusicXml.ts` converts `PatternData` → MusicXML string, `OsmdNotation.tsx` renders it via `forwardRef` with cursor control (`cursorShow/Next/Reset/Hide`). Key settings: `FlatBeams=true`, `percussionOneLineCutoff=0` (always 5-line staff), `StretchLastSystemLine=true`, `NewSystemAtXMLNewSystemAttribute=true`. Line breaks forced every 4 bars via `<print new-system="yes"/>`. Custom playback cursor is a DOM div positioned using OSMD's `GraphicSheet` note coordinates. **Per-beat adaptive note types**: `drumMusicXml.ts` checks each beat for off-beat content — beats with only downbeat hits output quarter notes, beats with off-beat hits output eighth/16th notes. Open hi-hat uses `circle-x` notehead (x inside circle).
+21. **Drum pattern subdivisions — per-bar resolution**: Studio Compose mode supports different subdivisions per bar via `barSubdivisions: number[]`. Storage always uses `LCM(barSubdivisions)` as the global subdivisions. `getBarPattern()` downsamples for editing (taking every Nth slot), `handleBarChange()` upsamples when writing back. `handleBarResolutionChange()` re-maps the entire pattern when the LCM changes. GridView and drumMusicXml are both per-beat adaptive — they only show sub-beat cells/notes where off-beat content actually exists.
 22. **Drum practice routing**: All exercise/fill/beat pages navigate to `/drums/practice/play/:itemId`. The `PracticePlayerPage` resolves items via `getPracticeItemById()`. Bar count badge derives from `patternData.beats / timeSignature[0]`, not the `bars` field. The `bars` field must match the actual bar count in `patternData` — multi-bar patterns store all bars in `patternData.tracks` directly (no tiling).
 23. **Drum Notation Guide**: Interactive cheatsheet popup in TopNav (`DrumNotationGuide.tsx`). Three tabs: Kit & Staff (cross-highlighting kit cards ↔ staff positions), Note Values, Articulations. Drums-only (gated behind `config.showMidi`). Uses `createPortal` to render full-page overlay.
+24. **Studio landing page pattern**: Both drum and piano studios use a `mode: null` state for the landing page with animated hero and pathway cards. Clicking a pathway sets the mode. The "Compose" card calls `handleStartNewCompose()` which resets all pattern state before entering — ensures a fresh empty compose every time. Back button navigates to `/drums/studio` (or `/piano/studio`) to clear any `:id` URL param. Clicking "Recent Creations" navigates to `/studio/:id` which triggers the editId useEffect.
+25. **Studio NotationInput**: Interactive SVG drum notation editor (`src/drums/components/studio/NotationInput.tsx`). Same Props interface as EditableGrid — fully interchangeable. Uses ResizeObserver to fill container width dynamically. Staff positions match drumMusicXml.ts display positions. Click cycles hit values (0→1→2→3→0), right-click clears. Noteheads: x for cymbals, filled ellipse for drums. Accent = glow, ghost = translucent.

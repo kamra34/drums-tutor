@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom'
 import { PatternData, HitValue } from '@drums/types/curriculum'
 import { DrumPad } from '@drums/types/midi'
 import EditableGrid from '@drums/components/studio/EditableGrid'
+import NotationInput from '@drums/components/studio/NotationInput'
 import AiBuilderTab from '@drums/components/studio/AiBuilderTab'
 import ScanTab from '@drums/components/studio/ScanTab'
 import StaffNotationDisplay from '@drums/components/StaffNotationDisplay'
@@ -27,28 +28,34 @@ const DEFAULT_PADS = [DrumPad.HiHatClosed, DrumPad.Snare, DrumPad.Kick]
 
 const TIME_SIGNATURES: [number, number][] = [[4, 4], [3, 4], [6, 8], [5, 4], [7, 8]]
 const SUBDIVISIONS = [
-  { value: 2, label: '8th notes' },
-  { value: 4, label: '16th notes' },
+  { value: 1, label: 'Quarter' },
+  { value: 2, label: '8th' },
+  { value: 3, label: 'Triplet' },
+  { value: 4, label: '16th' },
 ]
-const BAR_OPTIONS = [1, 2, 4, 8]
 
-function makeEmptyPattern(beats: number, subdivisions: number, bars: number): PatternData {
+function gcd(a: number, b: number): number { return b === 0 ? a : gcd(b, a % b) }
+function lcm(a: number, b: number): number { return (a * b) / gcd(a, b) }
+function lcmArray(arr: number[]): number { return arr.reduce((a, b) => lcm(a, b), 1) }
+
+function makeEmptyPattern(beats: number, subdivisions: number, _bars: number): PatternData {
   return { beats, subdivisions, tracks: {} }
 }
 
 // ── Studio Page ──────────────────────────────────────────────────────────────
 
-type StudioMode = 'create' | 'ai-builder' | 'scan'
+type StudioMode = 'create' | 'ai-builder' | 'scan' | null
 
 export default function StudioPage() {
   const { id: editId } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const [mode, setMode] = useState<StudioMode>('create')
+  const [mode, setMode] = useState<StudioMode>(null)
 
   // Pattern settings
   const [title, setTitle] = useState('')
   const [timeSig, setTimeSig] = useState<[number, number]>([4, 4])
-  const [subdivisions, setSubdivisions] = useState(4)
+  const [barSubdivisions, setBarSubdivisions] = useState<number[]>([4])
+  const subdivisions = useMemo(() => lcmArray(barSubdivisions), [barSubdivisions])
   const [bars, setBars] = useState(1)
   const [bpm, setBpm] = useState(90)
   const [enabledPads, setEnabledPads] = useState<DrumPad[]>(DEFAULT_PADS)
@@ -84,8 +91,12 @@ export default function StudioPage() {
       const pd = exercise.patternData as PatternData
       setTitle(exercise.title)
       setTimeSig((exercise.timeSignature ?? [4, 4]) as [number, number])
-      setSubdivisions(pd.subdivisions)
-      setBars(exercise.bars ?? 1)
+      const loadedBars = exercise.bars ?? 1
+      const savedBarSubs = (pd as any).barSubdivisions as number[] | undefined
+      setBarSubdivisions(savedBarSubs && savedBarSubs.length === loadedBars
+        ? savedBarSubs
+        : new Array(loadedBars).fill(pd.subdivisions))
+      setBars(loadedBars)
       setBpm(exercise.bpm ?? 90)
       setPattern(pd)
       setSavedId(exercise.id)
@@ -94,41 +105,71 @@ export default function StudioPage() {
       const padsInUse = Object.keys(pd.tracks) as DrumPad[]
       const allPads = [...new Set([...DEFAULT_PADS, ...padsInUse])]
       setEnabledPads(allPads)
+      setMode('create')
     }).catch(() => {
       navigate('/drums/studio', { replace: true })
     }).finally(() => setLoadingEdit(false))
   }, [editId])
 
-  // Update pattern dimensions when settings change (preserve existing data where possible)
-  function handleSettingsChange(newBeats: number, newSubs: number, newBars: number) {
-    const newTotalSlots = newBeats * newSubs * newBars
+  // Resize pattern tracks when beats or bars change (preserve existing data)
+  function handleResizePattern(newBeats: number, newMaxSub: number, newBars: number) {
+    const newTotalSlots = newBeats * newMaxSub * newBars
     const newTracks: Partial<Record<DrumPad, HitValue[]>> = {}
-
     for (const [pad, oldTrack] of Object.entries(pattern.tracks) as [DrumPad, HitValue[]][]) {
       const newTrack: HitValue[] = new Array(newTotalSlots).fill(0)
-      // Copy what fits
-      for (let i = 0; i < Math.min(oldTrack.length, newTotalSlots); i++) {
-        newTrack[i] = oldTrack[i]
-      }
+      for (let i = 0; i < Math.min(oldTrack.length, newTotalSlots); i++) newTrack[i] = oldTrack[i]
       if (newTrack.some(v => v > 0)) newTracks[pad] = newTrack
     }
-
-    setPattern({ beats: newBeats, subdivisions: newSubs, tracks: newTracks })
+    setPattern({ beats: newBeats, subdivisions: newMaxSub, tracks: newTracks })
   }
 
   function handleTimeSigChange(ts: [number, number]) {
     setTimeSig(ts)
-    handleSettingsChange(ts[0], subdivisions, bars)
-  }
-
-  function handleSubdivisionsChange(s: number) {
-    setSubdivisions(s)
-    handleSettingsChange(timeSig[0], s, bars)
+    handleResizePattern(ts[0], subdivisions, bars)
   }
 
   function handleBarsChange(b: number) {
     setBars(b)
-    handleSettingsChange(timeSig[0], subdivisions, b)
+    // Extend or shrink barSubdivisions array
+    setBarSubdivisions(prev => {
+      if (b > prev.length) return [...prev, ...new Array(b - prev.length).fill(prev[prev.length - 1] || 4)]
+      return prev.slice(0, b)
+    })
+    handleResizePattern(timeSig[0], subdivisions, b)
+  }
+
+  // Change resolution for the currently editing bar
+  function handleBarResolutionChange(newSub: number) {
+    const newBarSubs = [...barSubdivisions]
+    const oldBarSub = newBarSubs[editingBar]
+    newBarSubs[editingBar] = newSub
+    const newMaxSub = lcmArray(newBarSubs)
+    const oldMaxSub = subdivisions
+
+    if (newMaxSub !== oldMaxSub) {
+      // Re-map the entire pattern to the new max resolution
+      const oldSlotsPerBar = timeSig[0] * oldMaxSub
+      const newSlotsPerBar = timeSig[0] * newMaxSub
+      const newTotalSlots = newSlotsPerBar * bars
+      const newTracks: Partial<Record<DrumPad, HitValue[]>> = {}
+
+      for (const [pad, oldTrack] of Object.entries(pattern.tracks) as [DrumPad, HitValue[]][]) {
+        const newTrack: HitValue[] = new Array(newTotalSlots).fill(0)
+        for (let barIdx = 0; barIdx < bars; barIdx++) {
+          const bSub = barSubdivisions[barIdx] // old per-bar sub for reading
+          for (let beat = 0; beat < timeSig[0]; beat++) {
+            for (let s = 0; s < bSub; s++) {
+              const oldSlot = barIdx * oldSlotsPerBar + beat * oldMaxSub + s * (oldMaxSub / bSub)
+              const newSlot = barIdx * newSlotsPerBar + beat * newMaxSub + s * (newMaxSub / bSub)
+              if (oldSlot < oldTrack.length) newTrack[newSlot] = oldTrack[oldSlot]
+            }
+          }
+        }
+        if (newTrack.some(v => v > 0)) newTracks[pad] = newTrack
+      }
+      setPattern({ beats: timeSig[0], subdivisions: newMaxSub, tracks: newTracks })
+    }
+    setBarSubdivisions(newBarSubs)
   }
 
   function togglePad(pad: DrumPad) {
@@ -151,7 +192,7 @@ export default function StudioPage() {
       const data = {
         title: title.trim(),
         description: `Custom pattern created in Studio`,
-        patternData: pattern,
+        patternData: { ...pattern, barSubdivisions },
         category: 'studio',
         difficulty: 5,
         bpm,
@@ -191,33 +232,55 @@ export default function StudioPage() {
     }
   }
 
-  function handleNewPattern() {
+  function resetPatternState() {
     setSavedId(null)
     setTitle('')
     setTimeSig([4, 4])
-    setSubdivisions(4)
+    setBarSubdivisions([4])
     setBars(1)
     setBpm(90)
     setEnabledPads(DEFAULT_PADS)
     setPattern(makeEmptyPattern(4, 4, 1))
-    if (editId) navigate('/drums/studio', { replace: true })
+    setEditingBar(0)
   }
 
-  // Selected bar for individual bar view (null = none selected)
+  function handleNewPattern() {
+    resetPatternState()
+    setMode(null)
+    navigate('/drums/studio', { replace: true })
+  }
+
+  function handleStartNewCompose() {
+    resetPatternState()
+    setMode('create')
+    navigate('/drums/studio', { replace: true })
+  }
+
+  // Bar-by-bar editing (Compose mode)
+  const [editingBar, setEditingBar] = useState(0)
+
+  // Selected bar for individual bar view in AI/Scan modes (null = none selected)
   const [selectedBar, setSelectedBar] = useState<number | null>(null)
 
-  // Build per-bar pattern for individual bar preview
+  // Extract a bar's pattern at its own resolution (downsampled from maxSub)
   function getBarPattern(barIndex: number): PatternData {
-    const slotsPerBar = timeSig[0] * subdivisions
+    const maxSub = subdivisions
+    const barSub = barSubdivisions[barIndex] ?? maxSub
+    const storageSlotsPerBar = timeSig[0] * maxSub
+    const editSlotsPerBar = timeSig[0] * barSub
+    const ratio = maxSub / barSub // always integer (LCM guarantees)
+    const barStart = barIndex * storageSlotsPerBar
     const barTracks: Partial<Record<DrumPad, HitValue[]>> = {}
 
     for (const [pad, track] of Object.entries(pattern.tracks) as [DrumPad, HitValue[]][]) {
-      const start = barIndex * slotsPerBar
-      const slice = track.slice(start, start + slotsPerBar)
-      if (slice.some(v => v > 0)) barTracks[pad] = slice
+      const editTrack: HitValue[] = new Array(editSlotsPerBar).fill(0)
+      for (let i = 0; i < editSlotsPerBar; i++) {
+        editTrack[i] = (track[barStart + i * ratio] || 0) as HitValue
+      }
+      if (editTrack.some(v => v > 0)) barTracks[pad] = editTrack
     }
 
-    return { beats: timeSig[0], subdivisions, tracks: barTracks }
+    return { beats: timeSig[0], subdivisions: barSub, tracks: barTracks }
   }
 
   // Build full multi-bar pattern: StaffNotationDisplay expects a single-bar PatternData,
@@ -240,8 +303,48 @@ export default function StudioPage() {
 
   const hasNotes = Object.values(pattern.tracks).some(t => t.some(v => v > 0))
 
-  // Reset selected bar when bars count changes
-  useEffect(() => { setSelectedBar(null) }, [bars])
+  // Reset selected bar when bars count changes, clamp editingBar
+  useEffect(() => {
+    setSelectedBar(null)
+    setEditingBar(prev => Math.min(prev, bars - 1))
+  }, [bars])
+
+  // Current bar's pattern for editing — always recompute (no memo to avoid staleness)
+  const currentBarSub = barSubdivisions[editingBar] ?? subdivisions
+  const editingBarPattern = getBarPattern(editingBar)
+
+
+  // Write a single bar's changes back (upsampling from barSub to maxSub)
+  function handleBarChange(barData: PatternData) {
+    const maxSub = subdivisions
+    const barSub = barSubdivisions[editingBar] ?? maxSub
+    const ratio = maxSub / barSub
+    const storageSlotsPerBar = timeSig[0] * maxSub
+    const totalSlots = storageSlotsPerBar * bars
+    const barStart = editingBar * storageSlotsPerBar
+
+    const allPads = new Set([
+      ...Object.keys(pattern.tracks) as DrumPad[],
+      ...Object.keys(barData.tracks) as DrumPad[],
+    ])
+    const newTracks: Partial<Record<DrumPad, HitValue[]>> = {}
+    for (const pad of allPads) {
+      const full = new Array(totalSlots).fill(0) as HitValue[]
+      const existing = pattern.tracks[pad]
+      if (existing) for (let i = 0; i < Math.min(existing.length, totalSlots); i++) full[i] = existing[i]
+      // Clear this bar's range in storage
+      for (let i = barStart; i < barStart + storageSlotsPerBar; i++) full[i] = 0
+      // Write bar data upsampled
+      const barTrack = barData.tracks[pad]
+      if (barTrack) {
+        for (let i = 0; i < barTrack.length; i++) {
+          full[barStart + i * ratio] = barTrack[i]
+        }
+      }
+      if (full.some(v => v > 0)) newTracks[pad] = full
+    }
+    setPattern({ beats: timeSig[0], subdivisions: maxSub, tracks: newTracks })
+  }
 
   // When AI builder generates a pattern, load it into the Create tab
   function handleAiPatternGenerated(
@@ -254,7 +357,7 @@ export default function StudioPage() {
     setBpm(cfg.bpm)
     setBars(cfg.bars)
     setTimeSig(cfg.timeSig)
-    setSubdivisions(aiPattern.subdivisions)
+    setBarSubdivisions(new Array(cfg.bars).fill(aiPattern.subdivisions))
     setSavedId(null)
 
     // Derive enabled pads from the generated pattern
@@ -271,6 +374,505 @@ export default function StudioPage() {
 
   return (
     <div className="p-3 sm:p-4 md:p-6 lg:p-8 max-w-[1800px] mx-auto" style={{ background: '#06080d', minHeight: '100vh' }}>
+      {/* ══════════════════════════════════════════════════════════════ */}
+      {/* STUDIO LANDING — shown when no mode is selected              */}
+      {/* ══════════════════════════════════════════════════════════════ */}
+      {mode === null ? (
+        <div>
+          {/* Keyframe animations */}
+          <style>{`
+            @keyframes drumOrb1 { 0%, 100% { transform: translateY(0) scale(1); opacity: 0.14; } 50% { transform: translateY(-22px) scale(1.07); opacity: 0.22; } }
+            @keyframes drumOrb2 { 0%, 100% { transform: translateY(0) scale(1); opacity: 0.08; } 50% { transform: translateY(18px) scale(1.05); opacity: 0.14; } }
+            @keyframes drumOrb3 { 0%, 100% { transform: translate(0,0) scale(1); opacity: 0.05; } 50% { transform: translate(-12px,-14px) scale(1.1); opacity: 0.09; } }
+            @keyframes drumPulseRing { 0% { transform: scale(1); opacity: 0.12; } 100% { transform: scale(1.8); opacity: 0; } }
+            @keyframes drumShimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+          `}</style>
+
+          {/* ── Immersive Hero Section ── */}
+          <div className="relative rounded-2xl sm:rounded-3xl overflow-hidden mb-8 sm:mb-10" style={{
+            background: 'linear-gradient(160deg, rgba(120,53,15,0.14) 0%, rgba(245,158,11,0.07) 25%, rgba(124,58,237,0.05) 50%, rgba(6,8,13,0.97) 85%)',
+            border: '1px solid rgba(245,158,11,0.1)',
+          }}>
+            {/* Animated background orbs */}
+            <div className="absolute inset-0 overflow-hidden pointer-events-none">
+              <div className="absolute w-[500px] h-[500px] rounded-full" style={{
+                top: '-12%', left: '3%',
+                background: 'radial-gradient(circle, rgba(245,158,11,0.2) 0%, transparent 60%)',
+                animation: 'drumOrb1 8s ease-in-out infinite',
+              }} />
+              <div className="absolute w-[400px] h-[400px] rounded-full" style={{
+                bottom: '-25%', right: '8%',
+                background: 'radial-gradient(circle, rgba(234,88,12,0.15) 0%, transparent 60%)',
+                animation: 'drumOrb2 10s ease-in-out infinite',
+              }} />
+              <div className="absolute w-[280px] h-[280px] rounded-full" style={{
+                top: '25%', right: '22%',
+                background: 'radial-gradient(circle, rgba(124,58,237,0.1) 0%, transparent 55%)',
+                animation: 'drumOrb3 12s ease-in-out infinite',
+              }} />
+              {/* Subtle grid overlay */}
+              <div className="absolute inset-0 opacity-[0.02]" style={{
+                backgroundImage: 'linear-gradient(rgba(245,158,11,0.4) 1px, transparent 1px), linear-gradient(90deg, rgba(245,158,11,0.4) 1px, transparent 1px)',
+                backgroundSize: '60px 60px',
+              }} />
+            </div>
+
+            <div className="relative px-6 py-14 sm:py-18 md:py-22 lg:py-28 text-center">
+              {/* Studio badge */}
+              <div className="inline-flex items-center gap-2.5 px-5 py-2 rounded-full mb-8" style={{
+                background: 'rgba(245,158,11,0.06)',
+                border: '1px solid rgba(245,158,11,0.18)',
+                backdropFilter: 'blur(12px)',
+              }}>
+                <div className="w-2 h-2 rounded-full animate-pulse" style={{ background: '#f59e0b' }} />
+                <span className="text-[11px] font-bold tracking-[0.2em] uppercase" style={{ color: '#f59e0b' }}>Drum Studio</span>
+              </div>
+
+              {/* Title */}
+              <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black tracking-tight mb-5 leading-[1.05]">
+                <span className="text-white">Create Your</span>
+                <br />
+                <span className="bg-clip-text text-transparent" style={{
+                  backgroundImage: 'linear-gradient(135deg, #fcd34d 0%, #f59e0b 25%, #ea580c 50%, #f97316 75%, #fbbf24 100%)',
+                  backgroundSize: '200% auto',
+                  animation: 'drumShimmer 6s linear infinite',
+                }}>
+                  Groove
+                </span>
+              </h1>
+
+              <p className="text-sm sm:text-base md:text-lg text-[#8b95a5] max-w-2xl mx-auto leading-relaxed">
+                Three powerful ways to craft drum patterns — grid editor, AI generation, or scan from sheet music.
+                <br className="hidden sm:block" />
+                Build, save, and practice your rhythms.
+              </p>
+            </div>
+          </div>
+
+          {/* ── Three Creation Pathway Cards ── */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5 lg:gap-6 mb-8 sm:mb-10">
+
+            {/* Card 1: Compose */}
+            <button onClick={handleStartNewCompose}
+              className="group relative rounded-2xl overflow-hidden text-left transition-all duration-500 hover:scale-[1.03] hover:-translate-y-2 cursor-pointer focus:outline-none"
+              style={{
+                background: 'linear-gradient(180deg, rgba(245,158,11,0.1) 0%, rgba(234,88,12,0.04) 40%, rgba(6,8,13,0.95) 100%)',
+                border: '1px solid rgba(245,158,11,0.15)',
+              }}>
+              {/* Hover glow overlay */}
+              <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700"
+                style={{ background: 'radial-gradient(ellipse at 50% 0%, rgba(245,158,11,0.2) 0%, transparent 65%)' }} />
+              {/* Top accent line on hover */}
+              <div className="absolute top-0 left-[10%] right-[10%] h-[2px] rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+                style={{ background: 'linear-gradient(90deg, transparent, #f59e0b, transparent)' }} />
+
+              <div className="relative pt-10 pb-6 flex justify-center">
+                <div className="relative">
+                  <div className="w-20 h-20 rounded-2xl flex items-center justify-center" style={{
+                    background: 'rgba(245,158,11,0.1)',
+                    border: '1px solid rgba(245,158,11,0.2)',
+                    boxShadow: '0 0 40px -10px rgba(245,158,11,0.3)',
+                  }}>
+                    {/* Grid + Staff dual icon */}
+                    <svg className="w-10 h-10" viewBox="0 0 40 40" fill="none">
+                      <rect x="3" y="4" width="7" height="7" rx="1.5" fill="#f59e0b" opacity="0.7"/>
+                      <rect x="12" y="4" width="7" height="7" rx="1.5" fill="#f59e0b" opacity="0.4"/>
+                      <rect x="3" y="13" width="7" height="7" rx="1.5" fill="#f59e0b" opacity="0.3"/>
+                      <rect x="12" y="13" width="7" height="7" rx="1.5" fill="#f59e0b" opacity="0.6"/>
+                      <line x1="24" y1="6" x2="37" y2="6" stroke="#fbbf24" strokeWidth="1" opacity="0.5"/>
+                      <line x1="24" y1="10" x2="37" y2="10" stroke="#fbbf24" strokeWidth="1" opacity="0.5"/>
+                      <line x1="24" y1="14" x2="37" y2="14" stroke="#fbbf24" strokeWidth="1" opacity="0.5"/>
+                      <line x1="24" y1="18" x2="37" y2="18" stroke="#fbbf24" strokeWidth="1" opacity="0.5"/>
+                      <line x1="24" y1="22" x2="37" y2="22" stroke="#fbbf24" strokeWidth="1" opacity="0.5"/>
+                      <circle cx="28" cy="10" r="2" fill="#fbbf24" opacity="0.9"/>
+                      <circle cx="33" cy="14" r="2" fill="#fbbf24" opacity="0.9"/>
+                      <path d="M8 28l2 6h6l-5 3.5 2 6-5-3.5-5 3.5 2-6-5-3.5h6l2-6z" fill="#f59e0b" opacity="0.15"/>
+                    </svg>
+                  </div>
+                  {/* Pulse ring */}
+                  <div className="absolute inset-0 rounded-2xl" style={{ animation: 'drumPulseRing 3s ease-out infinite', background: '#f59e0b' }} />
+                </div>
+              </div>
+
+              <div className="relative px-6 pb-8">
+                <div className="flex items-center gap-2 mb-2">
+                  <h3 className="text-lg font-bold text-white">Compose</h3>
+                  <span className="px-2 py-0.5 rounded-full text-[8px] font-bold uppercase tracking-wider" style={{
+                    background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.2)', color: '#f59e0b',
+                  }}>Create</span>
+                </div>
+                <p className="text-[13px] text-[#6b7280] mb-5 leading-relaxed">
+                  Build patterns your way — use the grid editor or place notes directly on the staff notation.
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {['Grid + Staff', '10 Instruments', 'Multi-bar', 'Any Time Sig'].map(t => (
+                    <span key={t} className="px-2.5 py-1 rounded-full text-[9px] font-semibold" style={{
+                      background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.12)', color: '#8b95a5',
+                    }}>{t}</span>
+                  ))}
+                </div>
+              </div>
+            </button>
+
+            {/* Card 2: AI Builder */}
+            <button onClick={() => setMode('ai-builder')}
+              className="group relative rounded-2xl overflow-hidden text-left transition-all duration-500 hover:scale-[1.03] hover:-translate-y-2 cursor-pointer focus:outline-none"
+              style={{
+                background: 'linear-gradient(180deg, rgba(124,58,237,0.1) 0%, rgba(139,92,246,0.04) 40%, rgba(6,8,13,0.95) 100%)',
+                border: '1px solid rgba(124,58,237,0.15)',
+              }}>
+              <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700"
+                style={{ background: 'radial-gradient(ellipse at 50% 0%, rgba(124,58,237,0.2) 0%, transparent 65%)' }} />
+              <div className="absolute top-0 left-[10%] right-[10%] h-[2px] rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+                style={{ background: 'linear-gradient(90deg, transparent, #7c3aed, transparent)' }} />
+
+              <div className="relative pt-10 pb-6 flex justify-center">
+                <div className="relative">
+                  <div className="w-20 h-20 rounded-2xl flex items-center justify-center" style={{
+                    background: 'rgba(124,58,237,0.1)',
+                    border: '1px solid rgba(124,58,237,0.2)',
+                    boxShadow: '0 0 40px -10px rgba(124,58,237,0.3)',
+                  }}>
+                    {/* Stars/sparkles icon */}
+                    <svg className="w-10 h-10" viewBox="0 0 40 40" fill="none">
+                      <path d="M20 4l3 9h9l-7.5 5.5 3 9L20 22l-7.5 5.5 3-9L8 13h9l3-9z" fill="#a78bfa" opacity="0.9"/>
+                      <path d="M10 28l1.5 4.5h4.5l-3.5 2.5 1.5 4.5-3.5-2.5L7 39.5l1.5-4.5L5 32.5h4.5L10 28z" fill="#c4b5fd" opacity="0.5"/>
+                      <path d="M32 22l1 3h3l-2.5 2 1 3-2.5-2-2.5 2 1-3L28 25h3l1-3z" fill="#c4b5fd" opacity="0.4"/>
+                    </svg>
+                  </div>
+                  <div className="absolute inset-0 rounded-2xl" style={{ animation: 'drumPulseRing 3s ease-out infinite 0.5s', background: '#7c3aed' }} />
+                </div>
+              </div>
+
+              <div className="relative px-6 pb-8">
+                <div className="flex items-center gap-2 mb-2">
+                  <h3 className="text-lg font-bold text-white">AI Builder</h3>
+                  <span className="px-2 py-0.5 rounded-full text-[8px] font-bold uppercase tracking-wider" style={{
+                    background: 'rgba(124,58,237,0.12)', border: '1px solid rgba(124,58,237,0.2)', color: '#a78bfa',
+                  }}>AI</span>
+                </div>
+                <p className="text-[13px] text-[#6b7280] mb-5 leading-relaxed">
+                  Describe a style or groove and let Max generate a drum pattern tailored to your level.
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {['Any Style', 'Auto-generate', 'Difficulty Levels', 'Edit After'].map(t => (
+                    <span key={t} className="px-2.5 py-1 rounded-full text-[9px] font-semibold" style={{
+                      background: 'rgba(124,58,237,0.06)', border: '1px solid rgba(124,58,237,0.12)', color: '#8b95a5',
+                    }}>{t}</span>
+                  ))}
+                </div>
+              </div>
+            </button>
+
+            {/* Card 3: Scan */}
+            <button onClick={() => setMode('scan')}
+              className="group relative rounded-2xl overflow-hidden text-left transition-all duration-500 hover:scale-[1.03] hover:-translate-y-2 cursor-pointer focus:outline-none"
+              style={{
+                background: 'linear-gradient(180deg, rgba(6,182,212,0.1) 0%, rgba(34,211,238,0.04) 40%, rgba(6,8,13,0.95) 100%)',
+                border: '1px solid rgba(6,182,212,0.15)',
+              }}>
+              <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700"
+                style={{ background: 'radial-gradient(ellipse at 50% 0%, rgba(6,182,212,0.2) 0%, transparent 65%)' }} />
+              <div className="absolute top-0 left-[10%] right-[10%] h-[2px] rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+                style={{ background: 'linear-gradient(90deg, transparent, #06b6d4, transparent)' }} />
+
+              <div className="relative pt-10 pb-6 flex justify-center">
+                <div className="relative">
+                  <div className="w-20 h-20 rounded-2xl flex items-center justify-center" style={{
+                    background: 'rgba(6,182,212,0.1)',
+                    border: '1px solid rgba(6,182,212,0.2)',
+                    boxShadow: '0 0 40px -10px rgba(6,182,212,0.3)',
+                  }}>
+                    {/* Camera/scan icon */}
+                    <svg className="w-10 h-10" viewBox="0 0 40 40" fill="none">
+                      <rect x="5" y="10" width="30" height="22" rx="4" fill="#06b6d4" opacity="0.15" stroke="#06b6d4" strokeWidth="1.5" strokeOpacity="0.4"/>
+                      <circle cx="20" cy="21" r="7" fill="#06b6d4" opacity="0.2" stroke="#22d3ee" strokeWidth="1.5" strokeOpacity="0.6"/>
+                      <circle cx="20" cy="21" r="3.5" fill="#22d3ee" opacity="0.7"/>
+                      <rect x="14" y="6" width="12" height="6" rx="2" fill="#06b6d4" opacity="0.3"/>
+                    </svg>
+                  </div>
+                  <div className="absolute inset-0 rounded-2xl" style={{ animation: 'drumPulseRing 3s ease-out infinite 1s', background: '#06b6d4' }} />
+                </div>
+              </div>
+
+              <div className="relative px-6 pb-8">
+                <div className="flex items-center gap-2 mb-2">
+                  <h3 className="text-lg font-bold text-white">Scan</h3>
+                  <span className="px-2 py-0.5 rounded-full text-[8px] font-bold uppercase tracking-wider" style={{
+                    background: 'rgba(6,182,212,0.12)', border: '1px solid rgba(6,182,212,0.2)', color: '#22d3ee',
+                  }}>Import</span>
+                </div>
+                <p className="text-[13px] text-[#6b7280] mb-5 leading-relaxed">
+                  Take a photo of drum notation and let AI convert it into an editable pattern instantly.
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {['Photo Import', 'Sheet Music', 'Auto-detect', 'Quick Convert'].map(t => (
+                    <span key={t} className="px-2.5 py-1 rounded-full text-[9px] font-semibold" style={{
+                      background: 'rgba(6,182,212,0.06)', border: '1px solid rgba(6,182,212,0.12)', color: '#8b95a5',
+                    }}>{t}</span>
+                  ))}
+                </div>
+              </div>
+            </button>
+          </div>
+
+          {/* ── Recent Creations ── */}
+          {myPatterns.length > 0 && (
+            <div className="rounded-2xl overflow-hidden" style={{
+              background: 'linear-gradient(135deg, rgba(6,8,13,0.8) 0%, rgba(10,12,18,0.9) 100%)',
+              border: '1px solid rgba(255,255,255,0.04)',
+            }}>
+              <div className="px-5 py-4 flex items-center justify-between" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                <div className="flex items-center gap-3">
+                  <span className="text-[11px] font-bold text-[#4b5563] uppercase tracking-[0.15em]">Recent Creations</span>
+                  <span className="px-2 py-0.5 rounded-full text-[9px] font-bold" style={{
+                    background: 'rgba(245,158,11,0.08)', color: '#f59e0b',
+                  }}>{myPatterns.length}</span>
+                </div>
+              </div>
+              <div className="p-4 flex gap-3 overflow-x-auto">
+                {myPatterns.slice(0, 8).map(ex => (
+                  <button key={ex.id} onClick={() => navigate(`/drums/studio/${ex.id}`)}
+                    className="flex-shrink-0 w-[180px] p-3.5 rounded-xl text-left transition-all hover:bg-white/[0.04] cursor-pointer group"
+                    style={{ border: '1px solid rgba(255,255,255,0.04)' }}>
+                    <div className="text-[12px] font-semibold text-[#c4c9d4] truncate group-hover:text-white transition-colors">{ex.title}</div>
+                    <div className="flex gap-2 mt-1.5 text-[9px] text-[#4b5563]">
+                      <span>{(ex.timeSignature ?? [4,4]).join('/')}</span>
+                      <span>{ex.bars ?? 1} bar{(ex.bars ?? 1) > 1 ? 's' : ''}</span>
+                      <span>{ex.bpm} bpm</span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      ) : mode === 'create' ? (
+
+      /* ═══════════════════════════════════════════════════════════════════════ */
+      /* COMPOSE — full-page layout, bar-by-bar editing                        */
+      /* ═══════════════════════════════════════════════════════════════════════ */
+      <div className="space-y-5">
+        {/* ── Header ── */}
+        <div className="flex items-center gap-3">
+          <button onClick={() => { setMode(null); navigate('/drums/studio', { replace: true }) }}
+            className="w-9 h-9 rounded-xl flex items-center justify-center transition-all hover:bg-white/[0.06] cursor-pointer"
+            style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.15)' }}>
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="#f59e0b" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
+          </button>
+          <div>
+            <h1 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight">Compose</h1>
+            <p className="text-[11px] text-[#4b5563]">Build your drum pattern bar by bar</p>
+          </div>
+        </div>
+
+        {/* ── Settings Panel ── */}
+        <div className="rounded-2xl p-5 sm:p-6 border border-white/[0.04]" style={{
+          background: 'linear-gradient(135deg, rgba(12,14,20,0.7) 0%, rgba(10,12,18,0.8) 100%)',
+        }}>
+          {/* Row 1: Name + BPM */}
+          <div className="flex flex-wrap items-end gap-4 mb-4">
+            <div className="flex-1 min-w-[200px]">
+              <label className="text-[10px] text-[#4b5a6a] uppercase tracking-wider mb-1.5 block">Pattern Name</label>
+              <input type="text" value={title} onChange={e => setTitle(e.target.value)}
+                placeholder="My pattern name..."
+                className="w-full px-3 py-2 rounded-xl bg-white/[0.04] border border-white/[0.06] text-white text-sm placeholder:text-[#374151] focus:outline-none focus:border-amber-500/30 transition-colors" />
+            </div>
+            <div>
+              <label className="text-[10px] text-[#4b5a6a] uppercase tracking-wider mb-1.5 block">Tempo</label>
+              <div className="flex items-center gap-2">
+                <button onClick={() => setBpm(Math.max(40, bpm - 5))} className="w-7 h-7 rounded-lg bg-white/[0.04] border border-white/[0.06] text-[#94a3b8] hover:text-white flex items-center justify-center cursor-pointer transition-colors text-sm font-bold">-</button>
+                <span className="font-mono text-white text-sm w-8 text-center">{bpm}</span>
+                <button onClick={() => setBpm(Math.min(200, bpm + 5))} className="w-7 h-7 rounded-lg bg-white/[0.04] border border-white/[0.06] text-[#94a3b8] hover:text-white flex items-center justify-center cursor-pointer transition-colors text-sm font-bold">+</button>
+                <span className="text-[10px] text-[#4b5a6a]">BPM</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Row 2: Time Sig, Resolution, Bars */}
+          <div className="flex flex-wrap items-end gap-5 mb-4">
+            <div>
+              <label className="text-[10px] text-[#4b5a6a] uppercase tracking-wider mb-1.5 block">Time Sig</label>
+              <div className="flex gap-1">
+                {TIME_SIGNATURES.map(ts => (
+                  <button key={ts.join('/')} onClick={() => handleTimeSigChange(ts)}
+                    className={`px-2 py-1.5 rounded-lg text-xs transition-colors cursor-pointer ${
+                      timeSig[0] === ts[0] && timeSig[1] === ts[1]
+                        ? 'bg-amber-500/15 text-amber-400 border border-amber-500/25'
+                        : 'bg-white/[0.04] border border-white/[0.06] text-[#4b5a6a] hover:text-white'
+                    }`}>{ts[0]}/{ts[1]}</button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <label className="text-[10px] text-[#4b5a6a] uppercase tracking-wider mb-1.5 block">Bars <span className="text-[#374151] normal-case">(1–32)</span></label>
+              <div className="flex items-center gap-2">
+                <input type="range" min={1} max={32} value={bars}
+                  onChange={e => handleBarsChange(parseInt(e.target.value))}
+                  className="w-24 sm:w-32 h-1 rounded-full cursor-pointer" style={{ accentColor: '#f59e0b' }} />
+                <input type="number" min={1} max={32} value={bars}
+                  onChange={e => { const v = parseInt(e.target.value); if (v >= 1 && v <= 32) handleBarsChange(v) }}
+                  className="w-12 px-2 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.06] text-white text-xs text-center font-mono focus:outline-none focus:border-amber-500/30" />
+              </div>
+            </div>
+          </div>
+
+          {/* Row 3: Instruments */}
+          <div>
+            <label className="text-[10px] text-[#4b5a6a] uppercase tracking-wider mb-1.5 block">Instruments</label>
+            <div className="flex flex-wrap gap-1.5">
+              {ALL_PADS.map(({ pad, label, group }) => (
+                <button key={pad} onClick={() => togglePad(pad)}
+                  className={`px-2.5 py-1 rounded-lg text-[11px] transition-colors cursor-pointer ${
+                    enabledPads.includes(pad)
+                      ? group === 'cymbal'
+                        ? 'bg-cyan-500/15 text-cyan-400 border border-cyan-500/25'
+                        : 'bg-amber-500/15 text-amber-400 border border-amber-500/25'
+                      : 'bg-white/[0.03] border border-white/[0.04] text-[#374151] hover:text-[#6b7280]'
+                  }`}>{label}</button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* ── Bar Selector + Per-bar Resolution ── */}
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="text-[11px] font-semibold text-[#4b5563] uppercase tracking-widest flex-shrink-0">Editing</span>
+          <div className="flex gap-1.5 overflow-x-auto pb-1">
+            {Array.from({ length: bars }).map((_, i) => {
+              const bp = getBarPattern(i)
+              const has = Object.values(bp.tracks).some(t => t.some(v => v > 0))
+              const bSub = barSubdivisions[i] ?? 4
+              const subLabel = SUBDIVISIONS.find(s => s.value === bSub)?.label || ''
+              return (
+                <button key={i} onClick={() => setEditingBar(i)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer flex-shrink-0 ${
+                    editingBar === i
+                      ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30 shadow-lg shadow-amber-500/10'
+                      : has
+                        ? 'bg-white/[0.04] border border-white/[0.06] text-[#94a3b8] hover:text-white hover:bg-white/[0.06]'
+                        : 'bg-white/[0.02] border border-white/[0.03] text-[#374151] hover:text-[#6b7280]'
+                  }`}>
+                  Bar {i + 1}
+                  <span className="ml-1 text-[8px] opacity-50">{subLabel}</span>
+                  {has && <span className="ml-0.5 w-1.5 h-1.5 rounded-full bg-amber-400/60 inline-block" />}
+                </button>
+              )
+            })}
+            {/* Add Bar button */}
+            {bars < 32 && (
+              <button onClick={() => { handleBarsChange(bars + 1); setEditingBar(bars) }}
+                className="px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer flex-shrink-0 bg-white/[0.03] border border-dashed border-white/[0.08] text-[#4b5a6a] hover:text-amber-400 hover:border-amber-500/25"
+                title="Add bar">
+                + Bar
+              </button>
+            )}
+          </div>
+          {/* Per-bar resolution */}
+          <div className="flex items-center gap-1.5 flex-shrink-0 ml-auto">
+            <span className="text-[9px] text-[#4b5a6a] uppercase tracking-wider">Resolution</span>
+            {SUBDIVISIONS.map(s => (
+              <button key={s.value} onClick={() => handleBarResolutionChange(s.value)}
+                className={`px-2 py-1 rounded-lg text-[10px] font-medium transition-colors cursor-pointer ${
+                  (barSubdivisions[editingBar] ?? 4) === s.value
+                    ? 'bg-amber-500/15 text-amber-400 border border-amber-500/25'
+                    : 'bg-white/[0.03] border border-white/[0.04] text-[#4b5a6a] hover:text-white'
+                }`}>{s.label}</button>
+            ))}
+          </div>
+          <button onClick={handleClear}
+            className="text-[10px] px-2 py-1 rounded-lg bg-white/[0.04] border border-white/[0.06] text-[#4b5a6a] hover:text-rose-400 transition-colors cursor-pointer flex-shrink-0">
+            Clear All
+          </button>
+        </div>
+
+        {/* ── Staff Notation Editor ── */}
+        <div className="rounded-2xl p-5 border border-white/[0.06]" style={{
+          background: 'linear-gradient(135deg, rgba(20,22,30,0.95) 0%, rgba(24,26,36,0.98) 100%)',
+        }}>
+          <div className="flex items-center gap-2 mb-3">
+            <svg className="w-4 h-4 text-[#6b7280]" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.2"><line x1="2" y1="3" x2="14" y2="3"/><line x1="2" y1="6" x2="14" y2="6"/><line x1="2" y1="9" x2="14" y2="9"/><line x1="2" y1="12" x2="14" y2="12"/><circle cx="5" cy="6" r="1.5" fill="currentColor"/><circle cx="10" cy="9" r="1.5" fill="currentColor"/></svg>
+            <span className="text-[11px] font-semibold text-[#6b7280] uppercase tracking-widest">Staff Notation</span>
+            <span className="text-[9px] text-[#374151]">Bar {editingBar + 1}</span>
+          </div>
+          <NotationInput
+            key={`notation-${editingBar}-${currentBarSub}`}
+            pattern={editingBarPattern}
+            enabledPads={enabledPads}
+            bars={1}
+            onChange={handleBarChange}
+          />
+        </div>
+
+        {/* ── Grid Editor ── */}
+        <div className="rounded-2xl p-5 border border-white/[0.06]" style={{
+          background: 'linear-gradient(135deg, rgba(20,22,30,0.95) 0%, rgba(24,26,36,0.98) 100%)',
+        }}>
+          <div className="flex items-center gap-2 mb-3">
+            <svg className="w-4 h-4 text-[#6b7280]" viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="1" width="6" height="6" rx="1" opacity="0.7"/><rect x="9" y="1" width="6" height="6" rx="1" opacity="0.4"/><rect x="1" y="9" width="6" height="6" rx="1" opacity="0.4"/><rect x="9" y="9" width="6" height="6" rx="1" opacity="0.7"/></svg>
+            <span className="text-[11px] font-semibold text-[#6b7280] uppercase tracking-widest">Grid Editor</span>
+            <span className="text-[9px] text-[#374151]">Bar {editingBar + 1}</span>
+          </div>
+          <EditableGrid
+            key={`grid-${editingBar}-${currentBarSub}`}
+            pattern={editingBarPattern}
+            enabledPads={enabledPads}
+            bars={1}
+            onChange={handleBarChange}
+          />
+        </div>
+
+        {/* ── Full Pattern Preview — single continuous view with 4-bar line breaks ── */}
+        {hasNotes && (
+          <div className="rounded-2xl p-5 border border-white/[0.04]" style={{
+            background: 'linear-gradient(135deg, rgba(12,14,20,0.7) 0%, rgba(10,12,18,0.8) 100%)',
+          }}>
+            <div className="text-[11px] font-semibold text-[#4b5563] uppercase tracking-widest mb-3">
+              Full Pattern Preview <span className="text-[#374151] font-normal">({bars} bar{bars > 1 ? 's' : ''})</span>
+            </div>
+            <StaffNotationDisplay
+              pattern={fullPattern}
+              bpm={bpm}
+              bars={1}
+              beatsPerBar={timeSig[0]}
+              onBpmChange={setBpm}
+            />
+          </div>
+        )}
+
+        {/* ── Save bar ── */}
+        <div className="flex items-center gap-3">
+          <button onClick={handleSave} disabled={saving || !title.trim() || !hasNotes}
+            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-semibold transition-all cursor-pointer ${
+              saving || !title.trim() || !hasNotes
+                ? 'bg-white/[0.04] text-[#374151] border border-white/[0.04] cursor-not-allowed'
+                : 'text-white hover:brightness-110'
+            }`}
+            style={saving || !title.trim() || !hasNotes ? undefined : { background: 'linear-gradient(135deg, #d97706, #f59e0b)' }}>
+            {saving ? (
+              <><svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg> Saving...</>
+            ) : saveSuccess ? (
+              <><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg> Saved!</>
+            ) : savedId ? 'Update Pattern' : 'Save Pattern'}
+          </button>
+          {savedId && (
+            <Link to={`/drums/practice/play/studio:${savedId}`}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20 hover:bg-amber-500/15 transition-colors">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Practice This
+            </Link>
+          )}
+          {!title.trim() && hasNotes && (
+            <span className="text-[11px] text-amber-400/60">Give your pattern a name to save it</span>
+          )}
+        </div>
+      </div>
+
+      ) : (<>
+
       {/* Header */}
       <div className="relative mb-6 sm:mb-8 overflow-hidden rounded-2xl sm:rounded-3xl p-5 sm:p-6 md:p-8 lg:p-10 border border-white/[0.04]" style={{
         background: 'linear-gradient(135deg, rgba(15,12,8,0.9) 0%, rgba(10,14,22,0.9) 50%, rgba(15,12,8,0.8) 100%)',
@@ -282,16 +884,25 @@ export default function StudioPage() {
           background: 'radial-gradient(circle, rgba(245,158,11,0.05) 0%, transparent 70%)',
         }} />
         <div className="relative z-10">
-          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white mb-2 tracking-tight">
-            Studio<span className="bg-gradient-to-r from-violet-400 to-fuchsia-400 bg-clip-text text-transparent">.</span>
-          </h1>
-          <p className="text-[#6b7280] text-sm sm:text-base lg:text-lg max-w-xl">
-            Create drum patterns from scratch. Click the grid to place hits, preview the notation, and save for practice.
+          <div className="flex items-center gap-3 mb-1">
+            <button onClick={() => setMode(null)}
+              className="w-10 h-10 rounded-xl flex items-center justify-center transition-all hover:bg-white/[0.06] cursor-pointer"
+              style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.15)' }}>
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="#f59e0b" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
+            </button>
+            <div>
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white tracking-tight">
+                Studio<span className="bg-gradient-to-r from-amber-400 to-orange-400 bg-clip-text text-transparent">.</span>
+              </h1>
+            </div>
+          </div>
+          <p className="text-[#6b7280] text-sm sm:text-base lg:text-lg max-w-xl ml-[52px]">
+            Build drum patterns using the grid editor or notation staff. Preview, save, and practice your grooves.
           </p>
           {/* Mode tabs */}
           <div className="flex gap-2 mt-4">
             {([
-              { id: 'create' as StudioMode, label: 'Create', icon: '🎹', ready: true },
+              { id: 'create' as StudioMode, label: 'Compose', icon: '🎹', ready: true },
               { id: 'ai-builder' as StudioMode, label: 'AI Builder', icon: '✨', ready: true },
               { id: 'scan' as StudioMode, label: 'Scan', icon: '📷', ready: true },
             ]).map(tab => (
@@ -384,38 +995,60 @@ export default function StudioPage() {
             <ScanTab onPatternGenerated={handleAiPatternGenerated} />
           )}
 
-          {/* ═══ Create mode ═══ */}
-          {mode === 'create' && (<>
-          {/* ── Settings bar ── */}
-          <div className="rounded-2xl p-5 border border-white/[0.04]" style={{
-            background: 'linear-gradient(135deg, rgba(12,14,20,0.7) 0%, rgba(10,12,18,0.8) 100%)',
-          }}>
-            <div className="text-[11px] font-semibold text-[#4b5563] uppercase tracking-widest mb-4">Pattern Settings</div>
-
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              {/* Pattern name */}
-              <div className="col-span-2">
-                <label className="text-[10px] text-[#4b5a6a] uppercase tracking-wider mb-1 block">Name</label>
+          {/* Compose mode renders its own full-page layout above */}
+          {mode === 'create' && null}
+          {false && (<>
+          <div className="hidden">
+            <div className="flex flex-wrap items-end justify-between gap-4 mb-5">
+              <div className="flex-1 min-w-[200px]">
+                <label className="text-[10px] text-[#4b5a6a] uppercase tracking-wider mb-1.5 block">Pattern Name</label>
                 <input
                   type="text"
                   value={title}
                   onChange={e => setTitle(e.target.value)}
                   placeholder="My pattern name..."
-                  className="w-full px-3 py-2 rounded-lg bg-white/[0.04] border border-white/[0.06] text-white text-sm placeholder:text-[#374151] focus:outline-none focus:border-violet-500/30 transition-colors"
+                  className="w-full px-3 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.06] text-white text-sm placeholder:text-[#374151] focus:outline-none focus:border-amber-500/30 transition-colors"
                 />
               </div>
+              {/* View toggle: Grid ↔ Staff */}
+              <div>
+                <label className="text-[10px] text-[#4b5a6a] uppercase tracking-wider mb-1.5 block">Editor Mode</label>
+                <div className="flex rounded-xl overflow-hidden border border-white/[0.06]" style={{ background: 'rgba(255,255,255,0.02)' }}>
+                  <button onClick={() => setEditorView('grid')}
+                    className={`px-4 py-2 text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
+                      editorView === 'grid'
+                        ? 'bg-amber-500/15 text-amber-400 border-r border-amber-500/20'
+                        : 'text-[#4b5a6a] hover:text-white border-r border-white/[0.04]'
+                    }`}>
+                    <svg className="w-3.5 h-3.5" viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="1" width="6" height="6" rx="1" opacity="0.8"/><rect x="9" y="1" width="6" height="6" rx="1" opacity="0.4"/><rect x="1" y="9" width="6" height="6" rx="1" opacity="0.4"/><rect x="9" y="9" width="6" height="6" rx="1" opacity="0.8"/></svg>
+                    Grid
+                  </button>
+                  <button onClick={() => setEditorView('staff')}
+                    className={`px-4 py-2 text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
+                      editorView === 'staff'
+                        ? 'bg-amber-500/15 text-amber-400'
+                        : 'text-[#4b5a6a] hover:text-white'
+                    }`}>
+                    <svg className="w-3.5 h-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.2"><line x1="2" y1="3" x2="14" y2="3"/><line x1="2" y1="6" x2="14" y2="6"/><line x1="2" y1="9" x2="14" y2="9"/><line x1="2" y1="12" x2="14" y2="12"/><circle cx="5" cy="6" r="1.5" fill="currentColor"/><circle cx="10" cy="9" r="1.5" fill="currentColor"/></svg>
+                    Staff
+                  </button>
+                </div>
+              </div>
+            </div>
 
+            {/* Settings grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-x-5 gap-y-4">
               {/* Time signature */}
               <div>
-                <label className="text-[10px] text-[#4b5a6a] uppercase tracking-wider mb-1 block">Time Sig</label>
-                <div className="flex gap-1">
+                <label className="text-[10px] text-[#4b5a6a] uppercase tracking-wider mb-1.5 block">Time Sig</label>
+                <div className="flex flex-wrap gap-1">
                   {TIME_SIGNATURES.map(ts => (
                     <button
                       key={ts.join('/')}
                       onClick={() => handleTimeSigChange(ts)}
                       className={`px-2 py-1.5 rounded-lg text-xs transition-colors cursor-pointer ${
                         timeSig[0] === ts[0] && timeSig[1] === ts[1]
-                          ? 'bg-violet-500/15 text-violet-400 border border-violet-500/25'
+                          ? 'bg-amber-500/15 text-amber-400 border border-amber-500/25'
                           : 'bg-white/[0.04] border border-white/[0.06] text-[#4b5a6a] hover:text-white'
                       }`}
                     >
@@ -427,7 +1060,7 @@ export default function StudioPage() {
 
               {/* Subdivisions */}
               <div>
-                <label className="text-[10px] text-[#4b5a6a] uppercase tracking-wider mb-1 block">Resolution</label>
+                <label className="text-[10px] text-[#4b5a6a] uppercase tracking-wider mb-1.5 block">Resolution</label>
                 <div className="flex gap-1">
                   {SUBDIVISIONS.map(s => (
                     <button
@@ -435,7 +1068,7 @@ export default function StudioPage() {
                       onClick={() => handleSubdivisionsChange(s.value)}
                       className={`px-2 py-1.5 rounded-lg text-xs transition-colors cursor-pointer ${
                         subdivisions === s.value
-                          ? 'bg-violet-500/15 text-violet-400 border border-violet-500/25'
+                          ? 'bg-amber-500/15 text-amber-400 border border-amber-500/25'
                           : 'bg-white/[0.04] border border-white/[0.06] text-[#4b5a6a] hover:text-white'
                       }`}
                     >
@@ -447,7 +1080,7 @@ export default function StudioPage() {
 
               {/* Bars */}
               <div>
-                <label className="text-[10px] text-[#4b5a6a] uppercase tracking-wider mb-1 block">Bars</label>
+                <label className="text-[10px] text-[#4b5a6a] uppercase tracking-wider mb-1.5 block">Bars</label>
                 <div className="flex gap-1">
                   {BAR_OPTIONS.map(b => (
                     <button
@@ -455,7 +1088,7 @@ export default function StudioPage() {
                       onClick={() => handleBarsChange(b)}
                       className={`px-2.5 py-1.5 rounded-lg text-xs transition-colors cursor-pointer ${
                         bars === b
-                          ? 'bg-violet-500/15 text-violet-400 border border-violet-500/25'
+                          ? 'bg-amber-500/15 text-amber-400 border border-amber-500/25'
                           : 'bg-white/[0.04] border border-white/[0.06] text-[#4b5a6a] hover:text-white'
                       }`}
                     >
@@ -467,18 +1100,18 @@ export default function StudioPage() {
 
               {/* BPM */}
               <div>
-                <label className="text-[10px] text-[#4b5a6a] uppercase tracking-wider mb-1 block">Tempo</label>
+                <label className="text-[10px] text-[#4b5a6a] uppercase tracking-wider mb-1.5 block">Tempo</label>
                 <div className="flex items-center gap-2">
-                  <button onClick={() => setBpm(Math.max(40, bpm - 5))} className="w-7 h-7 rounded-lg bg-white/[0.04] border border-white/[0.06] text-[#94a3b8] hover:text-white flex items-center justify-center cursor-pointer transition-colors text-sm">-</button>
+                  <button onClick={() => setBpm(Math.max(40, bpm - 5))} className="w-7 h-7 rounded-lg bg-white/[0.04] border border-white/[0.06] text-[#94a3b8] hover:text-white flex items-center justify-center cursor-pointer transition-colors text-sm font-bold">-</button>
                   <span className="font-mono text-white text-sm w-8 text-center">{bpm}</span>
-                  <button onClick={() => setBpm(Math.min(200, bpm + 5))} className="w-7 h-7 rounded-lg bg-white/[0.04] border border-white/[0.06] text-[#94a3b8] hover:text-white flex items-center justify-center cursor-pointer transition-colors text-sm">+</button>
+                  <button onClick={() => setBpm(Math.min(200, bpm + 5))} className="w-7 h-7 rounded-lg bg-white/[0.04] border border-white/[0.06] text-[#94a3b8] hover:text-white flex items-center justify-center cursor-pointer transition-colors text-sm font-bold">+</button>
                   <span className="text-[10px] text-[#4b5a6a]">BPM</span>
                 </div>
               </div>
 
-              {/* Instruments */}
-              <div className="col-span-2 lg:col-span-4">
-                <label className="text-[10px] text-[#4b5a6a] uppercase tracking-wider mb-2 block">Instruments</label>
+              {/* Instruments — full width */}
+              <div className="col-span-2 sm:col-span-3 lg:col-span-5">
+                <label className="text-[10px] text-[#4b5a6a] uppercase tracking-wider mb-1.5 block">Instruments</label>
                 <div className="flex flex-wrap gap-1.5">
                   {ALL_PADS.map(({ pad, label, group }) => (
                     <button
@@ -500,12 +1133,19 @@ export default function StudioPage() {
             </div>
           </div>
 
-          {/* ── Grid editor ── */}
+          {/* ── Editor area: Grid or Staff ── */}
           <div className="rounded-2xl p-5 border border-white/[0.04]" style={{
             background: 'linear-gradient(135deg, rgba(6,8,13,0.95) 0%, rgba(8,10,16,0.98) 100%)',
           }}>
             <div className="flex items-center justify-between mb-3">
-              <span className="text-[11px] font-semibold text-[#4b5563] uppercase tracking-widest">Grid Editor</span>
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] font-semibold text-[#4b5563] uppercase tracking-widest">
+                  {editorView === 'grid' ? 'Grid Editor' : 'Staff Notation Editor'}
+                </span>
+                <span className="px-1.5 py-0.5 rounded text-[8px] font-bold uppercase" style={{
+                  background: 'rgba(245,158,11,0.08)', color: '#f59e0b',
+                }}>{editorView === 'grid' ? 'Grid' : 'Staff'}</span>
+              </div>
               <button
                 onClick={handleClear}
                 className="text-[10px] px-2 py-1 rounded-lg bg-white/[0.04] border border-white/[0.06] text-[#4b5a6a] hover:text-rose-400 transition-colors cursor-pointer"
@@ -513,12 +1153,22 @@ export default function StudioPage() {
                 Clear All
               </button>
             </div>
-            <EditableGrid
-              pattern={pattern}
-              enabledPads={enabledPads}
-              bars={bars}
-              onChange={setPattern}
-            />
+
+            {editorView === 'grid' ? (
+              <EditableGrid
+                pattern={pattern}
+                enabledPads={enabledPads}
+                bars={bars}
+                onChange={setPattern}
+              />
+            ) : (
+              <NotationInput
+                pattern={pattern}
+                enabledPads={enabledPads}
+                bars={bars}
+                onChange={setPattern}
+              />
+            )}
           </div>
 
           {/* ── Full pattern preview ── */}
@@ -657,6 +1307,7 @@ export default function StudioPage() {
           )}
         </div>
       </div>
+      </>)}
     </div>
   )
 }

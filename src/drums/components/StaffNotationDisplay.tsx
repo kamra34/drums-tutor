@@ -53,11 +53,11 @@ function patternToVexNotes(pattern: PatternData): { upNotes: (StaveNote | GhostN
   // Base duration from subdivision
   const subDur = subdivisions >= 4 ? '16' : subdivisions >= 2 ? '8' : 'q'
 
-  // Pre-scan: check if each voice has any off-beat hits
-  // If a voice ONLY hits on beat boundaries, it can use quarter notes
-  function voiceHasOffBeats(voice: 'up' | 'down'): boolean {
-    for (let slot = 0; slot < totalSlots; slot++) {
-      if (slot % subdivisions === 0) continue // on-beat, skip
+  // Per-beat check: does this beat have off-beat hits for a given voice?
+  function beatHasOffBeats(beatStartSlot: number, voice: 'up' | 'down'): boolean {
+    for (let s = 1; s < subdivisions; s++) {
+      const slot = beatStartSlot + s
+      if (slot >= totalSlots) break
       for (const [pad, vals] of Object.entries(tracks) as [DrumPad, HitValue[]][]) {
         const mapping = PAD_TO_VEX[pad]
         if (!mapping || mapping.voice !== voice) continue
@@ -66,17 +66,6 @@ function patternToVexNotes(pattern: PatternData): { upNotes: (StaveNote | GhostN
     }
     return false
   }
-
-  const upHasOffBeats = voiceHasOffBeats('up')
-  const downHasOffBeats = voiceHasOffBeats('down')
-
-  // Duration for each voice: use quarter notes if all hits are on beats
-  const upDur = upHasOffBeats ? subDur : 'q'
-  const downDur = downHasOffBeats ? subDur : 'q'
-
-  // Step size: how many slots per note for each voice
-  const upStep = upHasOffBeats ? 1 : subdivisions
-  const downStep = downHasOffBeats ? 1 : subdivisions
 
   const upNotes: (StaveNote | GhostNote)[] = []
   const downNotes: (StaveNote | GhostNote)[] = []
@@ -98,75 +87,76 @@ function patternToVexNotes(pattern: PatternData): { upNotes: (StaveNote | GhostN
     return slotHasHit(slot, 'up') || slotHasHit(slot, 'down')
   }
 
-  // Build notes for a voice
-  // showRests: if true, empty slots where the OTHER voice is also empty get a visible rest
+  // Build notes for a voice — per-beat adaptive resolution
+  // Beats with only on-beat hits use quarter notes; beats with off-beat hits use subDur
   function buildVoice(
-    voice: 'up' | 'down', dur: string, step: number,
+    voice: 'up' | 'down',
     notes: (StaveNote | GhostNote)[], beamGroups: (StaveNote | GhostNote)[][],
     stemDir: number, showRests: boolean,
   ) {
     const otherVoice = voice === 'up' ? 'down' : 'up'
     let currentGroup: (StaveNote | GhostNote)[] = []
 
-    for (let slot = 0; slot < totalSlots; slot += step) {
-      const keys: string[] = []
-      const noteHeads: Record<number, string> = {}
-      let accent = false
-      let ghost = false
+    // Walk beat by beat, deciding resolution per beat
+    for (let beatStart = 0; beatStart < totalSlots; beatStart += subdivisions) {
+      const offBeats = beatHasOffBeats(beatStart, voice)
+      const step = offBeats ? 1 : subdivisions
+      const dur = offBeats ? subDur : 'q'
 
-      for (const [pad, vals] of Object.entries(tracks) as [DrumPad, HitValue[]][]) {
-        const mapping = PAD_TO_VEX[pad]
-        if (!mapping || mapping.voice !== voice) continue
-        const hv = vals[slot] ?? 0
-        if (hv === 0) continue
+      for (let slot = beatStart; slot < beatStart + subdivisions; slot += step) {
+        const keys: string[] = []
+        const noteHeads: Record<number, string> = {}
+        let accent = false
+        let ghost = false
 
-        const idx = keys.length
-        const fullKey = mapping.noteHead ? `${mapping.key}/${mapping.noteHead}` : mapping.key
-        keys.push(fullKey)
-        if (mapping.noteHead) noteHeads[idx] = mapping.noteHead
-        if (hv === 2) accent = true
-        if (hv === 3) ghost = true
-      }
+        for (const [pad, vals] of Object.entries(tracks) as [DrumPad, HitValue[]][]) {
+          const mapping = PAD_TO_VEX[pad]
+          if (!mapping || mapping.voice !== voice) continue
+          const hv = vals[slot] ?? 0
+          if (hv === 0) continue
 
-      if (keys.length > 0) {
-        const note = new StaveNote({
-          keys, duration: dur, stemDirection: stemDir, clef: 'percussion',
-        })
-        for (const [idx] of Object.entries(noteHeads)) {
-          note.setKeyStyle(Number(idx), { fillStyle: ghost ? '#999' : '#000' })
+          const idx = keys.length
+          const fullKey = mapping.noteHead ? `${mapping.key}/${mapping.noteHead}` : mapping.key
+          keys.push(fullKey)
+          if (mapping.noteHead) noteHeads[idx] = mapping.noteHead
+          if (hv === 2) accent = true
+          if (hv === 3) ghost = true
         }
-        if (accent) {
-          try { note.addModifier(new Articulation('a>').setPosition(stemDir === 1 ? 3 : 4)) } catch {}
-        }
-        notes.push(note)
-        currentGroup.push(note)
-      } else {
-        // Empty slot: show a visible rest if this is the primary voice
-        // and the other voice also has no note here
-        const otherHasNote = slotHasHit(slot, otherVoice)
-        if (showRests && !otherHasNote) {
-          // Visible rest — VexFlow uses 'r' suffix on duration
-          const rest = new StaveNote({
-            keys: ['b/4'],
-            duration: dur + 'r',
-            stemDirection: stemDir,
-            clef: 'percussion',
+
+        if (keys.length > 0) {
+          const note = new StaveNote({
+            keys, duration: dur, stemDirection: stemDir, clef: 'percussion',
           })
-          rest.setStyle({ fillStyle: '#4b5563', strokeStyle: '#4b5563' })
-          notes.push(rest)
+          for (const [idx] of Object.entries(noteHeads)) {
+            note.setKeyStyle(Number(idx), { fillStyle: ghost ? '#999' : '#000' })
+          }
+          if (accent) {
+            try { note.addModifier(new Articulation('a>').setPosition(stemDir === 1 ? 3 : 4)) } catch {}
+          }
+          notes.push(note)
+          currentGroup.push(note)
         } else {
-          notes.push(new GhostNote({ duration: dur }))
+          const otherHasNote = slotHasHit(slot, otherVoice)
+          if (showRests && !otherHasNote) {
+            const rest = new StaveNote({
+              keys: ['b/4'],
+              duration: dur + 'r',
+              stemDirection: stemDir,
+              clef: 'percussion',
+            })
+            rest.setStyle({ fillStyle: '#4b5563', strokeStyle: '#4b5563' })
+            notes.push(rest)
+          } else {
+            notes.push(new GhostNote({ duration: dur }))
+          }
+          if (currentGroup.length >= 2) beamGroups.push(currentGroup)
+          currentGroup = []
         }
-        if (currentGroup.length >= 2) beamGroups.push(currentGroup)
-        currentGroup = []
       }
 
       // Break beam groups at beat boundaries
-      const nextSlot = slot + step
-      if (nextSlot % subdivisions === 0 || nextSlot >= totalSlots) {
-        if (currentGroup.length >= 2) beamGroups.push(currentGroup)
-        currentGroup = []
-      }
+      if (currentGroup.length >= 2) beamGroups.push(currentGroup)
+      currentGroup = []
     }
 
     if (currentGroup.length >= 2) beamGroups.push(currentGroup)
@@ -174,8 +164,8 @@ function patternToVexNotes(pattern: PatternData): { upNotes: (StaveNote | GhostN
 
   // Upper voice (cymbals) is primary — shows visible rests when both voices are silent
   // Lower voice (drums) uses ghost notes to avoid clutter
-  buildVoice('up', upDur, upStep, upNotes, upBeamGroups, 1, true)
-  buildVoice('down', downDur, downStep, downNotes, downBeamGroups, -1, false)
+  buildVoice('up', upNotes, upBeamGroups, 1, true)
+  buildVoice('down', downNotes, downBeamGroups, -1, false)
 
   return { upNotes, downNotes, upBeamGroups, downBeamGroups }
 }
@@ -390,20 +380,52 @@ function GridView({ pattern, highlightSlot = -1 }: {
   const totalSlots = beats * subdivisions
   const activePads = GRID_PAD_ORDER.filter(p => tracks[p]?.some(v => v > 0))
 
+  // Per-beat: check if ANY pad has an off-beat hit in this beat
+  function beatHasAnyOffBeat(beatStart: number): boolean {
+    for (let s = 1; s < subdivisions; s++) {
+      const slot = beatStart + s
+      if (slot >= totalSlots) break
+      for (const pad of activePads) {
+        if (((tracks[pad]?.[slot]) ?? 0) > 0) return true
+      }
+    }
+    return false
+  }
+
+  // Build a visibility map: which slots are "visible" (not collapsed)
+  // Beats with only on-beat hits show 1 cell; beats with off-beat hits show all sub-cells
+  const slotVisible: boolean[] = new Array(totalSlots).fill(false)
+  const slotSpan: number[] = new Array(totalSlots).fill(1) // how many underlying slots this visible cell spans
+  for (let beatStart = 0; beatStart < totalSlots; beatStart += subdivisions) {
+    const hasOff = beatHasAnyOffBeat(beatStart)
+    if (hasOff) {
+      for (let s = 0; s < subdivisions; s++) slotVisible[beatStart + s] = true
+    } else {
+      slotVisible[beatStart] = true
+      slotSpan[beatStart] = subdivisions // this single cell spans the whole beat
+    }
+  }
+
+  const visibleSlots = slotVisible.map((v, i) => v ? i : -1).filter(i => i >= 0)
+
   return (
     <div className="w-full">
       {/* Beat labels */}
       <div className="flex" style={{ paddingLeft: LABEL_W }}>
-        {Array.from({ length: totalSlots }).map((_, i) => (
-          <div
-            key={i}
-            className={`text-center text-xs flex-1 ${
-              isDownbeat(i, subdivisions) ? 'text-[#4b5a6a] font-medium' : 'text-[#2d3748]'
-            }`}
-          >
-            {subdivisionLabel(i, subdivisions)}
-          </div>
-        ))}
+        {visibleSlots.map(si => {
+          const span = slotSpan[si]
+          return (
+            <div
+              key={si}
+              className={`text-center text-xs ${
+                si % subdivisions === 0 ? 'text-[#4b5a6a] font-medium' : 'text-[#2d3748]'
+              }`}
+              style={{ flex: span }}
+            >
+              {subdivisionLabel(si, subdivisions)}
+            </div>
+          )
+        })}
       </div>
 
       {/* Grid rows */}
@@ -413,30 +435,28 @@ function GridView({ pattern, highlightSlot = -1 }: {
 
         return (
           <div key={pad} className="flex items-center" style={{ height: ROW_H }}>
-            {/* Label */}
             <div className="text-[11px] font-medium text-right pr-3 flex-shrink-0" style={{ width: LABEL_W, color }}>
               {GRID_PAD_LABEL[pad] ?? pad}
             </div>
 
-            {/* Cells — fluid, each cell grows equally */}
             <div className="flex gap-[2px] flex-1 min-w-0">
-              {Array.from({ length: totalSlots }).map((_, si) => {
+              {visibleSlots.map(si => {
+                const span = slotSpan[si]
+                // For collapsed cells (span > 1), show the on-beat value
                 const hv = (steps[si] ?? 0) as number
-                const isHl = highlightSlot === si
+                const isHl = highlightSlot >= si && highlightSlot < si + span
                 const isBeatStart = si % subdivisions === 0
 
                 let bg = 'rgba(255,255,255,0.02)'
-                if (hv === 1) bg = color
-                else if (hv === 2) bg = color
-                else if (hv === 3) bg = color
-
+                if (hv === 1 || hv === 2 || hv === 3) bg = color
                 const opacity = hv === 0 ? 1 : hv === 3 ? 0.3 : hv === 2 ? 1 : 0.7
 
                 return (
                   <div
                     key={si}
-                    className="rounded-[3px] transition-all duration-75 flex-1"
+                    className="rounded-[3px] transition-all duration-75"
                     style={{
+                      flex: span,
                       height: ROW_H - 4,
                       background: hv > 0 ? bg : isHl ? 'rgba(245,158,11,0.06)' : 'rgba(255,255,255,0.02)',
                       opacity: hv > 0 ? opacity : 1,
