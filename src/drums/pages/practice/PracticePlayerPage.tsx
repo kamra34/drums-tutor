@@ -158,8 +158,17 @@ export default function PracticePlayerPage() {
     }
   }, [])
 
-  // Pattern data already contains all bars — use it directly
-  const displayPattern = useMemo(() => item?.patternData, [item])
+  // Ensure beats reflects total beats across all bars
+  // (older saves may have beats = beatsPerBar instead of total)
+  const displayPattern = useMemo(() => {
+    if (!item) return undefined
+    const pd = item.patternData
+    const expectedTotal = item.timeSignature[0] * item.bars
+    if (pd.beats < expectedTotal) {
+      return { ...pd, beats: expectedTotal }
+    }
+    return pd
+  }, [item])
 
   if (studioLoading) {
     return <div className="p-8 text-center text-[#6b7280]">Loading pattern...</div>
