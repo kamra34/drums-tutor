@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { PatternData, HitValue } from '@drums/types/curriculum'
 import { DrumPad } from '@drums/types/midi'
@@ -54,14 +54,14 @@ export default function StudioPage() {
   // Pattern settings
   const [title, setTitle] = useState('')
   const [timeSig, setTimeSig] = useState<[number, number]>([4, 4])
-  const [barSubdivisions, setBarSubdivisions] = useState<number[]>([4])
+  const [barSubdivisions, setBarSubdivisions] = useState<number[]>([1])
   const subdivisions = useMemo(() => lcmArray(barSubdivisions), [barSubdivisions])
   const [bars, setBars] = useState(1)
   const [bpm, setBpm] = useState(90)
   const [enabledPads, setEnabledPads] = useState<DrumPad[]>(DEFAULT_PADS)
 
   // Pattern data
-  const [pattern, setPattern] = useState<PatternData>(() => makeEmptyPattern(4, 4, 1))
+  const [pattern, setPattern] = useState<PatternData>(() => makeEmptyPattern(4, 1, 1))
 
   // Save state
   const [savedId, setSavedId] = useState<string | null>(null)
@@ -132,7 +132,7 @@ export default function StudioPage() {
     setBars(b)
     // Extend or shrink barSubdivisions array
     setBarSubdivisions(prev => {
-      if (b > prev.length) return [...prev, ...new Array(b - prev.length).fill(prev[prev.length - 1] || 4)]
+      if (b > prev.length) return [...prev, ...new Array(b - prev.length).fill(1)]
       return prev.slice(0, b)
     })
     handleResizePattern(timeSig[0], subdivisions, b)
@@ -182,6 +182,83 @@ export default function StudioPage() {
 
   function handleClear() {
     setPattern(makeEmptyPattern(timeSig[0], subdivisions, bars))
+  }
+
+  // ── Bar reorder (drag & drop) ──
+  const dragBarRef = useRef<number | null>(null)
+
+  function handleMoveBar(fromIdx: number, toIdx: number) {
+    if (fromIdx === toIdx || fromIdx < 0 || toIdx < 0 || fromIdx >= bars || toIdx >= bars) return
+    const slotsPerBar = timeSig[0] * subdivisions
+
+    // Extract all bars as separate slices
+    const barSlices: Partial<Record<DrumPad, HitValue[]>>[] = []
+    for (let b = 0; b < bars; b++) {
+      const start = b * slotsPerBar
+      const slice: Partial<Record<DrumPad, HitValue[]>> = {}
+      for (const [pad, track] of Object.entries(pattern.tracks) as [DrumPad, HitValue[]][]) {
+        const barTrack = track.slice(start, start + slotsPerBar)
+        if (barTrack.some(v => v > 0)) slice[pad] = barTrack
+      }
+      barSlices.push(slice)
+    }
+
+    // Reorder slices and barSubdivisions
+    const newBarSubs = [...barSubdivisions]
+    const [movedSlice] = barSlices.splice(fromIdx, 1)
+    barSlices.splice(toIdx, 0, movedSlice)
+    const [movedSub] = newBarSubs.splice(fromIdx, 1)
+    newBarSubs.splice(toIdx, 0, movedSub)
+
+    // Rebuild flat tracks
+    const totalSlots = slotsPerBar * bars
+    const newTracks: Partial<Record<DrumPad, HitValue[]>> = {}
+    const allPads = new Set(barSlices.flatMap(s => Object.keys(s) as DrumPad[]))
+    for (const pad of allPads) {
+      const full: HitValue[] = new Array(totalSlots).fill(0)
+      for (let b = 0; b < bars; b++) {
+        const src = barSlices[b][pad]
+        if (src) for (let i = 0; i < slotsPerBar; i++) full[b * slotsPerBar + i] = src[i] || 0
+      }
+      if (full.some(v => v > 0)) newTracks[pad] = full
+    }
+
+    setPattern({ beats: timeSig[0], subdivisions, tracks: newTracks })
+    setBarSubdivisions(newBarSubs)
+    setEditingBar(toIdx)
+  }
+
+  // ── Duplicate bar (insert copy after current) ──
+  function handleDuplicateBar(barIdx: number) {
+    if (bars >= 32) return
+    const slotsPerBar = timeSig[0] * subdivisions
+    const totalSlots = slotsPerBar * bars
+    const barStart = barIdx * slotsPerBar
+
+    // Build new tracks with the duplicated bar inserted
+    const newTotalSlots = slotsPerBar * (bars + 1)
+    const newTracks: Partial<Record<DrumPad, HitValue[]>> = {}
+    const allPads = Object.keys(pattern.tracks) as DrumPad[]
+    for (const pad of allPads) {
+      const old = pattern.tracks[pad] || []
+      const full: HitValue[] = new Array(newTotalSlots).fill(0)
+      // Copy bars before and including the duplicated bar
+      for (let i = 0; i < barStart + slotsPerBar; i++) full[i] = old[i] || 0
+      // Insert the duplicate
+      for (let i = 0; i < slotsPerBar; i++) full[barStart + slotsPerBar + i] = old[barStart + i] || 0
+      // Copy remaining bars (shifted by one bar)
+      for (let i = barStart + slotsPerBar; i < totalSlots; i++) full[i + slotsPerBar] = old[i] || 0
+      if (full.some(v => v > 0)) newTracks[pad] = full
+    }
+
+    // Insert duplicated bar's subdivision
+    const newBarSubs = [...barSubdivisions]
+    newBarSubs.splice(barIdx + 1, 0, barSubdivisions[barIdx] ?? subdivisions)
+
+    setBars(bars + 1)
+    setBarSubdivisions(newBarSubs)
+    setPattern({ beats: timeSig[0], subdivisions, tracks: newTracks })
+    setEditingBar(barIdx + 1)
   }
 
   async function handleSave() {
@@ -236,11 +313,11 @@ export default function StudioPage() {
     setSavedId(null)
     setTitle('')
     setTimeSig([4, 4])
-    setBarSubdivisions([4])
+    setBarSubdivisions([1])
     setBars(1)
     setBpm(90)
     setEnabledPads(DEFAULT_PADS)
-    setPattern(makeEmptyPattern(4, 4, 1))
+    setPattern(makeEmptyPattern(4, 1, 1))
     setEditingBar(0)
   }
 
@@ -736,54 +813,76 @@ export default function StudioPage() {
         </div>
 
         {/* ── Bar Selector + Per-bar Resolution ── */}
-        <div className="flex flex-wrap items-center gap-3">
-          <span className="text-[11px] font-semibold text-[#4b5563] uppercase tracking-widest flex-shrink-0">Editing</span>
-          <div className="flex gap-1.5 overflow-x-auto pb-1">
-            {Array.from({ length: bars }).map((_, i) => {
-              const bp = getBarPattern(i)
-              const has = Object.values(bp.tracks).some(t => t.some(v => v > 0))
-              const bSub = barSubdivisions[i] ?? 4
-              const subLabel = SUBDIVISIONS.find(s => s.value === bSub)?.label || ''
-              return (
-                <button key={i} onClick={() => setEditingBar(i)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer flex-shrink-0 ${
-                    editingBar === i
-                      ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30 shadow-lg shadow-amber-500/10'
-                      : has
-                        ? 'bg-white/[0.04] border border-white/[0.06] text-[#94a3b8] hover:text-white hover:bg-white/[0.06]'
-                        : 'bg-white/[0.02] border border-white/[0.03] text-[#374151] hover:text-[#6b7280]'
-                  }`}>
-                  Bar {i + 1}
-                  <span className="ml-1 text-[8px] opacity-50">{subLabel}</span>
-                  {has && <span className="ml-0.5 w-1.5 h-1.5 rounded-full bg-amber-400/60 inline-block" />}
+        <div className="space-y-2">
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="text-[11px] font-semibold text-[#4b5563] uppercase tracking-widest flex-shrink-0">Editing</span>
+            <div className="flex gap-1.5 overflow-x-auto pb-1">
+              {Array.from({ length: bars }).map((_, i) => {
+                const bp = getBarPattern(i)
+                const has = Object.values(bp.tracks).some(t => t.some(v => v > 0))
+                const bSub = barSubdivisions[i] ?? 4
+                const subLabel = SUBDIVISIONS.find(s => s.value === bSub)?.label || ''
+                const isDragOver = dragBarRef.current !== null && dragBarRef.current !== i
+                return (
+                  <div key={i} className="flex-shrink-0 relative"
+                    draggable
+                    onDragStart={() => { dragBarRef.current = i }}
+                    onDragEnd={() => { dragBarRef.current = null }}
+                    onDragOver={e => { e.preventDefault(); e.dataTransfer.dropEffect = 'move' }}
+                    onDrop={e => { e.preventDefault(); if (dragBarRef.current !== null) { handleMoveBar(dragBarRef.current, i); dragBarRef.current = null } }}
+                  >
+                    <button onClick={() => setEditingBar(i)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-grab active:cursor-grabbing flex-shrink-0 ${
+                        editingBar === i
+                          ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30 shadow-lg shadow-amber-500/10'
+                          : has
+                            ? 'bg-white/[0.04] border border-white/[0.06] text-[#94a3b8] hover:text-white hover:bg-white/[0.06]'
+                            : 'bg-white/[0.02] border border-white/[0.03] text-[#374151] hover:text-[#6b7280]'
+                      } ${isDragOver ? 'ring-1 ring-amber-500/30' : ''}`}>
+                      <span className="mr-1 text-[8px] opacity-30">&#x2630;</span>
+                      Bar {i + 1}
+                      <span className="ml-1 text-[8px] opacity-50">{subLabel}</span>
+                      {has && <span className="ml-0.5 w-1.5 h-1.5 rounded-full bg-amber-400/60 inline-block" />}
+                    </button>
+                  </div>
+                )
+              })}
+              {/* Add Bar button */}
+              {bars < 32 && (
+                <button onClick={() => { handleBarsChange(bars + 1); setEditingBar(bars) }}
+                  className="px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer flex-shrink-0 bg-white/[0.03] border border-dashed border-white/[0.08] text-[#4b5a6a] hover:text-amber-400 hover:border-amber-500/25"
+                  title="Add bar">
+                  + Bar
                 </button>
-              )
-            })}
-            {/* Add Bar button */}
-            {bars < 32 && (
-              <button onClick={() => { handleBarsChange(bars + 1); setEditingBar(bars) }}
-                className="px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer flex-shrink-0 bg-white/[0.03] border border-dashed border-white/[0.08] text-[#4b5a6a] hover:text-amber-400 hover:border-amber-500/25"
-                title="Add bar">
-                + Bar
-              </button>
-            )}
+              )}
+            </div>
+            <button onClick={handleClear}
+              className="text-[10px] px-2 py-1 rounded-lg bg-white/[0.04] border border-white/[0.06] text-[#4b5a6a] hover:text-rose-400 transition-colors cursor-pointer flex-shrink-0">
+              Clear All
+            </button>
           </div>
-          {/* Per-bar resolution */}
-          <div className="flex items-center gap-1.5 flex-shrink-0 ml-auto">
-            <span className="text-[9px] text-[#4b5a6a] uppercase tracking-wider">Resolution</span>
-            {SUBDIVISIONS.map(s => (
-              <button key={s.value} onClick={() => handleBarResolutionChange(s.value)}
-                className={`px-2 py-1 rounded-lg text-[10px] font-medium transition-colors cursor-pointer ${
-                  (barSubdivisions[editingBar] ?? 4) === s.value
-                    ? 'bg-amber-500/15 text-amber-400 border border-amber-500/25'
-                    : 'bg-white/[0.03] border border-white/[0.04] text-[#4b5a6a] hover:text-white'
-                }`}>{s.label}</button>
-            ))}
+          {/* Per-bar controls: resolution + duplicate */}
+          <div className="flex items-center gap-3 pl-[60px]">
+            <div className="flex items-center gap-1.5">
+              <span className="text-[9px] text-[#4b5a6a] uppercase tracking-wider">Resolution</span>
+              {SUBDIVISIONS.map(s => (
+                <button key={s.value} onClick={() => handleBarResolutionChange(s.value)}
+                  className={`px-2 py-1 rounded-lg text-[10px] font-medium transition-colors cursor-pointer ${
+                    (barSubdivisions[editingBar] ?? 4) === s.value
+                      ? 'bg-amber-500/15 text-amber-400 border border-amber-500/25'
+                      : 'bg-white/[0.03] border border-white/[0.04] text-[#4b5a6a] hover:text-white'
+                  }`}>{s.label}</button>
+              ))}
+            </div>
+            <div className="w-px h-4 bg-white/[0.06]" />
+            <button onClick={() => handleDuplicateBar(editingBar)}
+              disabled={bars >= 32}
+              className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium transition-colors cursor-pointer bg-white/[0.03] border border-white/[0.04] text-[#4b5a6a] hover:text-amber-400 hover:border-amber-500/20 disabled:opacity-30 disabled:cursor-not-allowed"
+              title="Duplicate this bar">
+              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><rect x="8" y="8" width="12" height="12" rx="2" /><path d="M16 8V6a2 2 0 00-2-2H6a2 2 0 00-2 2v8a2 2 0 002 2h2" /></svg>
+              Duplicate Bar {editingBar + 1}
+            </button>
           </div>
-          <button onClick={handleClear}
-            className="text-[10px] px-2 py-1 rounded-lg bg-white/[0.04] border border-white/[0.06] text-[#4b5a6a] hover:text-rose-400 transition-colors cursor-pointer flex-shrink-0">
-            Clear All
-          </button>
         </div>
 
         {/* ── Staff Notation Editor ── */}
@@ -995,300 +1094,6 @@ export default function StudioPage() {
             <ScanTab onPatternGenerated={handleAiPatternGenerated} />
           )}
 
-          {/* Compose mode renders its own full-page layout above */}
-          {mode === 'create' && null}
-          {false && (<>
-          <div className="hidden">
-            <div className="flex flex-wrap items-end justify-between gap-4 mb-5">
-              <div className="flex-1 min-w-[200px]">
-                <label className="text-[10px] text-[#4b5a6a] uppercase tracking-wider mb-1.5 block">Pattern Name</label>
-                <input
-                  type="text"
-                  value={title}
-                  onChange={e => setTitle(e.target.value)}
-                  placeholder="My pattern name..."
-                  className="w-full px-3 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.06] text-white text-sm placeholder:text-[#374151] focus:outline-none focus:border-amber-500/30 transition-colors"
-                />
-              </div>
-              {/* View toggle: Grid ↔ Staff */}
-              <div>
-                <label className="text-[10px] text-[#4b5a6a] uppercase tracking-wider mb-1.5 block">Editor Mode</label>
-                <div className="flex rounded-xl overflow-hidden border border-white/[0.06]" style={{ background: 'rgba(255,255,255,0.02)' }}>
-                  <button onClick={() => setEditorView('grid')}
-                    className={`px-4 py-2 text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
-                      editorView === 'grid'
-                        ? 'bg-amber-500/15 text-amber-400 border-r border-amber-500/20'
-                        : 'text-[#4b5a6a] hover:text-white border-r border-white/[0.04]'
-                    }`}>
-                    <svg className="w-3.5 h-3.5" viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="1" width="6" height="6" rx="1" opacity="0.8"/><rect x="9" y="1" width="6" height="6" rx="1" opacity="0.4"/><rect x="1" y="9" width="6" height="6" rx="1" opacity="0.4"/><rect x="9" y="9" width="6" height="6" rx="1" opacity="0.8"/></svg>
-                    Grid
-                  </button>
-                  <button onClick={() => setEditorView('staff')}
-                    className={`px-4 py-2 text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
-                      editorView === 'staff'
-                        ? 'bg-amber-500/15 text-amber-400'
-                        : 'text-[#4b5a6a] hover:text-white'
-                    }`}>
-                    <svg className="w-3.5 h-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.2"><line x1="2" y1="3" x2="14" y2="3"/><line x1="2" y1="6" x2="14" y2="6"/><line x1="2" y1="9" x2="14" y2="9"/><line x1="2" y1="12" x2="14" y2="12"/><circle cx="5" cy="6" r="1.5" fill="currentColor"/><circle cx="10" cy="9" r="1.5" fill="currentColor"/></svg>
-                    Staff
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Settings grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-x-5 gap-y-4">
-              {/* Time signature */}
-              <div>
-                <label className="text-[10px] text-[#4b5a6a] uppercase tracking-wider mb-1.5 block">Time Sig</label>
-                <div className="flex flex-wrap gap-1">
-                  {TIME_SIGNATURES.map(ts => (
-                    <button
-                      key={ts.join('/')}
-                      onClick={() => handleTimeSigChange(ts)}
-                      className={`px-2 py-1.5 rounded-lg text-xs transition-colors cursor-pointer ${
-                        timeSig[0] === ts[0] && timeSig[1] === ts[1]
-                          ? 'bg-amber-500/15 text-amber-400 border border-amber-500/25'
-                          : 'bg-white/[0.04] border border-white/[0.06] text-[#4b5a6a] hover:text-white'
-                      }`}
-                    >
-                      {ts[0]}/{ts[1]}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Subdivisions */}
-              <div>
-                <label className="text-[10px] text-[#4b5a6a] uppercase tracking-wider mb-1.5 block">Resolution</label>
-                <div className="flex gap-1">
-                  {SUBDIVISIONS.map(s => (
-                    <button
-                      key={s.value}
-                      onClick={() => handleSubdivisionsChange(s.value)}
-                      className={`px-2 py-1.5 rounded-lg text-xs transition-colors cursor-pointer ${
-                        subdivisions === s.value
-                          ? 'bg-amber-500/15 text-amber-400 border border-amber-500/25'
-                          : 'bg-white/[0.04] border border-white/[0.06] text-[#4b5a6a] hover:text-white'
-                      }`}
-                    >
-                      {s.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Bars */}
-              <div>
-                <label className="text-[10px] text-[#4b5a6a] uppercase tracking-wider mb-1.5 block">Bars</label>
-                <div className="flex gap-1">
-                  {BAR_OPTIONS.map(b => (
-                    <button
-                      key={b}
-                      onClick={() => handleBarsChange(b)}
-                      className={`px-2.5 py-1.5 rounded-lg text-xs transition-colors cursor-pointer ${
-                        bars === b
-                          ? 'bg-amber-500/15 text-amber-400 border border-amber-500/25'
-                          : 'bg-white/[0.04] border border-white/[0.06] text-[#4b5a6a] hover:text-white'
-                      }`}
-                    >
-                      {b}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* BPM */}
-              <div>
-                <label className="text-[10px] text-[#4b5a6a] uppercase tracking-wider mb-1.5 block">Tempo</label>
-                <div className="flex items-center gap-2">
-                  <button onClick={() => setBpm(Math.max(40, bpm - 5))} className="w-7 h-7 rounded-lg bg-white/[0.04] border border-white/[0.06] text-[#94a3b8] hover:text-white flex items-center justify-center cursor-pointer transition-colors text-sm font-bold">-</button>
-                  <span className="font-mono text-white text-sm w-8 text-center">{bpm}</span>
-                  <button onClick={() => setBpm(Math.min(200, bpm + 5))} className="w-7 h-7 rounded-lg bg-white/[0.04] border border-white/[0.06] text-[#94a3b8] hover:text-white flex items-center justify-center cursor-pointer transition-colors text-sm font-bold">+</button>
-                  <span className="text-[10px] text-[#4b5a6a]">BPM</span>
-                </div>
-              </div>
-
-              {/* Instruments — full width */}
-              <div className="col-span-2 sm:col-span-3 lg:col-span-5">
-                <label className="text-[10px] text-[#4b5a6a] uppercase tracking-wider mb-1.5 block">Instruments</label>
-                <div className="flex flex-wrap gap-1.5">
-                  {ALL_PADS.map(({ pad, label, group }) => (
-                    <button
-                      key={pad}
-                      onClick={() => togglePad(pad)}
-                      className={`px-2.5 py-1 rounded-lg text-[11px] transition-colors cursor-pointer ${
-                        enabledPads.includes(pad)
-                          ? group === 'cymbal'
-                            ? 'bg-cyan-500/15 text-cyan-400 border border-cyan-500/25'
-                            : 'bg-amber-500/15 text-amber-400 border border-amber-500/25'
-                          : 'bg-white/[0.03] border border-white/[0.04] text-[#374151] hover:text-[#6b7280]'
-                      }`}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* ── Editor area: Grid or Staff ── */}
-          <div className="rounded-2xl p-5 border border-white/[0.04]" style={{
-            background: 'linear-gradient(135deg, rgba(6,8,13,0.95) 0%, rgba(8,10,16,0.98) 100%)',
-          }}>
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <span className="text-[11px] font-semibold text-[#4b5563] uppercase tracking-widest">
-                  {editorView === 'grid' ? 'Grid Editor' : 'Staff Notation Editor'}
-                </span>
-                <span className="px-1.5 py-0.5 rounded text-[8px] font-bold uppercase" style={{
-                  background: 'rgba(245,158,11,0.08)', color: '#f59e0b',
-                }}>{editorView === 'grid' ? 'Grid' : 'Staff'}</span>
-              </div>
-              <button
-                onClick={handleClear}
-                className="text-[10px] px-2 py-1 rounded-lg bg-white/[0.04] border border-white/[0.06] text-[#4b5a6a] hover:text-rose-400 transition-colors cursor-pointer"
-              >
-                Clear All
-              </button>
-            </div>
-
-            {editorView === 'grid' ? (
-              <EditableGrid
-                pattern={pattern}
-                enabledPads={enabledPads}
-                bars={bars}
-                onChange={setPattern}
-              />
-            ) : (
-              <NotationInput
-                pattern={pattern}
-                enabledPads={enabledPads}
-                bars={bars}
-                onChange={setPattern}
-              />
-            )}
-          </div>
-
-          {/* ── Full pattern preview ── */}
-          {hasNotes && (
-            <div className="rounded-2xl p-5 border border-white/[0.04]" style={{
-              background: 'linear-gradient(135deg, rgba(12,14,20,0.7) 0%, rgba(10,12,18,0.8) 100%)',
-            }}>
-              <div className="text-[11px] font-semibold text-[#4b5563] uppercase tracking-widest mb-3">
-                Full Pattern {bars > 1 && <span className="text-[#374151] font-normal">({bars} bars)</span>}
-              </div>
-              <StaffNotationDisplay
-                pattern={fullPattern}
-                bpm={bpm}
-                bars={1}
-                beatsPerBar={timeSig[0]}
-                onBpmChange={setBpm}
-              />
-            </div>
-          )}
-
-          {/* ── Individual bar selector (only when multi-bar) ── */}
-          {hasNotes && bars > 1 && (
-            <div className="rounded-2xl p-5 border border-white/[0.04]" style={{
-              background: 'linear-gradient(135deg, rgba(12,14,20,0.7) 0%, rgba(10,12,18,0.8) 100%)',
-            }}>
-              <div className="text-[11px] font-semibold text-[#4b5563] uppercase tracking-widest mb-3">Individual Bars</div>
-
-              {/* Bar tiles */}
-              <div className="flex gap-2 mb-4">
-                {Array.from({ length: bars }).map((_, barIdx) => {
-                  const barPattern = getBarPattern(barIdx)
-                  const barHasNotes = Object.values(barPattern.tracks).some(t => t.some(v => v > 0))
-                  const isSelected = selectedBar === barIdx
-
-                  return (
-                    <button
-                      key={barIdx}
-                      onClick={() => setSelectedBar(isSelected ? null : barIdx)}
-                      className={`px-4 py-2 rounded-xl text-sm font-medium transition-all cursor-pointer ${
-                        isSelected
-                          ? 'bg-violet-500/15 text-violet-400 border border-violet-500/30 shadow-lg shadow-violet-500/10'
-                          : barHasNotes
-                            ? 'bg-white/[0.04] border border-white/[0.06] text-[#94a3b8] hover:text-white hover:bg-white/[0.06]'
-                            : 'bg-white/[0.02] border border-white/[0.03] text-[#374151] cursor-default'
-                      }`}
-                      disabled={!barHasNotes}
-                    >
-                      Bar {barIdx + 1}
-                      {!barHasNotes && <span className="text-[9px] ml-1 text-[#2d3748]">(empty)</span>}
-                    </button>
-                  )
-                })}
-              </div>
-
-              {/* Selected bar notation */}
-              {selectedBar !== null && (() => {
-                const barPattern = getBarPattern(selectedBar)
-                const barHasNotes = Object.values(barPattern.tracks).some(t => t.some(v => v > 0))
-                if (!barHasNotes) return null
-                return (
-                  <StaffNotationDisplay
-                    pattern={barPattern}
-                    bpm={bpm}
-                    bars={1}
-                    onBpmChange={setBpm}
-                  />
-                )
-              })()}
-
-              {selectedBar === null && (
-                <div className="text-[11px] text-[#4b5563] text-center py-4">
-                  Select a bar above to view and play it individually
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* ── Save bar ── */}
-          <div className="flex items-center gap-3">
-            <button
-              onClick={handleSave}
-              disabled={saving || !title.trim() || !hasNotes}
-              className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-semibold transition-all cursor-pointer ${
-                saving || !title.trim() || !hasNotes
-                  ? 'bg-white/[0.04] text-[#374151] border border-white/[0.04] cursor-not-allowed'
-                  : 'text-white hover:brightness-110'
-              }`}
-              style={saving || !title.trim() || !hasNotes ? undefined : { background: 'linear-gradient(135deg, #7c3aed, #a855f7)' }}
-            >
-              {saving ? (
-                <>
-                  <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
-                  Saving...
-                </>
-              ) : saveSuccess ? (
-                <>
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
-                  Saved!
-                </>
-              ) : savedId ? 'Update Pattern' : 'Save Pattern'}
-            </button>
-
-            {savedId && (
-              <Link
-                to={`/drums/practice/play/studio:${savedId}`}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20 hover:bg-amber-500/15 transition-colors"
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                Practice This
-              </Link>
-            )}
-
-            {!title.trim() && hasNotes && (
-              <span className="text-[11px] text-amber-400/60">Give your pattern a name to save it</span>
-            )}
-          </div>
-          </>)}
 
           {/* ═══ AI Builder / Scan: save prompt when pattern generated ═══ */}
           {(mode === 'ai-builder' || mode === 'scan') && hasNotes && (

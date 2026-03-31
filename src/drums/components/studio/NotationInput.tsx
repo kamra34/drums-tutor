@@ -25,7 +25,7 @@ const PAD_BOT = 20
 // Y offsets from top staff line, based on standard percussion notation layout
 // (drumMusicXml.ts display positions: Crash=A5, HH=G5, Ride=F5, etc.)
 
-const PAD_INFO: Record<DrumPad, { y: number; head: 'x' | 'fill'; color: string; label: string }> = {
+const PAD_INFO: Partial<Record<DrumPad, { y: number; head: 'x' | 'fill'; color: string; label: string }>> = {
   [DrumPad.CrashCymbal]: { y: -LINE_SP,     head: 'x',    color: '#60a5fa', label: 'Crash' },
   [DrumPad.HiHatOpen]:   { y: -HALF - 1,    head: 'x',    color: '#67e8f9', label: 'HH Op' },
   [DrumPad.HiHatClosed]: { y: -HALF + 2,    head: 'x',    color: '#22d3ee', label: 'HH Cl' },
