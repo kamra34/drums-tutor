@@ -112,6 +112,7 @@ export default function NotationInput({ pattern, enabledPads, bars, onChange }: 
         {/* ── Instrument labels ── */}
         {orderedPads.map(pad => {
           const info = PAD_INFO[pad]
+          if (!info) return null
           return (
             <text key={`lbl-${pad}`} x={LABEL_W - 8} y={staffY + info.y + 3.5}
               textAnchor="end" fontSize={9} fontWeight={600}
@@ -171,6 +172,7 @@ export default function NotationInput({ pattern, enabledPads, bars, onChange }: 
               {/* ── Clickable note slots for each enabled pad ── */}
               {orderedPads.map(pad => {
                 const info = PAD_INFO[pad]
+                if (!info) return null
                 const ny = staffY + info.y
                 const track = tracks[pad] || []
                 const val = (si < track.length ? track[si] : 0) as HitValue
@@ -203,6 +205,7 @@ export default function NotationInput({ pattern, enabledPads, bars, onChange }: 
         {/* ── Ledger lines for notes above/below staff ── */}
         {orderedPads.map(pad => {
           const info = PAD_INFO[pad]
+          if (!info) return null
           const ny = staffY + info.y
           const needsLedger = info.y < 0 && Math.abs(info.y) >= LINE_SP
           const needsLedgerBelow = info.y > STAFF_H
