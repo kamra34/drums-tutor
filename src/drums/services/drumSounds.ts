@@ -206,16 +206,20 @@ function playClick(accent: boolean, when?: number): void {
 let _backingBuffer: AudioBuffer | null = null
 let _backingBpm = 120
 let _backingVolume = 0.7
+let _backingOffset = 0 // seconds offset: positive = song starts later, negative = skip into song
 let _backingSource: AudioBufferSourceNode | null = null
 let _backingGain: GainNode | null = null
 
-/** Load an audio file as a backing track */
-export async function loadBackingTrack(file: File): Promise<{ buffer: AudioBuffer; duration: number }> {
+/** Load an audio file as a backing track. Returns buffer + object URL for preview player. */
+export async function loadBackingTrack(file: File): Promise<{ buffer: AudioBuffer; duration: number; url: string }> {
   const c = ctx()
   const arrayBuf = await file.arrayBuffer()
   const buffer = await c.decodeAudioData(arrayBuf)
-  return { buffer, duration: buffer.duration }
+  const url = URL.createObjectURL(file)
+  return { buffer, duration: buffer.duration, url }
 }
+
+export function getBackingDuration(): number { return _backingBuffer?.duration ?? 0 }
 
 /** Set the backing track buffer and its original BPM */
 export function setBackingTrack(buffer: AudioBuffer, originalBpm: number): void {
@@ -228,6 +232,7 @@ export function clearBackingTrack(): void {
   stopBackingTrack()
   _backingBuffer = null
   _backingBpm = 120
+  _backingOffset = 0
 }
 
 /** Set backing track volume (0-1) */
@@ -242,7 +247,42 @@ export function hasBackingTrack(): boolean { return _backingBuffer !== null }
 /** Update the original BPM of the backing track (affects playback rate) */
 export function setBackingBpm(bpm: number): void { _backingBpm = bpm }
 
-function startBackingTrack(c: AudioContext, startTime: number, bpm: number, offsetSec: number = 0): void {
+/** Set sync offset in seconds. Positive = delay song start, negative = skip into song. */
+export function setBackingOffset(sec: number): void { _backingOffset = sec }
+export function getBackingOffset(): number { return _backingOffset }
+
+/** Play only the backing track (for tap-to-sync preview) */
+export function playBackingPreview(): void {
+  stopBackingTrack()
+  if (!_backingBuffer) return
+  const c = ctx()
+  const source = c.createBufferSource()
+  source.buffer = _backingBuffer
+  source.playbackRate.value = 1 // play at original speed for sync
+  const gain = c.createGain()
+  gain.gain.value = _backingVolume
+  source.connect(gain)
+  gain.connect(c.destination)
+  source.start(c.currentTime)
+  _backingSource = source
+  _backingGain = gain
+  // Record start time for tap sync
+  _previewStartTime = c.currentTime
+}
+
+let _previewStartTime = 0
+
+/** Get elapsed time since backing preview started (for tap sync) */
+export function getBackingPreviewElapsed(): number {
+  if (!_backingSource) return 0
+  return ctx().currentTime - _previewStartTime
+}
+
+export function stopBackingPreview(): void {
+  stopBackingTrack()
+}
+
+function startBackingTrack(c: AudioContext, startTime: number, bpm: number, patternOffsetSec: number = 0): void {
   if (!_backingBuffer) return
   stopBackingTrack()
 
@@ -255,9 +295,20 @@ function startBackingTrack(c: AudioContext, startTime: number, bpm: number, offs
   gain.gain.value = _backingVolume
   source.connect(gain)
   gain.connect(c.destination)
-  // offset is in buffer time (at original BPM)
-  const bufferOffset = offsetSec % _backingBuffer.duration
-  source.start(startTime, bufferOffset)
+
+  // Total offset into the song file (in musical time at pattern BPM):
+  // _backingOffset = how far into the song file Bar 1 Beat 1 of the pattern occurs
+  // patternOffsetSec = how far into the pattern we're seeking (for play-from-slot)
+  const totalMusicalOffset = _backingOffset + patternOffsetSec
+  if (totalMusicalOffset >= 0) {
+    // Start the backing track at this position in the buffer
+    const bufferOffset = (totalMusicalOffset * (_backingBpm / bpm)) % _backingBuffer.duration
+    source.start(startTime, bufferOffset)
+  } else {
+    // Backing track should start later than the pattern — delay the source start
+    const delaySec = Math.abs(totalMusicalOffset)
+    source.start(startTime + delaySec, 0)
+  }
 
   _backingSource = source
   _backingGain = gain

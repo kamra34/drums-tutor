@@ -8,7 +8,7 @@ import AiBuilderTab from '@drums/components/studio/AiBuilderTab'
 import ScanTab from '@drums/components/studio/ScanTab'
 import StaffNotationDisplay from '@drums/components/StaffNotationDisplay'
 import { apiSaveExercise, apiUpdateExercise, apiGetExercise, apiListExercises, apiDeleteExercise, DbExercise } from '@shared/services/apiClient'
-import { loadBackingTrack, setBackingTrack, clearBackingTrack, setBackingVolume, setBackingBpm as setServiceBackingBpm } from '@drums/services/drumSounds'
+import { loadBackingTrack, setBackingTrack, clearBackingTrack, setBackingVolume, setBackingBpm as setServiceBackingBpm, setBackingOffset, playBackingPreview, getBackingPreviewElapsed, stopBackingPreview } from '@drums/services/drumSounds'
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -38,6 +38,12 @@ const SUBDIVISIONS = [
 function gcd(a: number, b: number): number { return b === 0 ? a : gcd(b, a % b) }
 function lcm(a: number, b: number): number { return (a * b) / gcd(a, b) }
 function lcmArray(arr: number[]): number { return arr.reduce((a, b) => lcm(a, b), 1) }
+
+function formatTime(sec: number): string {
+  const m = Math.floor(sec / 60)
+  const s = Math.floor(sec % 60)
+  return `${m}:${s.toString().padStart(2, '0')}`
+}
 
 function makeEmptyPattern(beats: number, subdivisions: number, _bars: number): PatternData {
   return { beats, subdivisions, tracks: {} }
@@ -72,10 +78,19 @@ export default function StudioPage() {
 
   // Backing track
   const [backingFileName, setBackingFileName] = useState<string | null>(null)
+  const [backingUrl, setBackingUrl] = useState<string | null>(null)
   const [backingBpm, setBackingBpm] = useState(120)
   const [backingVol, setBackingVol] = useState(0.7)
   const [backingLoading, setBackingLoading] = useState(false)
+  const [backingSyncOffset, setBackingSyncOffset] = useState(0) // seconds
+  const [syncMode, setSyncMode] = useState<'idle' | 'listening' | 'pick-bar'>('idle')
+  const [syncTapTime, setSyncTapTime] = useState(0)
   const backingInputRef = useRef<HTMLInputElement>(null)
+  const audioPreviewRef = useRef<HTMLAudioElement>(null)
+  const [previewPlaying, setPreviewPlaying] = useState(false)
+  const [previewTime, setPreviewTime] = useState(0)
+  const [previewDuration, setPreviewDuration] = useState(0)
+  const previewAnimRef = useRef<number>(0)
 
   // My patterns sidebar
   const [myPatterns, setMyPatterns] = useState<DbExercise[]>([])
@@ -361,7 +376,8 @@ export default function StudioPage() {
     setEditingBar(0)
     clearBackingTrack()
     setBackingFileName(null)
-    setBackingBpm(120)
+    setBackingBpm(90) // will be overwritten by pattern BPM on next upload
+    setBackingSyncOffset(0)
   }
 
   async function handleBackingUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -369,9 +385,13 @@ export default function StudioPage() {
     if (!file) return
     setBackingLoading(true)
     try {
-      const { buffer } = await loadBackingTrack(file)
-      setBackingTrack(buffer, backingBpm)
+      const { buffer, url, duration } = await loadBackingTrack(file)
+      setBackingBpm(bpm)
+      setServiceBackingBpm(bpm)
+      setBackingTrack(buffer, bpm)
       setBackingFileName(file.name)
+      setBackingUrl(url)
+      setPreviewDuration(duration)
     } catch {
       setBackingFileName(null)
     } finally {
@@ -386,8 +406,94 @@ export default function StudioPage() {
   }
 
   function handleRemoveBacking() {
+    if (audioPreviewRef.current) { audioPreviewRef.current.pause(); audioPreviewRef.current.src = '' }
+    cancelAnimationFrame(previewAnimRef.current)
     clearBackingTrack()
     setBackingFileName(null)
+    setBackingUrl(null)
+    setBackingSyncOffset(0)
+    setPreviewPlaying(false)
+  }
+
+  function handleSyncOffsetChange(sec: number) {
+    setBackingSyncOffset(sec)
+    setBackingOffset(sec)
+  }
+
+  // Mini-player controls
+  function handlePreviewToggle() {
+    const audio = audioPreviewRef.current
+    if (!audio) return
+    if (previewPlaying) {
+      audio.pause()
+      setPreviewPlaying(false)
+      cancelAnimationFrame(previewAnimRef.current)
+    } else {
+      audio.play()
+      setPreviewPlaying(true)
+      const tick = () => {
+        setPreviewTime(audio.currentTime)
+        if (!audio.paused) previewAnimRef.current = requestAnimationFrame(tick)
+      }
+      previewAnimRef.current = requestAnimationFrame(tick)
+    }
+  }
+
+  function handlePreviewSeek(time: number) {
+    const audio = audioPreviewRef.current
+    if (!audio) return
+    audio.currentTime = time
+    setPreviewTime(time)
+  }
+
+  // Compute offset: songTime (in original file) should align with barIdx in pattern
+  function computeAndSetOffset(songTime: number, barIdx: number) {
+    // barIdx starts at this many seconds of pattern time
+    const barStartMusical = barIdx * timeSig[0] * (60 / bpm)
+    // The offset = how far into the song file pattern's Bar 1 Beat 1 occurs
+    // If bar 11 (idx=10) aligns with songTime, then Bar 1 is (songTime - barStartMusical) earlier in the song
+    // But we need to account for playback rate difference
+    const barStartInSong = barStartMusical * (backingBpm / bpm)
+    const offset = songTime - barStartInSong
+    handleSyncOffsetChange(offset)
+  }
+
+  // Tap-to-sync: plays song, user taps, then picks which bar
+  function handleStartTapSync() {
+    const audio = audioPreviewRef.current
+    if (!audio) return
+    audio.currentTime = 0
+    audio.play()
+    setPreviewPlaying(true)
+    setSyncMode('listening')
+    const tick = () => {
+      setPreviewTime(audio.currentTime)
+      if (!audio.paused) previewAnimRef.current = requestAnimationFrame(tick)
+    }
+    previewAnimRef.current = requestAnimationFrame(tick)
+  }
+
+  function handleSyncTap() {
+    const audio = audioPreviewRef.current
+    if (!audio) return
+    setSyncTapTime(audio.currentTime)
+    audio.pause()
+    setPreviewPlaying(false)
+    cancelAnimationFrame(previewAnimRef.current)
+    setSyncMode('pick-bar')
+  }
+
+  function handleSyncPickBar(barIdx: number) {
+    computeAndSetOffset(syncTapTime, barIdx)
+    setSyncMode('idle')
+  }
+
+  function handleSyncCancel() {
+    const audio = audioPreviewRef.current
+    if (audio) { audio.pause() }
+    setPreviewPlaying(false)
+    cancelAnimationFrame(previewAnimRef.current)
+    setSyncMode('idle')
   }
 
   function handleNewPattern() {
@@ -941,6 +1047,111 @@ export default function StudioPage() {
               </>
             )}
           </div>
+
+          {/* Mini-player + Sync controls — only show when file is loaded */}
+          {backingFileName && backingUrl && (
+            <div className="mt-3 pt-3 space-y-3" style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+              {/* Hidden audio element for preview */}
+              <audio ref={audioPreviewRef} src={backingUrl} preload="auto"
+                onEnded={() => { setPreviewPlaying(false); cancelAnimationFrame(previewAnimRef.current); if (syncMode === 'listening') setSyncMode('idle') }}
+                onLoadedMetadata={e => setPreviewDuration((e.target as HTMLAudioElement).duration)} />
+
+              {/* Mini player: play/pause + seekbar + time */}
+              <div className="flex items-center gap-3">
+                <button onClick={handlePreviewToggle}
+                  className="w-8 h-8 rounded-lg flex items-center justify-center cursor-pointer transition-colors bg-white/[0.06] border border-white/[0.06] text-[#94a3b8] hover:text-white hover:bg-white/[0.1]">
+                  {previewPlaying
+                    ? <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>
+                    : <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                  }
+                </button>
+                <input type="range" min={0} max={previewDuration || 1} step={0.1} value={previewTime}
+                  onChange={e => handlePreviewSeek(parseFloat(e.target.value))}
+                  className="flex-1 h-1.5 rounded-full cursor-pointer" style={{ accentColor: '#f59e0b' }} />
+                <span className="font-mono text-[10px] text-[#6b7280] w-20 text-right flex-shrink-0">
+                  {formatTime(previewTime)} / {formatTime(previewDuration)}
+                </span>
+              </div>
+
+              {/* Tap-to-Sync flow */}
+              {syncMode === 'idle' && (
+                <div className="flex flex-wrap items-center gap-3">
+                  <button onClick={handleStartTapSync}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium bg-violet-500/10 text-violet-400 border border-violet-500/20 hover:bg-violet-500/15 transition-colors cursor-pointer">
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5" /></svg>
+                    Tap to Sync
+                  </button>
+                  <span className="text-[9px] text-[#374151]">Plays the song — tap when you hear the drum entry</span>
+                </div>
+              )}
+
+              {syncMode === 'listening' && (
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
+                    <span className="text-[11px] text-[#c4c9d4]">Listening at <span className="font-mono text-amber-400">{formatTime(previewTime)}</span> — tap when drums start</span>
+                  </div>
+                  <button onClick={handleSyncTap}
+                    className="px-5 py-2.5 rounded-xl text-sm font-bold text-white cursor-pointer transition-all hover:scale-105 active:scale-95"
+                    style={{ background: 'linear-gradient(135deg, #f59e0b, #ea580c)', boxShadow: '0 0 20px rgba(245,158,11,0.3)' }}>
+                    TAP
+                  </button>
+                  <button onClick={handleSyncCancel}
+                    className="text-[10px] text-[#4b5a6a] hover:text-rose-400 cursor-pointer">Cancel</button>
+                </div>
+              )}
+
+              {syncMode === 'pick-bar' && (
+                <div className="space-y-2">
+                  <div className="text-[11px] text-[#c4c9d4]">
+                    Tapped at <span className="font-mono text-amber-400">{formatTime(syncTapTime)}</span> ({syncTapTime.toFixed(2)}s) — which bar does this align with?
+                  </div>
+                  <div className="flex gap-1.5 flex-wrap">
+                    {Array.from({ length: bars }).map((_, i) => (
+                      <button key={i} onClick={() => handleSyncPickBar(i)}
+                        className="px-3 py-1.5 rounded-lg text-xs font-medium bg-white/[0.04] border border-white/[0.06] text-[#94a3b8] hover:text-amber-400 hover:border-amber-500/25 cursor-pointer transition-colors">
+                        Bar {i + 1}
+                      </button>
+                    ))}
+                    <button onClick={handleSyncCancel}
+                      className="px-3 py-1.5 rounded-lg text-xs text-[#4b5a6a] hover:text-rose-400 cursor-pointer">Cancel</button>
+                  </div>
+                </div>
+              )}
+
+              {/* Offset display + fine-tune (always visible in idle mode) */}
+              {syncMode === 'idle' && (
+                <div className="flex flex-wrap items-center gap-3">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[9px] text-[#4b5a6a] uppercase tracking-wider">Offset</span>
+                    <button onClick={() => handleSyncOffsetChange(backingSyncOffset - 0.05)}
+                      className="w-5 h-5 rounded bg-white/[0.04] border border-white/[0.06] text-[#6b7280] hover:text-white flex items-center justify-center cursor-pointer text-[10px]">-</button>
+                    <span className="font-mono text-[10px] text-white w-14 text-center">{backingSyncOffset >= 0 ? '+' : ''}{backingSyncOffset.toFixed(2)}s</span>
+                    <button onClick={() => handleSyncOffsetChange(backingSyncOffset + 0.05)}
+                      className="w-5 h-5 rounded bg-white/[0.04] border border-white/[0.06] text-[#6b7280] hover:text-white flex items-center justify-center cursor-pointer text-[10px]">+</button>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="text-[9px] text-[#374151]">Fine:</span>
+                    {[-10, -1, 1, 10].map(ms => (
+                      <button key={ms} onClick={() => handleSyncOffsetChange(backingSyncOffset + ms / 1000)}
+                        className="px-1.5 py-0.5 rounded text-[9px] bg-white/[0.03] border border-white/[0.04] text-[#4b5a6a] hover:text-white cursor-pointer">
+                        {ms > 0 ? '+' : ''}{ms}ms
+                      </button>
+                    ))}
+                  </div>
+                  {backingSyncOffset !== 0 && (
+                    <button onClick={() => handleSyncOffsetChange(0)}
+                      className="text-[9px] text-[#374151] hover:text-rose-400 cursor-pointer">Reset</button>
+                  )}
+                  {backingSyncOffset !== 0 && (
+                    <span className="text-[9px] text-[#374151]">
+                      Song {formatTime(Math.max(0, backingSyncOffset))} = Bar 1
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* ── Bar Selector + Per-bar Resolution ── */}
