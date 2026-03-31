@@ -292,7 +292,7 @@ export default function StudioPage() {
 
   // ── Duplicate bar (insert copy after current) ──
   function handleDuplicateBar(barIdx: number) {
-    if (bars >= 32) return
+    if (bars >= 999) return
     const slotsPerBar = timeSig[0] * subdivisions
     const totalSlots = slotsPerBar * bars
     const barStart = barIdx * slotsPerBar
@@ -978,343 +978,296 @@ export default function StudioPage() {
       /* ═══════════════════════════════════════════════════════════════════════ */
       /* COMPOSE — full-page layout, bar-by-bar editing                        */
       /* ═══════════════════════════════════════════════════════════════════════ */
-      <div className="space-y-5">
-        {/* ── Header ── */}
-        <div className="flex items-center gap-3">
-          <button onClick={() => { setMode(null); navigate('/drums/studio', { replace: true }) }}
-            className="w-9 h-9 rounded-xl flex items-center justify-center transition-all hover:bg-white/[0.06] cursor-pointer"
-            style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.15)' }}>
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="#f59e0b" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
-          </button>
-          <div>
-            <h1 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight">Compose</h1>
-            <p className="text-[11px] text-[#4b5563]">Build your drum pattern bar by bar</p>
-          </div>
-        </div>
+      <div className="space-y-4">
+        <style>{`
+          @keyframes composeGlow { 0%, 100% { opacity: 0.06; } 50% { opacity: 0.12; } }
+          @keyframes barGridPop { from { transform: scale(0.92); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        `}</style>
 
-        {/* ── Settings Panel ── */}
-        <div className="rounded-2xl p-5 sm:p-6 border border-white/[0.04]" style={{
-          background: 'linear-gradient(135deg, rgba(12,14,20,0.7) 0%, rgba(10,12,18,0.8) 100%)',
+        {/* ═══ COMPOSE HEADER — immersive hero bar ═══ */}
+        <div className="relative rounded-2xl overflow-hidden" style={{
+          background: 'linear-gradient(135deg, rgba(120,53,15,0.12) 0%, rgba(245,158,11,0.06) 30%, rgba(6,8,13,0.95) 70%)',
+          border: '1px solid rgba(245,158,11,0.1)',
         }}>
-          {/* Row 1: Name + BPM */}
-          <div className="flex flex-wrap items-end gap-4 mb-4">
-            <div className="flex-1 min-w-[200px]">
-              <label className="text-[10px] text-[#4b5a6a] uppercase tracking-wider mb-1.5 block">Pattern Name</label>
-              <input type="text" value={title} onChange={e => setTitle(e.target.value)}
-                placeholder="My pattern name..."
-                className="w-full px-3 py-2 rounded-xl bg-white/[0.04] border border-white/[0.06] text-white text-sm placeholder:text-[#374151] focus:outline-none focus:border-amber-500/30 transition-colors" />
-            </div>
-            <div>
-              <label className="text-[10px] text-[#4b5a6a] uppercase tracking-wider mb-1.5 block">Tempo</label>
-              <div className="flex items-center gap-2">
-                <button onClick={() => setBpm(Math.max(40, bpm - 5))} className="w-7 h-7 rounded-lg bg-white/[0.04] border border-white/[0.06] text-[#94a3b8] hover:text-white flex items-center justify-center cursor-pointer transition-colors text-sm font-bold">-</button>
-                <span className="font-mono text-white text-sm w-8 text-center">{bpm}</span>
-                <button onClick={() => setBpm(Math.min(200, bpm + 5))} className="w-7 h-7 rounded-lg bg-white/[0.04] border border-white/[0.06] text-[#94a3b8] hover:text-white flex items-center justify-center cursor-pointer transition-colors text-sm font-bold">+</button>
-                <span className="text-[10px] text-[#4b5a6a]">BPM</span>
-              </div>
-            </div>
+          <div className="absolute inset-0 pointer-events-none overflow-hidden">
+            <div className="absolute w-[400px] h-[400px] rounded-full" style={{
+              top: '-40%', right: '-5%',
+              background: 'radial-gradient(circle, rgba(245,158,11,0.1) 0%, transparent 60%)',
+              animation: 'composeGlow 6s ease-in-out infinite',
+            }} />
           </div>
-
-          {/* Row 2: Time Sig, Resolution, Bars */}
-          <div className="flex flex-wrap items-end gap-5 mb-4">
-            <div>
-              <label className="text-[10px] text-[#4b5a6a] uppercase tracking-wider mb-1.5 block">Time Sig</label>
+          <div className="relative z-10 px-5 sm:px-6 py-4 sm:py-5 flex items-center gap-4">
+            <button onClick={() => { setMode(null); navigate('/drums/studio', { replace: true }) }}
+              className="w-9 h-9 rounded-xl flex items-center justify-center transition-all hover:bg-white/[0.06] cursor-pointer flex-shrink-0"
+              style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.15)' }}>
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="#f59e0b" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
+            </button>
+            <div className="flex-1 min-w-0">
+              <input type="text" value={title} onChange={e => setTitle(e.target.value)}
+                placeholder="Untitled pattern..."
+                className="w-full text-xl sm:text-2xl font-extrabold text-white bg-transparent border-none outline-none placeholder:text-[#2d3748] truncate" />
+            </div>
+            <div className="flex items-center gap-3 flex-shrink-0">
+              {/* Tempo */}
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                <button onClick={() => setBpm(Math.max(40, bpm - 5))} className="w-6 h-6 rounded-lg bg-white/[0.06] text-[#94a3b8] hover:text-white flex items-center justify-center cursor-pointer transition-colors text-xs font-bold">-</button>
+                <input type="number" min={40} max={240} value={bpm}
+                  onChange={e => { const v = parseInt(e.target.value); if (v >= 40 && v <= 240) setBpm(v) }}
+                  className="w-10 bg-transparent text-white text-sm font-mono text-center outline-none" />
+                <button onClick={() => setBpm(Math.min(240, bpm + 5))} className="w-6 h-6 rounded-lg bg-white/[0.06] text-[#94a3b8] hover:text-white flex items-center justify-center cursor-pointer transition-colors text-xs font-bold">+</button>
+                <span className="text-[9px] text-[#4b5a6a] ml-0.5">BPM</span>
+              </div>
+              {/* Time signature */}
               <div className="flex gap-1">
                 {TIME_SIGNATURES.map(ts => (
                   <button key={ts.join('/')} onClick={() => handleTimeSigChange(ts)}
-                    className={`px-2 py-1.5 rounded-lg text-xs transition-colors cursor-pointer ${
+                    className={`px-2 py-1.5 rounded-lg text-xs font-mono font-bold transition-colors cursor-pointer ${
                       timeSig[0] === ts[0] && timeSig[1] === ts[1]
                         ? 'bg-amber-500/15 text-amber-400 border border-amber-500/25'
                         : 'bg-white/[0.04] border border-white/[0.06] text-[#4b5a6a] hover:text-white'
                     }`}>{ts[0]}/{ts[1]}</button>
                 ))}
               </div>
-            </div>
-            <div>
-              <label className="text-[10px] text-[#4b5a6a] uppercase tracking-wider mb-1.5 block">Bars <span className="text-[#374151] normal-case">(1–32)</span></label>
-              <div className="flex items-center gap-2">
-                <input type="range" min={1} max={32} value={bars}
-                  onChange={e => handleBarsChange(parseInt(e.target.value))}
-                  className="w-24 sm:w-32 h-1 rounded-full cursor-pointer" style={{ accentColor: '#f59e0b' }} />
-                <input type="number" min={1} max={32} value={bars}
-                  onChange={e => { const v = parseInt(e.target.value); if (v >= 1 && v <= 32) handleBarsChange(v) }}
-                  className="w-12 px-2 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.06] text-white text-xs text-center font-mono focus:outline-none focus:border-amber-500/30" />
-              </div>
-            </div>
-          </div>
-
-          {/* Row 3: Instruments */}
-          <div>
-            <label className="text-[10px] text-[#4b5a6a] uppercase tracking-wider mb-1.5 block">Instruments</label>
-            <div className="flex flex-wrap gap-1.5">
-              {ALL_PADS.map(({ pad, label, group }) => (
-                <button key={pad} onClick={() => togglePad(pad)}
-                  className={`px-2.5 py-1 rounded-lg text-[11px] transition-colors cursor-pointer ${
-                    enabledPads.includes(pad)
-                      ? group === 'cymbal'
-                        ? 'bg-cyan-500/15 text-cyan-400 border border-cyan-500/25'
-                        : 'bg-amber-500/15 text-amber-400 border border-amber-500/25'
-                      : 'bg-white/[0.03] border border-white/[0.04] text-[#374151] hover:text-[#6b7280]'
-                  }`}>{label}</button>
-              ))}
+              {/* Save button */}
+              <button onClick={handleSave} disabled={saving || !title.trim() || !hasNotes}
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                  saving || !title.trim() || !hasNotes
+                    ? 'bg-white/[0.04] text-[#374151] border border-white/[0.04] cursor-not-allowed'
+                    : 'text-white hover:brightness-110'
+                }`}
+                style={saving || !title.trim() || !hasNotes ? undefined : { background: 'linear-gradient(135deg, #d97706, #f59e0b)' }}>
+                {saving ? (
+                  <><svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg> Saving</>
+                ) : saveSuccess ? (
+                  <><svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg> Saved!</>
+                ) : savedId ? 'Update' : 'Save'}
+              </button>
+              {savedId && (
+                <Link to={`/drums/practice/play/studio:${savedId}`}
+                  className="flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20 hover:bg-amber-500/15 transition-colors">
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                  </svg>
+                  Practice
+                </Link>
+              )}
             </div>
           </div>
         </div>
 
-        {/* ── Backing Track ── */}
-        <div className="rounded-2xl p-4 sm:p-5 border border-white/[0.04]" style={{
+        {/* ═══ COLLAPSIBLE SETTINGS + INSTRUMENTS + BACKING TRACK ═══ */}
+        <div className="rounded-2xl border border-white/[0.04] overflow-hidden" style={{
           background: 'linear-gradient(135deg, rgba(12,14,20,0.7) 0%, rgba(10,12,18,0.8) 100%)',
         }}>
-          <div className="flex flex-wrap items-center gap-4">
-            <div className="flex items-center gap-2">
-              <svg className="w-4 h-4 text-[#4b5a6a]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z" /></svg>
-              <span className="text-[11px] font-semibold text-[#4b5563] uppercase tracking-widest">Backing Track</span>
-            </div>
-
-            {!backingFileName ? (
-              <div className="flex items-center gap-2">
-                <input ref={backingInputRef} type="file" accept="audio/*" onChange={handleBackingUpload}
-                  className="hidden" id="backing-upload" />
-                <button onClick={() => backingInputRef.current?.click()} disabled={backingLoading}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium bg-white/[0.04] border border-white/[0.06] text-[#6b7280] hover:text-amber-400 hover:border-amber-500/20 transition-colors cursor-pointer disabled:opacity-50">
-                  {backingLoading ? (
-                    <><svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg> Loading...</>
-                  ) : (
-                    <><svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg> Upload Audio</>
-                  )}
-                </button>
-                <span className="text-[9px] text-[#374151]">MP3, WAV, OGG</span>
+          <button onClick={() => setShowPatterns(!showPatterns)}
+            className="w-full flex items-center justify-between px-5 py-3 cursor-pointer hover:bg-white/[0.02] transition-colors">
+            <div className="flex items-center gap-3">
+              <span className="text-[10px] font-semibold text-[#4b5563] uppercase tracking-widest">Settings & Instruments</span>
+              <div className="flex items-center gap-2 text-[9px] text-[#374151]">
+                <span>{enabledPads.length} instruments</span>
+                <span>•</span>
+                <span>{backingFileName ? '🎵 ' + backingFileName : 'No backing track'}</span>
               </div>
-            ) : backingLocked ? (
-              /* ── Locked state: compact summary ── */
-              <>
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-500/[0.04] border border-amber-500/10">
-                  {backingLoading ? (
-                    <svg className="w-3 h-3 text-amber-400/60 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
-                  ) : (
-                    <svg className="w-3 h-3 text-amber-400/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
-                  )}
-                  <span className="text-[11px] text-amber-400/80 font-medium truncate max-w-[150px]">{backingFileName}</span>
-                  {backingLoading ? (
-                    <span className="text-[9px] text-amber-400/50 animate-pulse">Loading audio...</span>
+            </div>
+            <svg className={`w-4 h-4 text-[#4b5a6a] transition-transform ${showPatterns ? 'rotate-180' : ''}`}
+              fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+
+          {showPatterns && (
+            <div className="px-5 pb-5 space-y-4" style={{ borderTop: '1px solid rgba(255,255,255,0.03)' }}>
+              {/* Instruments */}
+              <div className="pt-3">
+                <label className="text-[10px] text-[#4b5a6a] uppercase tracking-wider mb-1.5 block">Instruments</label>
+                <div className="flex flex-wrap gap-1.5">
+                  {ALL_PADS.map(({ pad, label, group }) => (
+                    <button key={pad} onClick={() => togglePad(pad)}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] transition-colors cursor-pointer ${
+                        enabledPads.includes(pad)
+                          ? group === 'cymbal'
+                            ? 'bg-cyan-500/15 text-cyan-400 border border-cyan-500/25'
+                            : 'bg-amber-500/15 text-amber-400 border border-amber-500/25'
+                          : 'bg-white/[0.03] border border-white/[0.04] text-[#374151] hover:text-[#6b7280]'
+                      }`}>{label}</button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Backing Track */}
+              <div className="pt-2" style={{ borderTop: '1px solid rgba(255,255,255,0.03)' }}>
+                <div className="flex flex-wrap items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <svg className="w-4 h-4 text-[#4b5a6a]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z" /></svg>
+                    <span className="text-[11px] font-semibold text-[#4b5563] uppercase tracking-widest">Backing Track</span>
+                  </div>
+                  {!backingFileName ? (
+                    <div className="flex items-center gap-2">
+                      <input ref={backingInputRef} type="file" accept="audio/*" onChange={handleBackingUpload} className="hidden" id="backing-upload" />
+                      <button onClick={() => backingInputRef.current?.click()} disabled={backingLoading}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium bg-white/[0.04] border border-white/[0.06] text-[#6b7280] hover:text-amber-400 hover:border-amber-500/20 transition-colors cursor-pointer disabled:opacity-50">
+                        {backingLoading ? (<><svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg> Loading...</>
+                        ) : (<><svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg> Upload Audio</>)}
+                      </button>
+                      <span className="text-[9px] text-[#374151]">MP3, WAV, OGG</span>
+                    </div>
+                  ) : backingLocked ? (
+                    <>
+                      <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-500/[0.04] border border-amber-500/10">
+                        {backingLoading ? (<svg className="w-3 h-3 text-amber-400/60 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+                        ) : (<svg className="w-3 h-3 text-amber-400/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>)}
+                        <span className="text-[11px] text-amber-400/80 font-medium truncate max-w-[150px]">{backingFileName}</span>
+                        {backingLoading ? (<span className="text-[9px] text-amber-400/50 animate-pulse">Loading...</span>) : (<><span className="text-[9px] text-[#4b5a6a]">{backingBpm} BPM</span>{backingSyncOffset !== 0 && <span className="text-[9px] text-[#4b5a6a]">offset {backingSyncOffset > 0 ? '+' : ''}{backingSyncOffset.toFixed(2)}s</span>}</>)}
+                      </div>
+                      <button onClick={() => setBackingLocked(false)} className="flex items-center gap-1 px-2 py-1 rounded-lg text-[9px] font-medium bg-white/[0.03] border border-white/[0.04] text-[#4b5a6a] hover:text-amber-400 hover:border-amber-500/20 transition-colors cursor-pointer">
+                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 019.9-1"/></svg> Edit
+                      </button>
+                    </>
                   ) : (
                     <>
-                      <span className="text-[9px] text-[#4b5a6a]">{backingBpm} BPM</span>
-                      {backingSyncOffset !== 0 && <span className="text-[9px] text-[#4b5a6a]">offset {backingSyncOffset > 0 ? '+' : ''}{backingSyncOffset.toFixed(2)}s</span>}
+                      <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-500/[0.06] border border-amber-500/15">
+                        <svg className="w-3.5 h-3.5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 19V6l12-3v13" /></svg>
+                        <span className="text-[11px] text-amber-400 font-medium truncate max-w-[150px]">{backingFileName}</span>
+                        <button onClick={handleRemoveBacking} className="text-[#4b5563] hover:text-rose-400 transition-colors cursor-pointer p-0.5" title="Remove backing track">
+                          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                        </button>
+                      </div>
+                      <div className="flex items-center gap-1.5"><span className="text-[9px] text-[#4b5a6a] uppercase tracking-wider">Track BPM</span><input type="number" min={30} max={300} value={backingBpm} onChange={e => { const v = parseInt(e.target.value); if (v >= 30 && v <= 300) handleBackingBpmChange(v) }} className="w-14 px-2 py-1 rounded-lg bg-white/[0.04] border border-white/[0.06] text-white text-xs text-center font-mono focus:outline-none focus:border-amber-500/30" /></div>
+                      <div className="flex items-center gap-1.5"><span className="text-[9px] text-[#4b5a6a] uppercase tracking-wider">Vol</span><input type="range" min={0} max={100} value={Math.round(backingVol * 100)} onChange={e => { const v = parseInt(e.target.value) / 100; setBackingVol(v); setBackingVolume(v) }} className="w-16 h-1 rounded-full cursor-pointer" style={{ accentColor: '#f59e0b' }} /></div>
+                      <button onClick={() => setBackingLocked(true)} className="flex items-center gap-1 px-2 py-1 rounded-lg text-[9px] font-medium bg-white/[0.03] border border-white/[0.04] text-[#4b5a6a] hover:text-amber-400 hover:border-amber-500/20 transition-colors cursor-pointer"><svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg> Lock</button>
+                      <span className="text-[9px] text-[#374151]">Syncs at {bpm} BPM ({bpm !== backingBpm ? `${(bpm / backingBpm * 100).toFixed(0)}% speed` : 'original speed'})</span>
                     </>
                   )}
                 </div>
-                <button onClick={() => setBackingLocked(false)}
-                  className="flex items-center gap-1 px-2 py-1 rounded-lg text-[9px] font-medium bg-white/[0.03] border border-white/[0.04] text-[#4b5a6a] hover:text-amber-400 hover:border-amber-500/20 transition-colors cursor-pointer">
-                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 019.9-1"/></svg>
-                  Edit
-                </button>
-              </>
-            ) : (
-              /* ── Unlocked: full controls ── */
-              <>
-                {/* File info */}
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-500/[0.06] border border-amber-500/15">
-                  <svg className="w-3.5 h-3.5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 19V6l12-3v13" /></svg>
-                  <span className="text-[11px] text-amber-400 font-medium truncate max-w-[150px]">{backingFileName}</span>
-                  <button onClick={handleRemoveBacking}
-                    className="text-[#4b5563] hover:text-rose-400 transition-colors cursor-pointer p-0.5"
-                    title="Remove backing track">
-                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-                  </button>
-                </div>
 
-                {/* Original BPM */}
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[9px] text-[#4b5a6a] uppercase tracking-wider">Track BPM</span>
-                  <input type="number" min={30} max={300} value={backingBpm}
-                    onChange={e => { const v = parseInt(e.target.value); if (v >= 30 && v <= 300) handleBackingBpmChange(v) }}
-                    className="w-14 px-2 py-1 rounded-lg bg-white/[0.04] border border-white/[0.06] text-white text-xs text-center font-mono focus:outline-none focus:border-amber-500/30" />
-                </div>
-
-                {/* Volume */}
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[9px] text-[#4b5a6a] uppercase tracking-wider">Vol</span>
-                  <input type="range" min={0} max={100} value={Math.round(backingVol * 100)}
-                    onChange={e => { const v = parseInt(e.target.value) / 100; setBackingVol(v); setBackingVolume(v) }}
-                    className="w-16 h-1 rounded-full cursor-pointer" style={{ accentColor: '#f59e0b' }} />
-                </div>
-
-                {/* Lock button */}
-                <button onClick={() => setBackingLocked(true)}
-                  className="flex items-center gap-1 px-2 py-1 rounded-lg text-[9px] font-medium bg-white/[0.03] border border-white/[0.04] text-[#4b5a6a] hover:text-amber-400 hover:border-amber-500/20 transition-colors cursor-pointer"
-                  title="Lock settings to prevent accidental changes">
-                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
-                  Lock
-                </button>
-
-                {/* Tempo sync indicator */}
-                <span className="text-[9px] text-[#374151]">
-                  Syncs at {bpm} BPM ({bpm !== backingBpm ? `${(bpm / backingBpm * 100).toFixed(0)}% speed` : 'original speed'})
-                </span>
-              </>
-            )}
-          </div>
-
-          {/* Mini-player + Sync controls — only show when file is loaded and unlocked */}
-          {backingFileName && backingUrl && !backingLocked && (
-            <div className="mt-3 pt-3 space-y-3" style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
-              {/* Hidden audio element for preview */}
-              <audio ref={audioPreviewRef} src={backingUrl} preload="auto"
-                onEnded={() => { setPreviewPlaying(false); cancelAnimationFrame(previewAnimRef.current); if (syncMode === 'listening') setSyncMode('idle') }}
-                onLoadedMetadata={e => setPreviewDuration((e.target as HTMLAudioElement).duration)} />
-
-              {/* Mini player: play/pause + seekbar + time */}
-              <div className="flex items-center gap-3">
-                <button onClick={handlePreviewToggle}
-                  className="w-8 h-8 rounded-lg flex items-center justify-center cursor-pointer transition-colors bg-white/[0.06] border border-white/[0.06] text-[#94a3b8] hover:text-white hover:bg-white/[0.1]">
-                  {previewPlaying
-                    ? <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>
-                    : <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-                  }
-                </button>
-                <input type="range" min={0} max={previewDuration || 1} step={0.1} value={previewTime}
-                  onChange={e => handlePreviewSeek(parseFloat(e.target.value))}
-                  className="flex-1 h-1.5 rounded-full cursor-pointer" style={{ accentColor: '#f59e0b' }} />
-                <span className="font-mono text-[10px] text-[#6b7280] w-20 text-right flex-shrink-0">
-                  {formatTime(previewTime)} / {formatTime(previewDuration)}
-                </span>
+                {backingFileName && backingUrl && !backingLocked && (
+                  <div className="mt-3 pt-3 space-y-3" style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+                    <audio ref={audioPreviewRef} src={backingUrl} preload="auto"
+                      onEnded={() => { setPreviewPlaying(false); cancelAnimationFrame(previewAnimRef.current); if (syncMode === 'listening') setSyncMode('idle') }}
+                      onLoadedMetadata={e => setPreviewDuration((e.target as HTMLAudioElement).duration)} />
+                    <div className="flex items-center gap-3">
+                      <button onClick={handlePreviewToggle} className="w-8 h-8 rounded-lg flex items-center justify-center cursor-pointer transition-colors bg-white/[0.06] border border-white/[0.06] text-[#94a3b8] hover:text-white hover:bg-white/[0.1]">
+                        {previewPlaying ? <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg> : <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>}
+                      </button>
+                      <input type="range" min={0} max={previewDuration || 1} step={0.1} value={previewTime} onChange={e => handlePreviewSeek(parseFloat(e.target.value))} className="flex-1 h-1.5 rounded-full cursor-pointer" style={{ accentColor: '#f59e0b' }} />
+                      <span className="font-mono text-[10px] text-[#6b7280] w-20 text-right flex-shrink-0">{formatTime(previewTime)} / {formatTime(previewDuration)}</span>
+                    </div>
+                    {syncMode === 'idle' && (<div className="flex flex-wrap items-center gap-3"><button onClick={handleStartTapSync} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium bg-violet-500/10 text-violet-400 border border-violet-500/20 hover:bg-violet-500/15 transition-colors cursor-pointer"><svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5" /></svg> Tap to Sync</button><span className="text-[9px] text-[#374151]">Plays the song — tap when you hear the drum entry</span></div>)}
+                    {syncMode === 'listening' && (<div className="flex items-center gap-3"><div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" /><span className="text-[11px] text-[#c4c9d4]">Listening at <span className="font-mono text-amber-400">{formatTime(previewTime)}</span> — tap when drums start</span></div><button onClick={handleSyncTap} className="px-5 py-2.5 rounded-xl text-sm font-bold text-white cursor-pointer transition-all hover:scale-105 active:scale-95" style={{ background: 'linear-gradient(135deg, #f59e0b, #ea580c)', boxShadow: '0 0 20px rgba(245,158,11,0.3)' }}>TAP</button><button onClick={handleSyncCancel} className="text-[10px] text-[#4b5a6a] hover:text-rose-400 cursor-pointer">Cancel</button></div>)}
+                    {syncMode === 'pick-bar' && (<div className="space-y-2"><div className="text-[11px] text-[#c4c9d4]">Tapped at <span className="font-mono text-amber-400">{formatTime(syncTapTime)}</span> — which bar aligns?</div><div className="flex gap-1.5 flex-wrap">{Array.from({ length: bars }).map((_, i) => (<button key={i} onClick={() => handleSyncPickBar(i)} className="px-3 py-1.5 rounded-lg text-xs font-medium bg-white/[0.04] border border-white/[0.06] text-[#94a3b8] hover:text-amber-400 hover:border-amber-500/25 cursor-pointer transition-colors">Bar {i + 1}</button>))}<button onClick={handleSyncCancel} className="px-3 py-1.5 rounded-lg text-xs text-[#4b5a6a] hover:text-rose-400 cursor-pointer">Cancel</button></div></div>)}
+                    {syncMode === 'idle' && (<div className="flex flex-wrap items-center gap-3"><div className="flex items-center gap-1.5"><span className="text-[9px] text-[#4b5a6a] uppercase tracking-wider">Offset</span><button onClick={() => handleSyncOffsetChange(backingSyncOffset - 0.05)} className="w-5 h-5 rounded bg-white/[0.04] border border-white/[0.06] text-[#6b7280] hover:text-white flex items-center justify-center cursor-pointer text-[10px]">-</button><span className="font-mono text-[10px] text-white w-14 text-center">{backingSyncOffset >= 0 ? '+' : ''}{backingSyncOffset.toFixed(2)}s</span><button onClick={() => handleSyncOffsetChange(backingSyncOffset + 0.05)} className="w-5 h-5 rounded bg-white/[0.04] border border-white/[0.06] text-[#6b7280] hover:text-white flex items-center justify-center cursor-pointer text-[10px]">+</button></div><div className="flex items-center gap-1"><span className="text-[9px] text-[#374151]">Fine:</span>{[-10, -1, 1, 10].map(ms => (<button key={ms} onClick={() => handleSyncOffsetChange(backingSyncOffset + ms / 1000)} className="px-1.5 py-0.5 rounded text-[9px] bg-white/[0.03] border border-white/[0.04] text-[#4b5a6a] hover:text-white cursor-pointer">{ms > 0 ? '+' : ''}{ms}ms</button>))}</div>{backingSyncOffset !== 0 && (<button onClick={() => handleSyncOffsetChange(0)} className="text-[9px] text-[#374151] hover:text-rose-400 cursor-pointer">Reset</button>)}{backingSyncOffset !== 0 && (<span className="text-[9px] text-[#374151]">Song {formatTime(Math.max(0, backingSyncOffset))} = Bar 1</span>)}</div>)}
+                  </div>
+                )}
               </div>
-
-              {/* Tap-to-Sync flow */}
-              {syncMode === 'idle' && (
-                <div className="flex flex-wrap items-center gap-3">
-                  <button onClick={handleStartTapSync}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium bg-violet-500/10 text-violet-400 border border-violet-500/20 hover:bg-violet-500/15 transition-colors cursor-pointer">
-                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5" /></svg>
-                    Tap to Sync
-                  </button>
-                  <span className="text-[9px] text-[#374151]">Plays the song — tap when you hear the drum entry</span>
-                </div>
-              )}
-
-              {syncMode === 'listening' && (
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
-                    <span className="text-[11px] text-[#c4c9d4]">Listening at <span className="font-mono text-amber-400">{formatTime(previewTime)}</span> — tap when drums start</span>
-                  </div>
-                  <button onClick={handleSyncTap}
-                    className="px-5 py-2.5 rounded-xl text-sm font-bold text-white cursor-pointer transition-all hover:scale-105 active:scale-95"
-                    style={{ background: 'linear-gradient(135deg, #f59e0b, #ea580c)', boxShadow: '0 0 20px rgba(245,158,11,0.3)' }}>
-                    TAP
-                  </button>
-                  <button onClick={handleSyncCancel}
-                    className="text-[10px] text-[#4b5a6a] hover:text-rose-400 cursor-pointer">Cancel</button>
-                </div>
-              )}
-
-              {syncMode === 'pick-bar' && (
-                <div className="space-y-2">
-                  <div className="text-[11px] text-[#c4c9d4]">
-                    Tapped at <span className="font-mono text-amber-400">{formatTime(syncTapTime)}</span> ({syncTapTime.toFixed(2)}s) — which bar does this align with?
-                  </div>
-                  <div className="flex gap-1.5 flex-wrap">
-                    {Array.from({ length: bars }).map((_, i) => (
-                      <button key={i} onClick={() => handleSyncPickBar(i)}
-                        className="px-3 py-1.5 rounded-lg text-xs font-medium bg-white/[0.04] border border-white/[0.06] text-[#94a3b8] hover:text-amber-400 hover:border-amber-500/25 cursor-pointer transition-colors">
-                        Bar {i + 1}
-                      </button>
-                    ))}
-                    <button onClick={handleSyncCancel}
-                      className="px-3 py-1.5 rounded-lg text-xs text-[#4b5a6a] hover:text-rose-400 cursor-pointer">Cancel</button>
-                  </div>
-                </div>
-              )}
-
-              {/* Offset display + fine-tune (always visible in idle mode) */}
-              {syncMode === 'idle' && (
-                <div className="flex flex-wrap items-center gap-3">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[9px] text-[#4b5a6a] uppercase tracking-wider">Offset</span>
-                    <button onClick={() => handleSyncOffsetChange(backingSyncOffset - 0.05)}
-                      className="w-5 h-5 rounded bg-white/[0.04] border border-white/[0.06] text-[#6b7280] hover:text-white flex items-center justify-center cursor-pointer text-[10px]">-</button>
-                    <span className="font-mono text-[10px] text-white w-14 text-center">{backingSyncOffset >= 0 ? '+' : ''}{backingSyncOffset.toFixed(2)}s</span>
-                    <button onClick={() => handleSyncOffsetChange(backingSyncOffset + 0.05)}
-                      className="w-5 h-5 rounded bg-white/[0.04] border border-white/[0.06] text-[#6b7280] hover:text-white flex items-center justify-center cursor-pointer text-[10px]">+</button>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <span className="text-[9px] text-[#374151]">Fine:</span>
-                    {[-10, -1, 1, 10].map(ms => (
-                      <button key={ms} onClick={() => handleSyncOffsetChange(backingSyncOffset + ms / 1000)}
-                        className="px-1.5 py-0.5 rounded text-[9px] bg-white/[0.03] border border-white/[0.04] text-[#4b5a6a] hover:text-white cursor-pointer">
-                        {ms > 0 ? '+' : ''}{ms}ms
-                      </button>
-                    ))}
-                  </div>
-                  {backingSyncOffset !== 0 && (
-                    <button onClick={() => handleSyncOffsetChange(0)}
-                      className="text-[9px] text-[#374151] hover:text-rose-400 cursor-pointer">Reset</button>
-                  )}
-                  {backingSyncOffset !== 0 && (
-                    <span className="text-[9px] text-[#374151]">
-                      Song {formatTime(Math.max(0, backingSyncOffset))} = Bar 1
-                    </span>
-                  )}
-                </div>
-              )}
             </div>
           )}
         </div>
 
-        {/* ── Bar Selector + Per-bar Resolution ── */}
-        <div className="space-y-2">
-          <div className="flex flex-wrap items-center gap-3">
-            <span className="text-[11px] font-semibold text-[#4b5563] uppercase tracking-widest flex-shrink-0">Editing</span>
-            <div className="flex gap-1.5 overflow-x-auto pb-1">
-              {Array.from({ length: bars }).map((_, i) => {
-                const bp = getBarPattern(i)
-                const has = Object.values(bp.tracks).some(t => t.some(v => v > 0))
-                const bSub = barSubdivisions[i] ?? 4
-                const subLabel = SUBDIVISIONS.find(s => s.value === bSub)?.label || ''
-                const isDragOver = dragBarRef.current !== null && dragBarRef.current !== i
-                return (
-                  <div key={i} className="flex-shrink-0 relative"
-                    draggable
-                    onDragStart={() => { dragBarRef.current = i }}
-                    onDragEnd={() => { dragBarRef.current = null }}
-                    onDragOver={e => { e.preventDefault(); e.dataTransfer.dropEffect = 'move' }}
-                    onDrop={e => { e.preventDefault(); if (dragBarRef.current !== null) { handleMoveBar(dragBarRef.current, i); dragBarRef.current = null } }}
-                  >
-                    <button onClick={() => setEditingBar(i)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-grab active:cursor-grabbing flex-shrink-0 ${
-                        editingBar === i
-                          ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30 shadow-lg shadow-amber-500/10'
-                          : has
-                            ? 'bg-white/[0.04] border border-white/[0.06] text-[#94a3b8] hover:text-white hover:bg-white/[0.06]'
-                            : 'bg-white/[0.02] border border-white/[0.03] text-[#374151] hover:text-[#6b7280]'
-                      } ${isDragOver ? 'ring-1 ring-amber-500/30' : ''}`}>
-                      <span className="mr-1 text-[8px] opacity-30">&#x2630;</span>
-                      Bar {i + 1}
-                      <span className="ml-1 text-[8px] opacity-50">{subLabel}</span>
-                      {has && <span className="ml-0.5 w-1.5 h-1.5 rounded-full bg-amber-400/60 inline-block" />}
-                    </button>
-                  </div>
-                )
-              })}
-              {/* Add Bar button */}
-              {bars < 32 && (
-                <button onClick={() => { handleBarsChange(bars + 1); setEditingBar(bars) }}
-                  className="px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer flex-shrink-0 bg-white/[0.03] border border-dashed border-white/[0.08] text-[#4b5a6a] hover:text-amber-400 hover:border-amber-500/25"
-                  title="Add bar">
-                  + Bar
-                </button>
-              )}
+        {/* ═══ BAR NAVIGATOR — grid layout for large bar counts ═══ */}
+        <div className="rounded-2xl p-4 sm:p-5 border border-white/[0.04]" style={{
+          background: 'linear-gradient(135deg, rgba(12,14,20,0.7) 0%, rgba(10,12,18,0.8) 100%)',
+        }}>
+          {/* Top row: title, jump input, add/clear */}
+          <div className="flex items-center gap-3 mb-3">
+            <span className="text-[10px] font-semibold text-[#4b5563] uppercase tracking-widest">
+              Bars <span className="text-amber-400/70 font-bold">{bars}</span>
+            </span>
+            <span className="text-[9px] text-[#374151]">Editing bar {editingBar + 1}</span>
+
+            {/* Jump-to-bar input */}
+            {bars > 8 && (
+              <div className="flex items-center gap-1.5 ml-auto">
+                <span className="text-[9px] text-[#4b5a6a]">Go to</span>
+                <input type="number" min={1} max={bars}
+                  placeholder="#"
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') {
+                      const v = parseInt((e.target as HTMLInputElement).value)
+                      if (v >= 1 && v <= bars) { setEditingBar(v - 1); (e.target as HTMLInputElement).value = '' }
+                    }
+                  }}
+                  className="w-12 px-2 py-1 rounded-lg bg-white/[0.04] border border-white/[0.06] text-white text-[10px] text-center font-mono focus:outline-none focus:border-amber-500/30 placeholder:text-[#2d3748]"
+                />
+              </div>
+            )}
+
+            {/* Prev / Next buttons */}
+            <div className="flex items-center gap-1">
+              <button onClick={() => setEditingBar(Math.max(0, editingBar - 1))} disabled={editingBar === 0}
+                className="w-7 h-7 rounded-lg bg-white/[0.04] border border-white/[0.06] text-[#94a3b8] hover:text-white flex items-center justify-center cursor-pointer transition-colors disabled:opacity-20 disabled:cursor-not-allowed">
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
+              </button>
+              <button onClick={() => setEditingBar(Math.min(bars - 1, editingBar + 1))} disabled={editingBar === bars - 1}
+                className="w-7 h-7 rounded-lg bg-white/[0.04] border border-white/[0.06] text-[#94a3b8] hover:text-white flex items-center justify-center cursor-pointer transition-colors disabled:opacity-20 disabled:cursor-not-allowed">
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
+              </button>
             </div>
+
+            <div className="w-px h-5 bg-white/[0.06]" />
+
+            <button onClick={() => { handleBarsChange(bars + 1); setEditingBar(bars) }}
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-medium transition-all cursor-pointer bg-white/[0.04] border border-dashed border-white/[0.08] text-[#4b5a6a] hover:text-amber-400 hover:border-amber-500/25">
+              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
+              Add Bar
+            </button>
             <button onClick={handleClear}
-              className="text-[10px] px-2 py-1 rounded-lg bg-white/[0.04] border border-white/[0.06] text-[#4b5a6a] hover:text-rose-400 transition-colors cursor-pointer flex-shrink-0">
+              className="text-[10px] px-2 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.06] text-[#4b5a6a] hover:text-rose-400 transition-colors cursor-pointer">
               Clear All
             </button>
           </div>
-          {/* Per-bar controls: resolution + duplicate */}
-          <div className="flex items-center gap-3 pl-[60px]">
+
+          {/* Bar grid — wrapping tiles for easy navigation with many bars */}
+          <div className="flex flex-wrap gap-1" style={{ maxHeight: bars > 64 ? '240px' : undefined, overflowY: bars > 64 ? 'auto' : undefined }}>
+            {Array.from({ length: bars }).map((_, i) => {
+              const bp = getBarPattern(i)
+              const has = Object.values(bp.tracks).some(t => t.some(v => v > 0))
+              const bSub = barSubdivisions[i] ?? 4
+              const subInfo = SUBDIVISIONS.find(s => s.value === bSub)
+              const isDragOver = dragBarRef.current !== null && dragBarRef.current !== i
+              const isActive = editingBar === i
+              // Color for resolution indicator
+              const resColors: Record<number, string> = { 1: '#22c55e', 2: '#3b82f6', 3: '#f59e0b', 4: '#ef4444' }
+              return (
+                <div key={i} className="relative"
+                  style={{ animation: `barGridPop 0.15s ease-out ${Math.min(i * 0.01, 0.5)}s both` }}
+                  draggable
+                  onDragStart={() => { dragBarRef.current = i }}
+                  onDragEnd={() => { dragBarRef.current = null }}
+                  onDragOver={e => { e.preventDefault(); e.dataTransfer.dropEffect = 'move' }}
+                  onDrop={e => { e.preventDefault(); if (dragBarRef.current !== null) { handleMoveBar(dragBarRef.current, i); dragBarRef.current = null } }}
+                >
+                  <button onClick={() => setEditingBar(i)}
+                    className={`w-12 h-10 rounded-lg text-[10px] font-bold transition-all cursor-grab active:cursor-grabbing flex flex-col items-center justify-center gap-0 relative overflow-hidden ${
+                      isActive
+                        ? 'text-amber-300 border-amber-500/40 shadow-lg shadow-amber-500/10'
+                        : has
+                          ? 'text-[#c4c9d4] border-white/[0.08] hover:border-amber-500/20 hover:text-white'
+                          : 'text-[#374151] border-white/[0.04] hover:text-[#6b7280] hover:border-white/[0.08]'
+                    } ${isDragOver ? 'ring-1 ring-amber-500/40' : ''}`}
+                    style={{
+                      background: isActive
+                        ? 'linear-gradient(135deg, rgba(245,158,11,0.15), rgba(234,88,12,0.08))'
+                        : has ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.01)',
+                      border: `1px solid ${isActive ? 'rgba(245,158,11,0.4)' : has ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.04)'}`,
+                    }}>
+                    {/* Resolution indicator line at top */}
+                    <div className="absolute top-0 left-1 right-1 h-[2px] rounded-full" style={{
+                      background: resColors[bSub] || '#3b82f6',
+                      opacity: isActive ? 0.8 : 0.3,
+                    }} />
+                    <span>{i + 1}</span>
+                    {has && <span className="w-1 h-1 rounded-full bg-amber-400/60 absolute bottom-1 right-1" />}
+                  </button>
+                </div>
+              )
+            })}
+          </div>
+
+          {/* Per-bar controls: resolution + duplicate + delete */}
+          <div className="flex items-center gap-3 mt-3 pt-3" style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+            <span className="text-[10px] text-amber-400 font-bold">Bar {editingBar + 1}</span>
             <div className="flex items-center gap-1.5">
-              <span className="text-[9px] text-[#4b5a6a] uppercase tracking-wider">Resolution</span>
+              <span className="text-[9px] text-[#4b5a6a]">Resolution</span>
               {SUBDIVISIONS.map(s => (
                 <button key={s.value} onClick={() => handleBarResolutionChange(s.value)}
                   className={`px-2 py-1 rounded-lg text-[10px] font-medium transition-colors cursor-pointer ${
@@ -1326,18 +1279,16 @@ export default function StudioPage() {
             </div>
             <div className="w-px h-4 bg-white/[0.06]" />
             <button onClick={() => handleDuplicateBar(editingBar)}
-              disabled={bars >= 32}
-              className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium transition-colors cursor-pointer bg-white/[0.03] border border-white/[0.04] text-[#4b5a6a] hover:text-amber-400 hover:border-amber-500/20 disabled:opacity-30 disabled:cursor-not-allowed"
+              className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium transition-colors cursor-pointer bg-white/[0.03] border border-white/[0.04] text-[#4b5a6a] hover:text-amber-400 hover:border-amber-500/20"
               title="Duplicate this bar">
               <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><rect x="8" y="8" width="12" height="12" rx="2" /><path d="M16 8V6a2 2 0 00-2-2H6a2 2 0 00-2 2v8a2 2 0 002 2h2" /></svg>
-              Duplicate Bar {editingBar + 1}
+              Duplicate
             </button>
-            <button onClick={() => handleDeleteBar(editingBar)}
-              disabled={bars <= 1}
+            <button onClick={() => handleDeleteBar(editingBar)} disabled={bars <= 1}
               className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium transition-colors cursor-pointer bg-white/[0.03] border border-white/[0.04] text-[#4b5a6a] hover:text-rose-400 hover:border-rose-500/20 disabled:opacity-30 disabled:cursor-not-allowed"
               title="Delete this bar">
               <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-              Delete Bar {editingBar + 1}
+              Delete
             </button>
           </div>
         </div>
@@ -1378,7 +1329,7 @@ export default function StudioPage() {
           />
         </div>
 
-        {/* ── Full Pattern Preview — single continuous view with 4-bar line breaks ── */}
+        {/* ── Full Pattern Preview ── */}
         {hasNotes && (
           <div className="rounded-2xl p-5 border border-white/[0.04]" style={{
             background: 'linear-gradient(135deg, rgba(12,14,20,0.7) 0%, rgba(10,12,18,0.8) 100%)',
@@ -1396,36 +1347,6 @@ export default function StudioPage() {
             />
           </div>
         )}
-
-        {/* ── Save bar ── */}
-        <div className="flex items-center gap-3">
-          <button onClick={handleSave} disabled={saving || !title.trim() || !hasNotes}
-            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-semibold transition-all cursor-pointer ${
-              saving || !title.trim() || !hasNotes
-                ? 'bg-white/[0.04] text-[#374151] border border-white/[0.04] cursor-not-allowed'
-                : 'text-white hover:brightness-110'
-            }`}
-            style={saving || !title.trim() || !hasNotes ? undefined : { background: 'linear-gradient(135deg, #d97706, #f59e0b)' }}>
-            {saving ? (
-              <><svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg> Saving...</>
-            ) : saveSuccess ? (
-              <><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg> Saved!</>
-            ) : savedId ? 'Update Pattern' : 'Save Pattern'}
-          </button>
-          {savedId && (
-            <Link to={`/drums/practice/play/studio:${savedId}`}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20 hover:bg-amber-500/15 transition-colors">
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              Practice This
-            </Link>
-          )}
-          {!title.trim() && hasNotes && (
-            <span className="text-[11px] text-amber-400/60">Give your pattern a name to save it</span>
-          )}
-        </div>
       </div>
 
       ) : (<>
