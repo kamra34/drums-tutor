@@ -382,26 +382,30 @@ const GRID_PAD_COLOR: Partial<Record<DrumPad, string>> = {
 const ROW_H = 28
 const LABEL_W = 60
 
-function GridView({ pattern, highlightSlot = -1, onSlotClick, barSubdivisions, beatsPerBar }: {
-  pattern: PatternData; highlightSlot?: number; onSlotClick?: (slot: number) => void; barSubdivisions?: number[]; beatsPerBar?: number
+function GridView({ pattern, highlightSlot = -1, onSlotClick, barSubdivisions, beatsPerBar, barsPerLine = 4, focusBar, scale = 1 }: {
+  pattern: PatternData; highlightSlot?: number; onSlotClick?: (slot: number) => void;
+  barSubdivisions?: number[]; beatsPerBar?: number; barsPerLine?: number;
+  /** If set, visually emphasize this bar index (0-based) */
+  focusBar?: number;
+  /** Scale factor for row height/font (1 = normal, >1 = enlarged) */
+  scale?: number;
 }) {
   const { beats, subdivisions, tracks } = pattern
   const totalSlots = beats * subdivisions
   const activePads = GRID_PAD_ORDER.filter(p => tracks[p]?.some(v => v > 0))
 
-  // Determine step size per beat. If barSubdivisions is provided, use the
-  // authoritative per-bar resolution. Otherwise fall back to GCD heuristic.
   const bpb = beatsPerBar ?? beats
+  const numBars = Math.max(1, Math.ceil(beats / bpb))
+  const slotsPerBar = bpb * subdivisions
+
   function gcd(a: number, b: number): number { return b === 0 ? a : gcd(b, a % b) }
 
   function beatStep(beatStart: number): number {
-    // If we have authoritative per-bar subdivisions, use them
     if (barSubdivisions && barSubdivisions.length > 0) {
-      const barIdx = Math.floor(beatStart / (bpb * subdivisions))
+      const barIdx = Math.floor(beatStart / slotsPerBar)
       const barSub = barSubdivisions[barIdx] ?? subdivisions
-      return subdivisions / barSub // e.g., maxSub=6, barSub=3 → step=2
+      return subdivisions / barSub
     }
-    // Fallback: GCD of hit positions
     let hitGcd = 0
     for (let s = 1; s < subdivisions; s++) {
       const slot = beatStart + s
@@ -415,7 +419,7 @@ function GridView({ pattern, highlightSlot = -1, onSlotClick, barSubdivisions, b
     return hitGcd === 0 ? subdivisions : hitGcd
   }
 
-  // Build a visibility map using per-beat step
+  // Build visibility map
   const slotVisible: boolean[] = new Array(totalSlots).fill(false)
   const slotSpan: number[] = new Array(totalSlots).fill(1)
   for (let beatStart = 0; beatStart < totalSlots; beatStart += subdivisions) {
@@ -428,71 +432,95 @@ function GridView({ pattern, highlightSlot = -1, onSlotClick, barSubdivisions, b
 
   const visibleSlots = slotVisible.map((v, i) => v ? i : -1).filter(i => i >= 0)
 
-  return (
-    <div className="w-full">
-      {/* Beat labels (clickable for seek) */}
-      <div className="flex" style={{ paddingLeft: LABEL_W }}>
-        {visibleSlots.map(si => {
-          const span = slotSpan[si]
+  // Split bars into lines
+  const effectiveBarsPerLine = Math.min(barsPerLine, numBars)
+  const numLines = Math.ceil(numBars / effectiveBarsPerLine)
+  const rowH = Math.round(ROW_H * scale)
+  const labelW = Math.round(LABEL_W * scale)
+  const fontSize = Math.round(11 * scale)
+
+  function renderGridLine(lineIdx: number) {
+    const startBar = lineIdx * effectiveBarsPerLine
+    const endBar = Math.min(startBar + effectiveBarsPerLine, numBars)
+    const startSlot = startBar * slotsPerBar
+    const endSlot = Math.min(endBar * slotsPerBar, totalSlots)
+    const lineSlots = visibleSlots.filter(si => si >= startSlot && si < endSlot)
+
+    return (
+      <div key={lineIdx} className={numLines > 1 ? 'mb-3' : ''}>
+        {/* Bar numbers + beat labels */}
+        <div className="flex" style={{ paddingLeft: labelW }}>
+          {lineSlots.map(si => {
+            const span = slotSpan[si]
+            const barIdx = Math.floor(si / slotsPerBar)
+            const isBarStart = si % slotsPerBar === 0
+            const isFocused = focusBar !== undefined && barIdx === focusBar
+            return (
+              <div
+                key={si}
+                onClick={onSlotClick ? () => onSlotClick(si) : undefined}
+                className={`text-center ${onSlotClick ? 'cursor-pointer hover:text-amber-400' : ''} ${
+                  isBarStart ? 'text-[#4b5a6a] font-bold' : si % subdivisions === 0 ? 'text-[#4b5a6a] font-medium' : 'text-[#2d3748]'
+                } ${isFocused ? 'text-amber-400/80' : ''}`}
+                style={{ flex: span, fontSize: Math.round(10 * scale) }}
+              >
+                {isBarStart ? `${barIdx + 1}` : subdivisionLabel(si % slotsPerBar, subdivisions)}
+              </div>
+            )
+          })}
+        </div>
+
+        {/* Grid rows */}
+        {activePads.map((pad) => {
+          const steps = tracks[pad] ?? []
+          const color = GRID_PAD_COLOR[pad] ?? '#6b7280'
           return (
-            <div
-              key={si}
-              onClick={onSlotClick ? () => onSlotClick(si) : undefined}
-              className={`text-center text-xs ${onSlotClick ? 'cursor-pointer hover:text-amber-400' : ''} ${
-                si % subdivisions === 0 ? 'text-[#4b5a6a] font-medium' : 'text-[#2d3748]'
-              }`}
-              style={{ flex: span }}
-            >
-              {subdivisionLabel(si, subdivisions)}
+            <div key={pad} className="flex items-center" style={{ height: rowH }}>
+              <div className="font-medium text-right pr-2 flex-shrink-0" style={{ width: labelW, color, fontSize }}>
+                {GRID_PAD_LABEL[pad] ?? pad}
+              </div>
+              <div className="flex gap-[2px] flex-1 min-w-0">
+                {lineSlots.map(si => {
+                  const span = slotSpan[si]
+                  const hv = (steps[si] ?? 0) as number
+                  const isHl = highlightSlot >= si && highlightSlot < si + span
+                  const isBeatStart = si % subdivisions === 0
+                  const isBarBoundary = si % slotsPerBar === 0
+                  const barIdx = Math.floor(si / slotsPerBar)
+                  const isFocused = focusBar !== undefined && barIdx === focusBar
+
+                  let bg = 'rgba(255,255,255,0.02)'
+                  if (hv === 1 || hv === 2 || hv === 3) bg = color
+                  const opacity = hv === 0 ? 1 : hv === 3 ? 0.3 : hv === 2 ? 1 : 0.7
+
+                  return (
+                    <div
+                      key={si}
+                      className={`rounded-[3px] transition-all duration-75 ${onSlotClick ? 'cursor-pointer hover:brightness-125' : ''}`}
+                      onClick={onSlotClick ? () => onSlotClick(si) : undefined}
+                      style={{
+                        flex: span,
+                        height: rowH - 4,
+                        background: hv > 0 ? bg : isHl ? 'rgba(245,158,11,0.06)' : isFocused ? 'rgba(245,158,11,0.03)' : 'rgba(255,255,255,0.02)',
+                        opacity: hv > 0 ? opacity : 1,
+                        borderLeft: isBarBoundary && si > startSlot ? `2px solid rgba(245,158,11,0.15)` : isBeatStart && si > startSlot ? '2px solid rgba(255,255,255,0.04)' : undefined,
+                        boxShadow: isHl && hv > 0 ? `0 0 8px ${color}40` : hv === 2 ? `0 0 6px ${color}30` : 'none',
+                        outline: isHl ? '1.5px solid rgba(245,158,11,0.3)' : 'none',
+                      }}
+                    />
+                  )
+                })}
+              </div>
             </div>
           )
         })}
       </div>
+    )
+  }
 
-      {/* Grid rows */}
-      {activePads.map((pad) => {
-        const steps = tracks[pad] ?? []
-        const color = GRID_PAD_COLOR[pad] ?? '#6b7280'
-
-        return (
-          <div key={pad} className="flex items-center" style={{ height: ROW_H }}>
-            <div className="text-[11px] font-medium text-right pr-3 flex-shrink-0" style={{ width: LABEL_W, color }}>
-              {GRID_PAD_LABEL[pad] ?? pad}
-            </div>
-
-            <div className="flex gap-[2px] flex-1 min-w-0">
-              {visibleSlots.map(si => {
-                const span = slotSpan[si]
-                // For collapsed cells (span > 1), show the on-beat value
-                const hv = (steps[si] ?? 0) as number
-                const isHl = highlightSlot >= si && highlightSlot < si + span
-                const isBeatStart = si % subdivisions === 0
-
-                let bg = 'rgba(255,255,255,0.02)'
-                if (hv === 1 || hv === 2 || hv === 3) bg = color
-                const opacity = hv === 0 ? 1 : hv === 3 ? 0.3 : hv === 2 ? 1 : 0.7
-
-                return (
-                  <div
-                    key={si}
-                    className={`rounded-[3px] transition-all duration-75 ${onSlotClick ? 'cursor-pointer hover:brightness-125' : ''}`}
-                    onClick={onSlotClick ? () => onSlotClick(si) : undefined}
-                    style={{
-                      flex: span,
-                      height: ROW_H - 4,
-                      background: hv > 0 ? bg : isHl ? 'rgba(245,158,11,0.06)' : 'rgba(255,255,255,0.02)',
-                      opacity: hv > 0 ? opacity : 1,
-                      borderLeft: isBeatStart && si > 0 ? '2px solid rgba(255,255,255,0.04)' : undefined,
-                      boxShadow: isHl && hv > 0 ? `0 0 8px ${color}40` : hv === 2 ? `0 0 6px ${color}30` : 'none',
-                      outline: isHl ? '1.5px solid rgba(245,158,11,0.3)' : 'none',
-                    }}
-                  />
-                )
-              })}
-            </div>
-          </div>
-        )
-      })}
+  return (
+    <div className="w-full">
+      {Array.from({ length: numLines }, (_, i) => renderGridLine(i))}
     </div>
   )
 }
@@ -697,30 +725,53 @@ export default function StaffNotationDisplay({ pattern, currentStep, bpm = 90, b
   useEffect(() => () => { stopPatternPlayback(); osmdRef.current?.cursorHide() }, []) // eslint-disable-line
 
   const activeSlot = currentStep !== undefined ? currentStep : playing ? demoSlot : -1
+  const bpb = beatsPerBar ?? pattern.beats
+  const numBars = Math.max(1, Math.ceil(pattern.beats / bpb))
+  const slotsPerBar = bpb * pattern.subdivisions
 
-  // Shared content for both normal and fullscreen
-  const notationContent = (isFullscreen: boolean) => (
+  // Current bar during playback (for fullscreen focus)
+  const activeBar = activeSlot >= 0 ? Math.floor(activeSlot / slotsPerBar) : 0
+
+  // Build a focused window pattern: extract bars [focusStart..focusEnd) for fullscreen
+  const FOCUS_CONTEXT = 2 // bars before and after
+  const focusStart = Math.max(0, activeBar - FOCUS_CONTEXT)
+  const focusEnd = Math.min(numBars, activeBar + FOCUS_CONTEXT + 1)
+
+  const focusPattern = useMemo<PatternData>(() => {
+    const startSlot = focusStart * slotsPerBar
+    const endSlot = focusEnd * slotsPerBar
+    const focusBeats = (focusEnd - focusStart) * bpb
+    const focusTracks: Partial<Record<DrumPad, HitValue[]>> = {}
+    for (const [pad, track] of Object.entries(pattern.tracks) as [DrumPad, HitValue[]][]) {
+      const slice = track.slice(startSlot, endSlot)
+      if (slice.some(v => v > 0)) focusTracks[pad] = slice
+    }
+    return { beats: focusBeats, subdivisions: pattern.subdivisions, tracks: focusTracks }
+  }, [pattern, focusStart, focusEnd, bpb, slotsPerBar])
+
+  const focusBarSubs = barSubdivisions?.slice(focusStart, focusEnd)
+  const focusHighlightSlot = activeSlot >= 0 ? activeSlot - focusStart * slotsPerBar : -1
+  const focusActiveBarInWindow = activeBar - focusStart
+
+  // Normal view content
+  const normalContent = () => (
     <>
-      {/* Metronome (visible in both normal and fullscreen) */}
       {metronomeSlot}
 
-      {/* Controls + Fullscreen button row */}
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <PlayBar playing={playing} paused={paused} bpm={localBpm} loops={loops} onPlay={handlePlay} onPause={handlePause} onStop={handleStop} onBpmChange={handleBpmChange} onLoopsChange={setLoops} />
-        {!isFullscreen && (
-          <button
-            onClick={() => setFullscreen(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer bg-white/[0.04] border border-white/[0.06] text-[#94a3b8] hover:text-white hover:bg-white/[0.08]"
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
-            </svg>
-            Fullscreen
-          </button>
-        )}
+        <button
+          onClick={() => setFullscreen(true)}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer bg-white/[0.04] border border-white/[0.06] text-[#94a3b8] hover:text-white hover:bg-white/[0.08]"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+          </svg>
+          Fullscreen
+        </button>
       </div>
 
-      {/* Notation (OSMD) — professional sheet music rendering */}
+      {/* Notation (OSMD) */}
       <div className="rounded-2xl overflow-hidden border border-[#e0e0e0]">
         <div className="px-4 py-2 border-b border-[#e8e8e8]" style={{ background: '#f8f8f8' }}>
           <span className="text-[10px] font-semibold text-[#888] uppercase tracking-widest">Notation</span>
@@ -730,46 +781,113 @@ export default function StaffNotationDisplay({ pattern, currentStep, bpm = 90, b
           pattern={pattern}
           beatsPerBar={beatsPerBar}
           barSubdivisions={barSubdivisions}
-          width={isFullscreen ? window.innerWidth - 80 : containerWidth - 16}
+          width={containerWidth - 16}
         />
       </div>
 
-      {/* Grid view — dark, full width */}
+      {/* Grid view — with line breaks every 4 bars */}
       <div className="rounded-2xl border border-white/[0.04] p-4" style={{
         background: 'linear-gradient(135deg, rgba(6,8,13,0.95) 0%, rgba(8,10,16,0.98) 100%)',
       }}>
         <div className="mb-3">
           <span className="text-[10px] font-semibold text-[#3d4d5d] uppercase tracking-widest">Grid</span>
         </div>
-        <GridView pattern={pattern} highlightSlot={activeSlot} onSlotClick={handleSeek} barSubdivisions={barSubdivisions} beatsPerBar={beatsPerBar} />
+        <GridView pattern={pattern} highlightSlot={activeSlot} onSlotClick={handleSeek} barSubdivisions={barSubdivisions} beatsPerBar={beatsPerBar} barsPerLine={4} />
       </div>
 
-      {/* Legend */}
       <Legend />
     </>
   )
 
   return (
     <div ref={wrapperRef} className="space-y-4">
-      {notationContent(false)}
+      {normalContent()}
 
-      {/* Fullscreen modal */}
+      {/* ═══ FULLSCREEN PRACTICE MODE ═══ */}
       {fullscreen && (
-        <div className="fixed inset-0 z-50 bg-[#06080d]/95 backdrop-blur-md flex flex-col overflow-y-auto" onClick={() => { handleStop(); setFullscreen(false) }}>
-          <div className="w-full px-8 py-6 space-y-4" onClick={e => e.stopPropagation()}>
-            {/* Close button */}
-            <div className="flex justify-end">
-              <button
-                onClick={() => { handleStop(); setFullscreen(false) }}
-                className="text-[#4b5a6a] hover:text-white transition-colors cursor-pointer p-2"
-              >
-                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
+        <div className="fixed inset-0 z-50 flex flex-col" style={{ background: '#04060a' }} onClick={() => { handleStop(); setFullscreen(false) }}>
+          <div className="flex flex-col h-full" onClick={e => e.stopPropagation()}>
+            {/* Top bar: controls + bar indicator + close */}
+            <div className="flex items-center justify-between px-6 py-3 flex-shrink-0" style={{
+              background: 'linear-gradient(180deg, rgba(6,8,13,0.98) 0%, rgba(4,6,10,0.95) 100%)',
+              borderBottom: '1px solid rgba(255,255,255,0.04)',
+            }}>
+              <PlayBar playing={playing} paused={paused} bpm={localBpm} loops={loops} onPlay={handlePlay} onPause={handlePause} onStop={handleStop} onBpmChange={handleBpmChange} onLoopsChange={setLoops} />
+
+              {/* Bar position indicator */}
+              <div className="flex items-center gap-3">
+                {numBars > 1 && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] text-[#4b5a6a] uppercase tracking-wider">Bar</span>
+                    <span className="text-lg font-black text-amber-400 font-mono">{activeBar + 1}</span>
+                    <span className="text-[10px] text-[#374151]">/ {numBars}</span>
+                    {/* Mini progress bar */}
+                    <div className="w-24 h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+                      <div className="h-full rounded-full transition-all duration-200" style={{
+                        width: `${((activeBar + 1) / numBars) * 100}%`,
+                        background: 'linear-gradient(90deg, #f59e0b, #ea580c)',
+                      }} />
+                    </div>
+                  </div>
+                )}
+                <button
+                  onClick={() => { handleStop(); setFullscreen(false) }}
+                  className="text-[#4b5a6a] hover:text-white transition-colors cursor-pointer p-2 ml-4"
+                >
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
             </div>
 
-            {notationContent(true)}
+            {/* Main content: focused notation + grid */}
+            <div className="flex-1 overflow-hidden flex flex-col px-6 py-4 gap-4">
+
+              {/* Full notation (OSMD) — scrollable, shows all bars */}
+              <div className="rounded-2xl overflow-hidden border border-[#e0e0e0] flex-shrink-0" style={{ maxHeight: '40vh', overflowY: 'auto' }}>
+                <div className="px-4 py-1.5 border-b border-[#e8e8e8] flex items-center justify-between" style={{ background: '#f8f8f8' }}>
+                  <span className="text-[10px] font-semibold text-[#888] uppercase tracking-widest">Full Score</span>
+                  <span className="text-[9px] text-[#aaa]">{numBars} bars</span>
+                </div>
+                <OsmdNotation
+                  ref={osmdRef}
+                  pattern={pattern}
+                  beatsPerBar={beatsPerBar}
+                  barSubdivisions={barSubdivisions}
+                  width={window.innerWidth - 80}
+                />
+              </div>
+
+              {/* Focused Grid — shows current bar ± context, enlarged */}
+              <div className="rounded-2xl border border-white/[0.04] p-5 flex-1 min-h-0 overflow-y-auto" style={{
+                background: 'linear-gradient(135deg, rgba(6,8,13,0.98) 0%, rgba(8,10,16,0.99) 100%)',
+              }}>
+                <div className="flex items-center gap-3 mb-3">
+                  <span className="text-[11px] font-semibold text-[#3d4d5d] uppercase tracking-widest">Focus Grid</span>
+                  <span className="text-[10px] text-[#374151]">
+                    Bars {focusStart + 1}–{focusEnd}
+                    {focusStart > 0 && <span className="text-amber-400/40 ml-1">← more</span>}
+                    {focusEnd < numBars && <span className="text-amber-400/40 ml-1">more →</span>}
+                  </span>
+                </div>
+                <GridView
+                  pattern={focusPattern}
+                  highlightSlot={focusHighlightSlot}
+                  onSlotClick={slot => handleSeek(slot + focusStart * slotsPerBar)}
+                  barSubdivisions={focusBarSubs}
+                  beatsPerBar={beatsPerBar}
+                  barsPerLine={focusEnd - focusStart}
+                  focusBar={focusActiveBarInWindow}
+                  scale={1.3}
+                />
+              </div>
+            </div>
+
+            {/* Bottom legend */}
+            <div className="flex-shrink-0 px-6 py-2" style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+              <Legend />
+            </div>
           </div>
         </div>
       )}
