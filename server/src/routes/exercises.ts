@@ -1,4 +1,4 @@
-import { Router, raw as expressRaw } from 'express'
+import { Router } from 'express'
 import { PrismaClient } from '@prisma/client'
 import { z } from 'zod'
 import { authenticateToken, AuthRequest } from '../middleware/auth'
@@ -148,11 +148,8 @@ export function exerciseRouter(prisma: PrismaClient): Router {
     }
   })
 
-  // POST /api/exercises/:id/backing-track — upload backing track audio
-  router.post('/:id/backing-track',
-    authenticateToken,
-    expressRaw({ type: ['audio/*', 'application/octet-stream'], limit: '15mb' }),
-    async (req: AuthRequest, res) => {
+  // POST /api/exercises/:id/backing-track — upload backing track as base64 JSON
+  router.post('/:id/backing-track', authenticateToken, async (req: AuthRequest, res) => {
     try {
       const id = req.params.id as string
       const exercise = await prisma.exercise.findUnique({ where: { id } })
@@ -161,26 +158,24 @@ export function exerciseRouter(prisma: PrismaClient): Router {
         res.status(403).json({ error: 'Cannot modify this exercise' }); return
       }
 
-      const trackBpm = parseInt(req.query.bpm as string) || 90
-      const trackOffset = parseFloat(req.query.offset as string) || 0
-      const trackVolume = parseFloat(req.query.volume as string) || 0.7
-      const trackName = (req.query.name as string) || 'backing-track.mp3'
-      const trackMime = req.headers['content-type'] || 'audio/mpeg'
-
-      const bodyBuf = req.body as Buffer
-      console.log(`Backing track upload: ${trackName}, ${bodyBuf?.length ?? 0} bytes, mime=${trackMime}`)
-      if (!bodyBuf || bodyBuf.length === 0) {
-        res.status(400).json({ error: 'Empty body — audio data not received' }); return
+      const { data: base64Data, name, mime, bpm, offset, volume } = req.body as {
+        data: string; name: string; mime: string; bpm: number; offset: number; volume: number
       }
+
+      if (!base64Data) { res.status(400).json({ error: 'No audio data' }); return }
+
+      const audioBuffer = Buffer.from(base64Data, 'base64')
+      console.log(`Backing track upload: ${name}, ${audioBuffer.length} bytes (${base64Data.length} base64 chars)`)
+
       await prisma.exercise.update({
         where: { id },
         data: {
-          backingTrackData: new Uint8Array(bodyBuf),
-          backingTrackName: trackName,
-          backingTrackMime: trackMime,
-          backingTrackBpm: trackBpm,
-          backingTrackOffset: trackOffset,
-          backingTrackVolume: trackVolume,
+          backingTrackData: new Uint8Array(audioBuffer),
+          backingTrackName: name || 'backing-track.mp3',
+          backingTrackMime: mime || 'audio/mpeg',
+          backingTrackBpm: bpm || 90,
+          backingTrackOffset: offset || 0,
+          backingTrackVolume: volume || 0.7,
         },
       })
 

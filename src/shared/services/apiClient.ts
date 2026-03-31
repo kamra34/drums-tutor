@@ -181,17 +181,29 @@ export async function apiUploadBackingTrack(
 ): Promise<void> {
   await ensureAuth()
   const token = getToken()
-  const q = new URLSearchParams({
-    bpm: String(meta.bpm), offset: String(meta.offset),
-    volume: String(meta.volume), name: file.name,
+  // Convert file to base64 for reliable JSON transport (avoids body parser issues)
+  const base64 = await new Promise<string>((resolve) => {
+    const reader = new FileReader()
+    reader.onload = () => {
+      const dataUrl = reader.result as string
+      resolve(dataUrl.split(',')[1]) // strip "data:audio/mpeg;base64," prefix
+    }
+    reader.readAsDataURL(file)
   })
-  const res = await fetch(`${API_BASE}/api/exercises/${exerciseId}/backing-track?${q}`, {
+  const res = await fetch(`${API_BASE}/api/exercises/${exerciseId}/backing-track`, {
     method: 'POST',
     headers: {
-      'Content-Type': file.type || 'audio/mpeg',
+      'Content-Type': 'application/json',
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
-    body: file,
+    body: JSON.stringify({
+      data: base64,
+      name: file.name,
+      mime: file.type || 'audio/mpeg',
+      bpm: meta.bpm,
+      offset: meta.offset,
+      volume: meta.volume,
+    }),
   })
   if (!res.ok) throw new Error('Upload failed')
 }

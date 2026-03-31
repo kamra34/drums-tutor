@@ -29,11 +29,7 @@ app.use(cors({
   },
   credentials: true,
 }))
-// JSON body parser — skip for backing track uploads (handled by express.raw on route)
-app.use((req, res, next) => {
-  if (req.path.includes('/backing-track') && req.method === 'POST') return next()
-  express.json({ limit: '1mb' })(req, res, next)
-})
+app.use(express.json({ limit: '15mb' }))
 
 // Health check + version
 import serverPkg from '../package.json'
