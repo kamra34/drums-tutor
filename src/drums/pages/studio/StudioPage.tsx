@@ -657,29 +657,44 @@ export default function StudioPage() {
     setPattern({ beats: timeSig[0], subdivisions: maxSub, tracks: newTracks })
   }
 
-  // When AI builder generates a pattern, load it into the Create tab
+  // When AI builder generates a pattern, load it into the Create tab and auto-switch
   function handleAiPatternGenerated(
     aiPattern: PatternData,
     aiTitle: string,
-    cfg: { bpm: number; bars: number; timeSig: [number, number]; difficulty: number; isAi: boolean }
+    cfg: { bpm: number; bars: number; timeSig: [number, number]; difficulty: number; isAi: boolean; barSubdivisions?: number[] }
   ) {
     setPattern(aiPattern)
     setTitle(aiTitle)
     setBpm(cfg.bpm)
     setBars(cfg.bars)
     setTimeSig(cfg.timeSig)
-    setBarSubdivisions(new Array(cfg.bars).fill(aiPattern.subdivisions))
+    setBarSubdivisions(cfg.barSubdivisions ?? new Array(cfg.bars).fill(aiPattern.subdivisions))
     setSavedId(null)
 
     // Derive enabled pads from the generated pattern
     const padsInUse = Object.keys(aiPattern.tracks) as DrumPad[]
     const allPads = [...new Set([...DEFAULT_PADS, ...padsInUse])]
     setEnabledPads(allPads)
+
+    // Auto-switch to compose mode for editing
+    setMode('create')
   }
 
   if (loadingEdit) {
     return (
       <div className="p-8 text-center text-[#6b7280]">Loading pattern...</div>
+    )
+  }
+
+  // AI Builder gets its own full-page layout (no Studio header/sidebar)
+  if (mode === 'ai-builder') {
+    return (
+      <div className="p-3 sm:p-4 md:p-6 lg:p-8 max-w-[1800px] mx-auto" style={{ background: '#06080d', minHeight: '100vh' }}>
+        <AiBuilderTab
+          onPatternGenerated={handleAiPatternGenerated}
+          onBack={() => setMode(null)}
+        />
+      </div>
     )
   }
 
@@ -1527,19 +1542,13 @@ export default function StudioPage() {
         {/* ── Right: Editor area ── */}
         <div className="col-span-9 space-y-5">
 
-          {/* ═══ AI Builder mode ═══ */}
-          {mode === 'ai-builder' && (
-            <AiBuilderTab onPatternGenerated={handleAiPatternGenerated} />
-          )}
-
           {/* ═══ Scan mode ═══ */}
           {mode === 'scan' && (
             <ScanTab onPatternGenerated={handleAiPatternGenerated} />
           )}
 
-
-          {/* ═══ AI Builder / Scan: save prompt when pattern generated ═══ */}
-          {(mode === 'ai-builder' || mode === 'scan') && hasNotes && (
+          {/* ═══ Scan: save prompt when pattern generated ═══ */}
+          {mode === 'scan' && hasNotes && (
             <div className="flex items-center gap-3">
               <button
                 onClick={() => { setMode('create') }}
@@ -1548,9 +1557,9 @@ export default function StudioPage() {
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
                 </svg>
-                Edit & Save in Create
+                Edit & Save in Compose
               </button>
-              <span className="text-[11px] text-[#4b5563]">Switch to Create mode to edit the grid, name it, and save</span>
+              <span className="text-[11px] text-[#4b5563]">Switch to Compose mode to edit the grid, name it, and save</span>
             </div>
           )}
         </div>
