@@ -410,9 +410,9 @@ export default function StudioPage() {
     try {
       await apiDeleteExercise(id)
       if (savedId === id) {
-        setSavedId(null)
-        setTitle('')
-        handleClear()
+        resetPatternState()
+        setMode(null)
+        navigate('/drums/studio', { replace: true })
       }
       loadPatterns()
     } catch (err) {
@@ -958,16 +958,24 @@ export default function StudioPage() {
               </div>
               <div className="p-4 flex gap-3 overflow-x-auto">
                 {myPatterns.slice(0, 8).map(ex => (
-                  <button key={ex.id} onClick={() => navigate(`/drums/studio/${ex.id}`)}
-                    className="flex-shrink-0 w-[180px] p-3.5 rounded-xl text-left transition-all hover:bg-white/[0.04] cursor-pointer group"
-                    style={{ border: '1px solid rgba(255,255,255,0.04)' }}>
-                    <div className="text-[12px] font-semibold text-[#c4c9d4] truncate group-hover:text-white transition-colors">{ex.title}</div>
+                  <div key={ex.id} className="flex-shrink-0 w-[180px] p-3.5 rounded-xl text-left transition-all hover:bg-white/[0.04] cursor-pointer group relative"
+                    style={{ border: '1px solid rgba(255,255,255,0.04)' }}
+                    onClick={() => navigate(`/drums/studio/${ex.id}`)}>
+                    <div className="text-[12px] font-semibold text-[#c4c9d4] truncate group-hover:text-white transition-colors pr-6">{ex.title}</div>
                     <div className="flex gap-2 mt-1.5 text-[9px] text-[#4b5563]">
                       <span>{(ex.timeSignature ?? [4,4]).join('/')}</span>
                       <span>{ex.bars ?? 1} bar{(ex.bars ?? 1) > 1 ? 's' : ''}</span>
                       <span>{ex.bpm} bpm</span>
                     </div>
-                  </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); if (confirm('Delete this pattern?')) handleDelete(ex.id) }}
+                      className="absolute top-2.5 right-2.5 p-1 rounded-lg text-[#374151] hover:text-rose-400 hover:bg-rose-500/10 transition-all opacity-0 group-hover:opacity-100 cursor-pointer"
+                      title="Delete pattern">
+                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                  </div>
                 ))}
               </div>
             </div>
@@ -1050,6 +1058,15 @@ export default function StudioPage() {
                   </svg>
                   Practice
                 </Link>
+              )}
+              {savedId && (
+                <button onClick={() => { if (confirm('Delete this pattern?')) handleDelete(savedId) }}
+                  className="flex items-center gap-1 px-2.5 py-2 rounded-xl text-xs font-medium bg-white/[0.03] border border-white/[0.04] text-[#4b5a6a] hover:text-rose-400 hover:border-rose-500/20 transition-colors cursor-pointer"
+                  title="Delete pattern">
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </button>
               )}
             </div>
           </div>
