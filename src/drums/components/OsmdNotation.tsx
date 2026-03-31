@@ -93,6 +93,32 @@ const OsmdNotation = forwardRef<OsmdNotationHandle, Props>(
       barHL.style.width = `${pos.measureW + 4}px`
       barHL.style.height = `${pos.staffH + 20}px`
     }
+
+    // Auto-scroll: keep cursor visible within scrollable ancestor
+    // Find the nearest scrollable ancestor
+    let scrollParent: HTMLElement | null = containerRef.current?.parentElement ?? null
+    while (scrollParent && scrollParent.scrollHeight <= scrollParent.clientHeight + 1) {
+      scrollParent = scrollParent.parentElement
+    }
+    if (scrollParent && cursor.style.display === 'block') {
+      // cursor.style.top is relative to the OSMD container (position: relative)
+      // We need the cursor position relative to the scroll parent
+      const cursorRect = cursor.getBoundingClientRect()
+      const scrollRect = scrollParent.getBoundingClientRect()
+      const cursorInScroll = cursorRect.top - scrollRect.top + scrollParent.scrollTop
+
+      const viewTop = scrollParent.scrollTop
+      const viewBottom = viewTop + scrollParent.clientHeight
+      const safeZone = scrollParent.clientHeight * 0.25 // scroll when cursor is in bottom 25%
+
+      if (cursorInScroll + cursorRect.height > viewBottom - safeZone) {
+        // Cursor approaching bottom — scroll so cursor is at top 30%
+        scrollParent.scrollTo({ top: cursorInScroll - scrollParent.clientHeight * 0.3, behavior: 'smooth' })
+      } else if (cursorInScroll < viewTop + 10) {
+        // Cursor above view — scroll up
+        scrollParent.scrollTo({ top: Math.max(0, cursorInScroll - 20), behavior: 'smooth' })
+      }
+    }
   }
 
   useImperativeHandle(ref, () => ({

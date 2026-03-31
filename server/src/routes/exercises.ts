@@ -13,7 +13,7 @@ const createExerciseSchema = z.object({
   difficulty: z.number().min(1).max(10).default(5),
   bpm: z.number().min(40).max(300).default(90),
   timeSignature: z.array(z.number()).length(2).default([4, 4]),
-  bars: z.number().min(1).max(32).default(2),
+  bars: z.number().min(1).max(999).default(2),
   tags: z.array(z.string()).default([]),
   isAiGenerated: z.boolean().default(false),
 })
