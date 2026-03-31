@@ -7,7 +7,8 @@ import { useMidiStore } from '@drums/stores/useMidiStore'
 import { useUserStore } from '@shared/stores/useUserStore'
 import { midiService } from '@drums/services/midiService'
 import { ScoringEngine } from '@drums/services/scoringEngine'
-import { apiGetExercise } from '@shared/services/apiClient'
+import { apiGetExercise, apiGetBackingTrack } from '@shared/services/apiClient'
+import { loadBackingTrack as loadBackingAudio, setBackingTrack, setBackingOffset, setBackingVolume, clearBackingTrack } from '@drums/services/drumSounds'
 import PatternGrid from '@drums/components/PatternGrid'
 import StaffNotationDisplay from '@drums/components/StaffNotationDisplay'
 import MetronomeWidget from '@drums/components/MetronomeWidget'
@@ -24,6 +25,10 @@ export default function PracticePlayerPage() {
 
   const [studioItem, setStudioItem] = useState<PracticeItem | null>(null)
   const [studioLoading, setStudioLoading] = useState(false)
+  const [backingEnabled, setBackingEnabled] = useState(true)
+  const [hasBackingTrack, setHasBackingTrack] = useState(false)
+  const [backingLoading, setBackingLoading] = useState(false)
+  const backingBufferRef = useRef<{ buffer: AudioBuffer; bpm: number; offset: number; volume: number } | null>(null)
 
   useEffect(() => {
     if (!isStudioPattern || !itemId) return
@@ -42,8 +47,31 @@ export default function PracticePlayerPage() {
         patternData: exercise.patternData,
         tags: exercise.tags ?? ['studio'],
       })
+
+      // Load backing track if available
+      if (exercise.backingTrackName) {
+        setHasBackingTrack(true)
+        setBackingLoading(true)
+        apiGetBackingTrack(exercise.id).then(blob => {
+          if (!blob) { setBackingLoading(false); return }
+          const file = new File([blob], exercise.backingTrackName || 'backing.mp3', { type: blob.type || 'audio/mpeg' })
+          loadBackingAudio(file).then(({ buffer }) => {
+            const trackBpm = exercise.backingTrackBpm ?? exercise.bpm ?? 90
+            const trackOffset = exercise.backingTrackOffset ?? 0
+            const trackVolume = exercise.backingTrackVolume ?? 0.7
+            backingBufferRef.current = { buffer, bpm: trackBpm, offset: trackOffset, volume: trackVolume }
+            setBackingTrack(buffer, trackBpm)
+            setBackingOffset(trackOffset)
+            setBackingVolume(trackVolume)
+            setBackingLoading(false)
+          }).catch(() => setBackingLoading(false))
+        }).catch(() => setBackingLoading(false))
+      }
     }).catch(() => setStudioItem(null))
       .finally(() => setStudioLoading(false))
+
+    // Cleanup: clear backing track when leaving
+    return () => { clearBackingTrack() }
   }, [itemId, isStudioPattern])
 
   const item = libraryItem ?? studioItem ?? undefined
@@ -218,7 +246,39 @@ export default function PracticePlayerPage() {
               </div>
             </div>
 
-            {/* Metronome */}
+            {/* Backing track toggle (studio patterns only) */}
+            {hasBackingTrack && (
+              <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl border border-white/[0.04]" style={{ background: 'rgba(12,14,20,0.7)' }}>
+                <svg className="w-4 h-4 text-[#4b5a6a]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z" /></svg>
+                <span className="text-[11px] font-semibold text-[#4b5563] uppercase tracking-widest">Backing Track</span>
+                {backingLoading ? (
+                  <span className="text-[10px] text-amber-400/50 animate-pulse">Loading audio...</span>
+                ) : (
+                  <button onClick={() => {
+                    if (backingEnabled) {
+                      clearBackingTrack()
+                      setBackingEnabled(false)
+                    } else {
+                      if (backingBufferRef.current) {
+                        const b = backingBufferRef.current
+                        setBackingTrack(b.buffer, b.bpm)
+                        setBackingOffset(b.offset)
+                        setBackingVolume(b.volume)
+                      }
+                      setBackingEnabled(true)
+                    }
+                  }}
+                    className={`px-3 py-1 rounded-lg text-[10px] font-medium transition-colors cursor-pointer ${
+                      backingEnabled
+                        ? 'bg-amber-500/15 text-amber-400 border border-amber-500/25'
+                        : 'bg-white/[0.04] text-[#4b5a6a] border border-white/[0.06]'
+                    }`}>
+                    {backingEnabled ? 'On' : 'Off'}
+                  </button>
+                )}
+              </div>
+            )}
+
             {/* Staff notation (primary view) */}
             <div className="rounded-2xl p-5 border border-white/[0.04]" style={{ background: 'linear-gradient(135deg, rgba(12,14,20,0.7) 0%, rgba(10,12,18,0.8) 100%)' }}>
               <div className="text-[11px] font-semibold text-[#4b5563] uppercase tracking-widest mb-3">Notation</div>

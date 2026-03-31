@@ -624,6 +624,7 @@ export default function StudioPage() {
   const editingBarPattern = getBarPattern(editingBar)
 
 
+
   // Write a single bar's changes back (upsampling from barSub to maxSub)
   function handleBarChange(barData: PatternData) {
     const maxSub = subdivisions
@@ -1376,6 +1377,7 @@ export default function StudioPage() {
               bars={1}
               beatsPerBar={timeSig[0]}
               onBpmChange={setBpm}
+              barSubdivisions={barSubdivisions}
             />
           </div>
         )}

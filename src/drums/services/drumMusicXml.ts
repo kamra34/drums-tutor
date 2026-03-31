@@ -52,6 +52,7 @@ export function patternToMusicXml(
   pattern: PatternData,
   beatsPerBar?: number,
   title?: string,
+  barSubdivisions?: number[],
 ): MusicXmlResult {
   const { beats, subdivisions, tracks } = pattern
   const bpb = beatsPerBar ?? beats
@@ -119,43 +120,42 @@ export function patternToMusicXml(
         xml += `\n      <note><rest/><duration>${subdivisions}</duration><voice>1</voice><type>quarter</type></note>`
       }
     } else {
-      // Per-beat adaptive: check if each beat has off-beat hits
-      function beatHasOffBeats(beatStart: number): boolean {
-        for (let s = 1; s < subdivisions; s++) {
-          if ((beatStart + s) < slotsPerBar && slotHits[beatStart + s]?.length > 0) return true
+      // Per-beat adaptive step detection
+      // Uses authoritative barSubdivisions when available, falls back to GCD
+      function _gcd(a: number, b: number): number { return b === 0 ? a : _gcd(b, a % b) }
+
+      function beatMinStep(beatStart: number): number {
+        // If we have per-bar subdivision info, use it (authoritative)
+        if (barSubdivisions && barSubdivisions.length > 0) {
+          const barIdx = Math.floor((barStart + beatStart) / slotsPerBar)
+          const barSub = barSubdivisions[barIdx] ?? subdivisions
+          return subdivisions / barSub // e.g., maxSub=6, barSub=3 → step=2
         }
-        return false
+        // Fallback: GCD of hit positions
+        let hitGcd = 0
+        for (let s = 1; s < subdivisions; s++) {
+          if ((beatStart + s) < slotsPerBar && slotHits[beatStart + s]?.length > 0) {
+            hitGcd = hitGcd === 0 ? s : _gcd(hitGcd, s)
+          }
+        }
+        return hitGcd === 0 ? subdivisions : hitGcd
       }
 
-      // Pre-compute beam assignments per slot
-      const beamMap = buildBeamMap(slotHits, subdivisions, slotsPerBar)
+      function noteTypeForStep(step: number): string {
+        if (step >= subdivisions) return 'quarter'
+        if (step * 2 >= subdivisions) return 'eighth'
+        return noteType
+      }
 
+      const beamMap = buildBeamMap(slotHits, subdivisions, slotsPerBar)
       let restAccum = 0
       let restStartSlot = 0
 
       for (let beatIdx = 0; beatIdx < slotsPerBar / subdivisions; beatIdx++) {
         const beatStart = beatIdx * subdivisions
-        const hasOff = beatHasOffBeats(beatStart)
+        const step = beatMinStep(beatStart)
 
-        if (hasOff) {
-          // Sub-beat resolution — each slot is a note
-          for (let s = beatStart; s < beatStart + subdivisions; s++) {
-            const hits = slotHits[s]
-            if (hits.length === 0) {
-              if (restAccum === 0) restStartSlot = barStart + s
-              restAccum += 1
-              continue
-            }
-            if (restAccum > 0) {
-              // Each rest unit is one note for cursor tracking
-              for (let r = 0; r < restAccum; r++) noteSlots.push(restStartSlot + r)
-              xml += writeRests(restAccum, subdivisions, noteType)
-              restAccum = 0
-            }
-            noteSlots.push(barStart + s)
-            xml += writeHits(hits, 1, noteType, isTriplet, beamMap[s] ?? '')
-          }
-        } else {
+        if (step >= subdivisions) {
           // Quarter note — one note for the whole beat
           const hits = slotHits[beatStart]
           if (hits.length === 0) {
@@ -163,7 +163,6 @@ export function patternToMusicXml(
             restAccum += subdivisions
           } else {
             if (restAccum > 0) {
-              // Rests: track each rest as a note slot (at subdivision or quarter level)
               const restNotes = Math.ceil(restAccum / subdivisions)
               for (let r = 0; r < restNotes; r++) noteSlots.push(restStartSlot + r * subdivisions)
               xml += writeRests(restAccum, subdivisions, noteType)
@@ -172,13 +171,85 @@ export function patternToMusicXml(
             noteSlots.push(barStart + beatStart)
             xml += writeHits(hits, subdivisions, 'quarter', false, '')
           }
+        } else {
+          // Sub-beat resolution at the detected step size
+          const stepNoteType = noteTypeForStep(step)
+          const beatIsTriplet = subdivisions % 3 === 0 && step === subdivisions / 3
+
+          // Collect note positions within this beat for inline beam generation
+          const beatNotePositions: number[] = []
+          for (let s = beatStart; s < beatStart + subdivisions; s += step) {
+            if (slotHits[s]?.length > 0) beatNotePositions.push(s)
+          }
+
+          // Flush any accumulated rests before this beat
+          if (restAccum > 0) {
+            while (restAccum >= subdivisions) {
+              noteSlots.push(restStartSlot)
+              xml += `\n      <note><rest/><duration>${subdivisions}</duration><voice>1</voice><type>quarter</type></note>`
+              restStartSlot += subdivisions
+              restAccum -= subdivisions
+            }
+            while (restAccum >= step) {
+              noteSlots.push(restStartSlot)
+              xml += `\n      <note><rest/><duration>${step}</duration><voice>1</voice><type>${stepNoteType}</type></note>`
+              restStartSlot += step
+              restAccum -= step
+            }
+            restAccum = 0
+          }
+
+          for (let s = beatStart; s < beatStart + subdivisions; s += step) {
+            const hits = slotHits[s]
+            if (hits.length === 0) {
+              // Rest within the beat
+              noteSlots.push(barStart + s)
+              xml += `\n      <note><rest/><duration>${step}</duration><voice>1</voice><type>${stepNoteType}</type>`
+              if (beatIsTriplet) {
+                xml += `<time-modification><actual-notes>3</actual-notes><normal-notes>2</normal-notes></time-modification>`
+                // Tuplet bracket on first/last slot of triplet beat (even rests)
+                if (s === beatStart) xml += `<notations><tuplet type="start" bracket="yes" number="1" show-number="actual"/></notations>`
+                else if (s === beatStart + subdivisions - step) xml += `<notations><tuplet type="stop" number="1"/></notations>`
+              }
+              xml += `</note>`
+              continue
+            }
+
+            // Generate beam tag based on position among notes in this beat
+            let beamTag = ''
+            if (beatNotePositions.length >= 2) {
+              const posIdx = beatNotePositions.indexOf(s)
+              if (posIdx === 0) beamTag = `<beam number="1">begin</beam>`
+              else if (posIdx === beatNotePositions.length - 1) beamTag = `<beam number="1">end</beam>`
+              else beamTag = `<beam number="1">continue</beam>`
+            }
+
+            // Tuplet start/stop on first/last SLOT of each triplet beat
+            let tupletTag = ''
+            if (beatIsTriplet) {
+              if (s === beatStart) tupletTag = `<tuplet type="start" bracket="yes" number="1" show-number="actual"/>`
+              else if (s === beatStart + subdivisions - step) tupletTag = `<tuplet type="stop" number="1"/>`
+            }
+
+            noteSlots.push(barStart + s)
+            xml += writeHits(hits, step, stepNoteType, beatIsTriplet, beamTag, tupletTag)
+          }
         }
       }
 
       if (restAccum > 0) {
-        const restNotes = Math.ceil(restAccum / subdivisions)
-        for (let r = 0; r < restNotes; r++) noteSlots.push(restStartSlot + r * subdivisions)
-        xml += writeRests(restAccum, subdivisions, noteType)
+        while (restAccum >= subdivisions) {
+          noteSlots.push(restStartSlot)
+          xml += `\n      <note><rest/><duration>${subdivisions}</duration><voice>1</voice><type>quarter</type></note>`
+          restStartSlot += subdivisions
+          restAccum -= subdivisions
+        }
+        while (restAccum > 0) {
+          noteSlots.push(restStartSlot)
+          xml += `\n      <note><rest/><duration>1</duration><voice>1</voice><type>${noteType}</type></note>`
+          restStartSlot += 1
+          restAccum -= 1
+        }
       }
     }
 
@@ -219,6 +290,7 @@ function writeHits(
   type: string,
   isTriplet: boolean,
   beamTag: string,
+  tupletTag: string = '',
 ): string {
   let xml = ''
 
@@ -228,6 +300,14 @@ function writeHits(
     return (mb.displayOctave * 10 + 'CDEFGAB'.indexOf(mb.displayStep[0]))
          - (ma.displayOctave * 10 + 'CDEFGAB'.indexOf(ma.displayStep[0]))
   })
+
+  // Build notations: accent + tuplet combined
+  function buildNotations(hv: HitValue, isPrimary: boolean): string {
+    const parts: string[] = []
+    if (hv === 2) parts.push('<articulations><accent/></articulations>')
+    if (isPrimary && tupletTag) parts.push(tupletTag)
+    return parts.length > 0 ? `<notations>${parts.join('')}</notations>` : ''
+  }
 
   // Primary note
   const primary = sorted[0]
@@ -241,8 +321,9 @@ function writeHits(
   if (isTriplet) xml += `<time-modification><actual-notes>3</actual-notes><normal-notes>2</normal-notes></time-modification>`
   xml += `<stem>up</stem>`
   if (pm.notehead !== 'normal') xml += `<notehead>${pm.notehead}</notehead>`
-  if (primary.hv === 2) xml += `<notations><articulations><accent/></articulations></notations>`
   if (primary.hv === 3) xml += `<notehead parentheses="yes">normal</notehead>`
+  const primaryNotations = buildNotations(primary.hv, true)
+  if (primaryNotations) xml += primaryNotations
   if (beamTag) xml += beamTag
   xml += `</note>`
 

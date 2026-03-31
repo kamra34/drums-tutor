@@ -54,18 +54,27 @@ function patternToVexNotes(pattern: PatternData): { upNotes: (StaveNote | GhostN
   // Base duration from subdivision
   const subDur = subdivisions >= 4 ? '16' : subdivisions >= 2 ? '8' : 'q'
 
-  // Per-beat check: does this beat have off-beat hits for a given voice?
-  function beatHasOffBeats(beatStartSlot: number, voice: 'up' | 'down'): boolean {
+  // Per-beat: find minimum step size for a voice using GCD of hit positions
+  function _gcd(a: number, b: number): number { return b === 0 ? a : _gcd(b, a % b) }
+
+  function beatMinStepForVoice(beatStartSlot: number, voice: 'up' | 'down'): number {
+    let hitGcd = 0
     for (let s = 1; s < subdivisions; s++) {
       const slot = beatStartSlot + s
       if (slot >= totalSlots) break
       for (const [pad, vals] of Object.entries(tracks) as [DrumPad, HitValue[]][]) {
         const mapping = PAD_TO_VEX[pad]
         if (!mapping || mapping.voice !== voice) continue
-        if ((vals[slot] ?? 0) > 0) return true
+        if ((vals[slot] ?? 0) > 0) { hitGcd = hitGcd === 0 ? s : _gcd(hitGcd, s); break }
       }
     }
-    return false
+    return hitGcd === 0 ? subdivisions : hitGcd
+  }
+
+  function durForStep(step: number): string {
+    if (step >= subdivisions) return 'q'
+    if (step * 2 >= subdivisions) return '8'
+    return subDur
   }
 
   const upNotes: (StaveNote | GhostNote)[] = []
@@ -98,11 +107,10 @@ function patternToVexNotes(pattern: PatternData): { upNotes: (StaveNote | GhostN
     const otherVoice = voice === 'up' ? 'down' : 'up'
     let currentGroup: (StaveNote | GhostNote)[] = []
 
-    // Walk beat by beat, deciding resolution per beat
+    // Walk beat by beat, deciding resolution per beat via GCD
     for (let beatStart = 0; beatStart < totalSlots; beatStart += subdivisions) {
-      const offBeats = beatHasOffBeats(beatStart, voice)
-      const step = offBeats ? 1 : subdivisions
-      const dur = offBeats ? subDur : 'q'
+      const step = beatMinStepForVoice(beatStart, voice)
+      const dur = durForStep(step)
 
       for (let slot = beatStart; slot < beatStart + subdivisions; slot += step) {
         const keys: string[] = []
@@ -374,36 +382,47 @@ const GRID_PAD_COLOR: Partial<Record<DrumPad, string>> = {
 const ROW_H = 28
 const LABEL_W = 60
 
-function GridView({ pattern, highlightSlot = -1, onSlotClick }: {
-  pattern: PatternData; highlightSlot?: number; onSlotClick?: (slot: number) => void
+function GridView({ pattern, highlightSlot = -1, onSlotClick, barSubdivisions, beatsPerBar }: {
+  pattern: PatternData; highlightSlot?: number; onSlotClick?: (slot: number) => void; barSubdivisions?: number[]; beatsPerBar?: number
 }) {
   const { beats, subdivisions, tracks } = pattern
   const totalSlots = beats * subdivisions
   const activePads = GRID_PAD_ORDER.filter(p => tracks[p]?.some(v => v > 0))
 
-  // Per-beat: check if ANY pad has an off-beat hit in this beat
-  function beatHasAnyOffBeat(beatStart: number): boolean {
+  // Determine step size per beat. If barSubdivisions is provided, use the
+  // authoritative per-bar resolution. Otherwise fall back to GCD heuristic.
+  const bpb = beatsPerBar ?? beats
+  function gcd(a: number, b: number): number { return b === 0 ? a : gcd(b, a % b) }
+
+  function beatStep(beatStart: number): number {
+    // If we have authoritative per-bar subdivisions, use them
+    if (barSubdivisions && barSubdivisions.length > 0) {
+      const barIdx = Math.floor(beatStart / (bpb * subdivisions))
+      const barSub = barSubdivisions[barIdx] ?? subdivisions
+      return subdivisions / barSub // e.g., maxSub=6, barSub=3 → step=2
+    }
+    // Fallback: GCD of hit positions
+    let hitGcd = 0
     for (let s = 1; s < subdivisions; s++) {
       const slot = beatStart + s
       if (slot >= totalSlots) break
+      let hasHit = false
       for (const pad of activePads) {
-        if (((tracks[pad]?.[slot]) ?? 0) > 0) return true
+        if (((tracks[pad]?.[slot]) ?? 0) > 0) { hasHit = true; break }
       }
+      if (hasHit) hitGcd = hitGcd === 0 ? s : gcd(hitGcd, s)
     }
-    return false
+    return hitGcd === 0 ? subdivisions : hitGcd
   }
 
-  // Build a visibility map: which slots are "visible" (not collapsed)
-  // Beats with only on-beat hits show 1 cell; beats with off-beat hits show all sub-cells
+  // Build a visibility map using per-beat step
   const slotVisible: boolean[] = new Array(totalSlots).fill(false)
-  const slotSpan: number[] = new Array(totalSlots).fill(1) // how many underlying slots this visible cell spans
+  const slotSpan: number[] = new Array(totalSlots).fill(1)
   for (let beatStart = 0; beatStart < totalSlots; beatStart += subdivisions) {
-    const hasOff = beatHasAnyOffBeat(beatStart)
-    if (hasOff) {
-      for (let s = 0; s < subdivisions; s++) slotVisible[beatStart + s] = true
-    } else {
-      slotVisible[beatStart] = true
-      slotSpan[beatStart] = subdivisions // this single cell spans the whole beat
+    const step = beatStep(beatStart)
+    for (let s = 0; s < subdivisions; s += step) {
+      slotVisible[beatStart + s] = true
+      slotSpan[beatStart + s] = step
     }
   }
 
@@ -555,9 +574,11 @@ interface Props {
   metronomeSlot?: React.ReactNode
   /** Called when BPM changes via PlayBar controls */
   onBpmChange?: (bpm: number) => void
+  /** Per-bar subdivisions for mixed-resolution patterns (from Studio Compose) */
+  barSubdivisions?: number[]
 }
 
-export default function StaffNotationDisplay({ pattern, currentStep, bpm = 90, bars = 1, beatsPerBar, metronomeSlot, onBpmChange }: Props) {
+export default function StaffNotationDisplay({ pattern, currentStep, bpm = 90, bars = 1, beatsPerBar, metronomeSlot, onBpmChange, barSubdivisions }: Props) {
   const [localBpm, setLocalBpm] = useState(bpm)
   const [loops, setLoops] = useState(bars)
   const [playing, setPlaying] = useState(false)
@@ -598,7 +619,7 @@ export default function StaffNotationDisplay({ pattern, currentStep, bpm = 90, b
   // Computed synchronously from the same function that generates the MusicXML,
   // so it's always in perfect sync — no async timing issues.
   const cursorSlotSet = useMemo(() => {
-    const { noteSlots } = patternToMusicXml(pattern, beatsPerBar)
+    const { noteSlots } = patternToMusicXml(pattern, beatsPerBar, undefined, barSubdivisions)
     return new Set(noteSlots)
   }, [pattern, beatsPerBar])
 
@@ -708,6 +729,7 @@ export default function StaffNotationDisplay({ pattern, currentStep, bpm = 90, b
           ref={osmdRef}
           pattern={pattern}
           beatsPerBar={beatsPerBar}
+          barSubdivisions={barSubdivisions}
           width={isFullscreen ? window.innerWidth - 80 : containerWidth - 16}
         />
       </div>
@@ -719,7 +741,7 @@ export default function StaffNotationDisplay({ pattern, currentStep, bpm = 90, b
         <div className="mb-3">
           <span className="text-[10px] font-semibold text-[#3d4d5d] uppercase tracking-widest">Grid</span>
         </div>
-        <GridView pattern={pattern} highlightSlot={activeSlot} onSlotClick={handleSeek} />
+        <GridView pattern={pattern} highlightSlot={activeSlot} onSlotClick={handleSeek} barSubdivisions={barSubdivisions} beatsPerBar={beatsPerBar} />
       </div>
 
       {/* Legend */}

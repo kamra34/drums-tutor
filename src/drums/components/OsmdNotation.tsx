@@ -23,10 +23,11 @@ interface Props {
   beatsPerBar?: number
   title?: string
   width?: number
+  barSubdivisions?: number[]
 }
 
 const OsmdNotation = forwardRef<OsmdNotationHandle, Props>(
-  ({ pattern, beatsPerBar, title, width }, ref) => {
+  ({ pattern, beatsPerBar, title, width, barSubdivisions }, ref) => {
   const containerRef = useRef<HTMLDivElement>(null)
   const osmdRef = useRef<OpenSheetMusicDisplay | null>(null)
   const noteSlotsRef = useRef<number[]>([])
@@ -120,7 +121,7 @@ const OsmdNotation = forwardRef<OsmdNotationHandle, Props>(
 
     try {
       setError(null)
-      const result = patternToMusicXml(pattern, beatsPerBar, title)
+      const result = patternToMusicXml(pattern, beatsPerBar, title, barSubdivisions)
       noteSlotsRef.current = result.noteSlots
 
       if (!osmdRef.current) {
