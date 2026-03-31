@@ -8,6 +8,7 @@ import AiBuilderTab from '@drums/components/studio/AiBuilderTab'
 import ScanTab from '@drums/components/studio/ScanTab'
 import StaffNotationDisplay from '@drums/components/StaffNotationDisplay'
 import { apiSaveExercise, apiUpdateExercise, apiGetExercise, apiListExercises, apiDeleteExercise, DbExercise } from '@shared/services/apiClient'
+import { loadBackingTrack, setBackingTrack, clearBackingTrack, setBackingVolume, setBackingBpm as setServiceBackingBpm } from '@drums/services/drumSounds'
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -68,6 +69,13 @@ export default function StudioPage() {
   const [saving, setSaving] = useState(false)
   const [saveSuccess, setSaveSuccess] = useState(false)
   const [loadingEdit, setLoadingEdit] = useState(false)
+
+  // Backing track
+  const [backingFileName, setBackingFileName] = useState<string | null>(null)
+  const [backingBpm, setBackingBpm] = useState(120)
+  const [backingVol, setBackingVol] = useState(0.7)
+  const [backingLoading, setBackingLoading] = useState(false)
+  const backingInputRef = useRef<HTMLInputElement>(null)
 
   // My patterns sidebar
   const [myPatterns, setMyPatterns] = useState<DbExercise[]>([])
@@ -261,6 +269,35 @@ export default function StudioPage() {
     setEditingBar(barIdx + 1)
   }
 
+  // ── Delete a bar ──
+  function handleDeleteBar(barIdx: number) {
+    if (bars <= 1) return // must keep at least 1 bar
+    const slotsPerBar = timeSig[0] * subdivisions
+    const totalSlots = slotsPerBar * bars
+    const barStart = barIdx * slotsPerBar
+
+    const newTotalSlots = slotsPerBar * (bars - 1)
+    const newTracks: Partial<Record<DrumPad, HitValue[]>> = {}
+    for (const pad of Object.keys(pattern.tracks) as DrumPad[]) {
+      const old = pattern.tracks[pad] || []
+      const full: HitValue[] = new Array(newTotalSlots).fill(0)
+      // Copy bars before the deleted bar
+      for (let i = 0; i < barStart; i++) full[i] = old[i] || 0
+      // Copy bars after the deleted bar (shifted back)
+      for (let i = barStart + slotsPerBar; i < totalSlots; i++) full[i - slotsPerBar] = old[i] || 0
+      if (full.some(v => v > 0)) newTracks[pad] = full
+    }
+
+    const newBarSubs = [...barSubdivisions]
+    newBarSubs.splice(barIdx, 1)
+
+    const newBars = bars - 1
+    setBars(newBars)
+    setBarSubdivisions(newBarSubs)
+    setPattern({ beats: timeSig[0], subdivisions, tracks: newTracks })
+    setEditingBar(Math.min(editingBar, newBars - 1))
+  }
+
   async function handleSave() {
     if (!title.trim()) return
     setSaving(true)
@@ -319,6 +356,35 @@ export default function StudioPage() {
     setEnabledPads(DEFAULT_PADS)
     setPattern(makeEmptyPattern(4, 1, 1))
     setEditingBar(0)
+    clearBackingTrack()
+    setBackingFileName(null)
+    setBackingBpm(120)
+  }
+
+  async function handleBackingUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setBackingLoading(true)
+    try {
+      const { buffer } = await loadBackingTrack(file)
+      setBackingTrack(buffer, backingBpm)
+      setBackingFileName(file.name)
+    } catch {
+      setBackingFileName(null)
+    } finally {
+      setBackingLoading(false)
+      if (backingInputRef.current) backingInputRef.current.value = ''
+    }
+  }
+
+  function handleBackingBpmChange(newBpm: number) {
+    setBackingBpm(newBpm)
+    setServiceBackingBpm(newBpm)
+  }
+
+  function handleRemoveBacking() {
+    clearBackingTrack()
+    setBackingFileName(null)
   }
 
   function handleNewPattern() {
@@ -812,6 +878,68 @@ export default function StudioPage() {
           </div>
         </div>
 
+        {/* ── Backing Track ── */}
+        <div className="rounded-2xl p-4 sm:p-5 border border-white/[0.04]" style={{
+          background: 'linear-gradient(135deg, rgba(12,14,20,0.7) 0%, rgba(10,12,18,0.8) 100%)',
+        }}>
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="flex items-center gap-2">
+              <svg className="w-4 h-4 text-[#4b5a6a]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z" /></svg>
+              <span className="text-[11px] font-semibold text-[#4b5563] uppercase tracking-widest">Backing Track</span>
+            </div>
+
+            {!backingFileName ? (
+              <div className="flex items-center gap-2">
+                <input ref={backingInputRef} type="file" accept="audio/*" onChange={handleBackingUpload}
+                  className="hidden" id="backing-upload" />
+                <button onClick={() => backingInputRef.current?.click()} disabled={backingLoading}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium bg-white/[0.04] border border-white/[0.06] text-[#6b7280] hover:text-amber-400 hover:border-amber-500/20 transition-colors cursor-pointer disabled:opacity-50">
+                  {backingLoading ? (
+                    <><svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg> Loading...</>
+                  ) : (
+                    <><svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg> Upload Audio</>
+                  )}
+                </button>
+                <span className="text-[9px] text-[#374151]">MP3, WAV, OGG</span>
+              </div>
+            ) : (
+              <>
+                {/* File info */}
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-500/[0.06] border border-amber-500/15">
+                  <svg className="w-3.5 h-3.5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 19V6l12-3v13" /></svg>
+                  <span className="text-[11px] text-amber-400 font-medium truncate max-w-[150px]">{backingFileName}</span>
+                  <button onClick={handleRemoveBacking}
+                    className="text-[#4b5563] hover:text-rose-400 transition-colors cursor-pointer p-0.5"
+                    title="Remove backing track">
+                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                  </button>
+                </div>
+
+                {/* Original BPM */}
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[9px] text-[#4b5a6a] uppercase tracking-wider">Track BPM</span>
+                  <input type="number" min={30} max={300} value={backingBpm}
+                    onChange={e => { const v = parseInt(e.target.value); if (v >= 30 && v <= 300) handleBackingBpmChange(v) }}
+                    className="w-14 px-2 py-1 rounded-lg bg-white/[0.04] border border-white/[0.06] text-white text-xs text-center font-mono focus:outline-none focus:border-amber-500/30" />
+                </div>
+
+                {/* Volume */}
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[9px] text-[#4b5a6a] uppercase tracking-wider">Vol</span>
+                  <input type="range" min={0} max={100} value={Math.round(backingVol * 100)}
+                    onChange={e => { const v = parseInt(e.target.value) / 100; setBackingVol(v); setBackingVolume(v) }}
+                    className="w-16 h-1 rounded-full cursor-pointer" style={{ accentColor: '#f59e0b' }} />
+                </div>
+
+                {/* Tempo sync indicator */}
+                <span className="text-[9px] text-[#374151]">
+                  Syncs at {bpm} BPM ({bpm !== backingBpm ? `${(bpm / backingBpm * 100).toFixed(0)}% speed` : 'original speed'})
+                </span>
+              </>
+            )}
+          </div>
+        </div>
+
         {/* ── Bar Selector + Per-bar Resolution ── */}
         <div className="space-y-2">
           <div className="flex flex-wrap items-center gap-3">
@@ -881,6 +1009,13 @@ export default function StudioPage() {
               title="Duplicate this bar">
               <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><rect x="8" y="8" width="12" height="12" rx="2" /><path d="M16 8V6a2 2 0 00-2-2H6a2 2 0 00-2 2v8a2 2 0 002 2h2" /></svg>
               Duplicate Bar {editingBar + 1}
+            </button>
+            <button onClick={() => handleDeleteBar(editingBar)}
+              disabled={bars <= 1}
+              className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium transition-colors cursor-pointer bg-white/[0.03] border border-white/[0.04] text-[#4b5a6a] hover:text-rose-400 hover:border-rose-500/20 disabled:opacity-30 disabled:cursor-not-allowed"
+              title="Delete this bar">
+              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+              Delete Bar {editingBar + 1}
             </button>
           </div>
         </div>

@@ -73,6 +73,12 @@ export function areSamplesLoaded(): boolean {
   return _bufferCache.size >= Object.keys(SAMPLE_FILES).length
 }
 
+/** Preload samples and warm up AudioContext. Call on page mount or before first play. */
+export async function ensureAudioReady(): Promise<void> {
+  ctx() // create + unlock AudioContext
+  if (!areSamplesLoaded()) await loadDrumSamples()
+}
+
 // ── Sample playback ─────────────────────────────────────────────────────────
 
 // Track scheduled audio nodes so they can be stopped on cancel
@@ -195,39 +201,163 @@ function playClick(accent: boolean, when?: number): void {
   }
 }
 
+// ── Backing track ───────────────────────────────────────────────────────────
+
+let _backingBuffer: AudioBuffer | null = null
+let _backingBpm = 120
+let _backingVolume = 0.7
+let _backingSource: AudioBufferSourceNode | null = null
+let _backingGain: GainNode | null = null
+
+/** Load an audio file as a backing track */
+export async function loadBackingTrack(file: File): Promise<{ buffer: AudioBuffer; duration: number }> {
+  const c = ctx()
+  const arrayBuf = await file.arrayBuffer()
+  const buffer = await c.decodeAudioData(arrayBuf)
+  return { buffer, duration: buffer.duration }
+}
+
+/** Set the backing track buffer and its original BPM */
+export function setBackingTrack(buffer: AudioBuffer, originalBpm: number): void {
+  _backingBuffer = buffer
+  _backingBpm = originalBpm
+}
+
+/** Clear the backing track */
+export function clearBackingTrack(): void {
+  stopBackingTrack()
+  _backingBuffer = null
+  _backingBpm = 120
+}
+
+/** Set backing track volume (0-1) */
+export function setBackingVolume(vol: number): void {
+  _backingVolume = Math.max(0, Math.min(1, vol))
+  if (_backingGain) _backingGain.gain.value = _backingVolume
+}
+export function getBackingVolume(): number { return _backingVolume }
+
+export function hasBackingTrack(): boolean { return _backingBuffer !== null }
+
+/** Update the original BPM of the backing track (affects playback rate) */
+export function setBackingBpm(bpm: number): void { _backingBpm = bpm }
+
+function startBackingTrack(c: AudioContext, startTime: number, bpm: number, offsetSec: number = 0): void {
+  if (!_backingBuffer) return
+  stopBackingTrack()
+
+  const source = c.createBufferSource()
+  source.buffer = _backingBuffer
+  source.playbackRate.value = bpm / _backingBpm
+  source.loop = true
+
+  const gain = c.createGain()
+  gain.gain.value = _backingVolume
+  source.connect(gain)
+  gain.connect(c.destination)
+  // offset is in buffer time (at original BPM)
+  const bufferOffset = offsetSec % _backingBuffer.duration
+  source.start(startTime, bufferOffset)
+
+  _backingSource = source
+  _backingGain = gain
+}
+
+function stopBackingTrack(): void {
+  if (_backingSource) {
+    try { _backingSource.stop() } catch {}
+    _backingSource = null
+  }
+  _backingGain = null
+}
+
 // ── Pattern playback engine ─────────────────────────────────────────────────
 
 let _playbackTimers: ReturnType<typeof setTimeout>[] = []
 let _isPlaying = false
+let _isPaused = false
 let _stepCallback: ((step: number) => void) | null = null
+let _lastReportedSlot = -1
+
+// State for pause/resume/seek
+let _savedPattern: import('../types/curriculum').PatternData | null = null
+let _savedBpm = 90
+let _savedBars = 1
+let _savedOnStep: ((step: number) => void) | null = null
+let _savedOnFinish: (() => void) | null = null
 
 export function isPatternPlaying(): boolean { return _isPlaying }
+export function isPatternPaused(): boolean { return _isPaused }
+export function getLastPlayedSlot(): number { return _lastReportedSlot }
+
+function clearScheduled(): void {
+  _playbackTimers.forEach(t => clearTimeout(t))
+  _playbackTimers = []
+  for (const src of _scheduledSources) { try { src.stop() } catch {} }
+  _scheduledSources = []
+  for (const osc of _scheduledOscillators) { try { osc.stop() } catch {} }
+  _scheduledOscillators = []
+  stopBackingTrack()
+}
 
 export function stopPatternPlayback(): void {
   _isPlaying = false
-  _playbackTimers.forEach(t => clearTimeout(t))
-  _playbackTimers = []
+  _isPaused = false
+  _lastReportedSlot = -1
   _stepCallback = null
-  // Stop all pre-scheduled audio nodes
-  for (const src of _scheduledSources) {
-    try { src.stop() } catch {}
+  clearScheduled()
+  _savedPattern = null
+}
+
+/** Pause playback — remembers position for resume */
+export function pausePatternPlayback(): number {
+  if (!_isPlaying) return _lastReportedSlot
+  _isPaused = true
+  _isPlaying = false
+  clearScheduled()
+  return _lastReportedSlot
+}
+
+/** Resume from paused position */
+export function resumePatternPlayback(): void {
+  if (!_isPaused || !_savedPattern || _lastReportedSlot < 0) return
+  _isPaused = false
+  playPatternFromSlot(_savedPattern, _savedBpm, _savedBars, _lastReportedSlot, _savedOnStep ?? undefined, _savedOnFinish ?? undefined)
+}
+
+/** Play pattern starting from a specific slot */
+export async function playPatternFromSlot(
+  pattern: import('../types/curriculum').PatternData,
+  bpm: number,
+  bars: number,
+  startSlot: number,
+  onStep?: (step: number) => void,
+  onFinish?: () => void,
+): Promise<void> {
+  clearScheduled()
+  _isPlaying = true
+  _isPaused = false
+  _stepCallback = onStep ?? null
+  _savedPattern = pattern
+  _savedBpm = bpm
+  _savedBars = bars
+  _savedOnStep = onStep ?? null
+  _savedOnFinish = onFinish ?? null
+
+  // Ensure AudioContext is created synchronously (within user gesture)
+  const c = ctx()
+  // Wait for samples to load BEFORE scheduling — prevents first-play desync
+  if (!areSamplesLoaded()) {
+    await loadDrumSamples()
+    if (!_isPlaying) return // user stopped during loading
   }
-  _scheduledSources = []
-  for (const osc of _scheduledOscillators) {
-    try { osc.stop() } catch {}
-  }
-  _scheduledOscillators = []
+  schedulePattern(c, pattern, bpm, bars, onFinish, startSlot)
 }
 
 /**
  * Play a PatternData with correct sounds at the given BPM.
  * Schedules audio via Web Audio API timing for sample-accurate playback,
  * and uses setTimeout only for UI step callbacks.
- *
- * On iOS WebKit, source.start() must happen during the user gesture callstack.
- * If samples are already cached, we schedule synchronously (no .then()).
- * If not cached, we load first — the silent buffer played during ctx() creation
- * has already unlocked the AudioContext, so deferred scheduling works.
  */
 export function playPattern(
   pattern: import('../types/curriculum').PatternData,
@@ -236,25 +366,7 @@ export function playPattern(
   onStep?: (step: number) => void,
   onFinish?: () => void,
 ): void {
-  stopPatternPlayback()
-  _isPlaying = true
-  _stepCallback = onStep ?? null
-
-  // Create/resume AudioContext synchronously within the user gesture.
-  // On first creation, registerAudioContext plays a silent buffer to unlock iOS.
-  const c = ctx()
-
-  if (areSamplesLoaded()) {
-    // Samples already cached — schedule synchronously (stays in gesture callstack)
-    schedulePattern(c, pattern, bpm, bars, onFinish)
-  } else {
-    // Samples not loaded yet — load first, then schedule.
-    // The AudioContext was already unlocked above via the silent buffer trick.
-    loadDrumSamples().then(() => {
-      if (!_isPlaying) return
-      schedulePattern(c, pattern, bpm, bars, onFinish)
-    })
-  }
+  playPatternFromSlot(pattern, bpm, bars, 0, onStep, onFinish)
 }
 
 function schedulePattern(
@@ -263,6 +375,7 @@ function schedulePattern(
   bpm: number,
   bars: number,
   onFinish?: () => void,
+  startFromStep: number = 0,
 ): void {
   const { beats, subdivisions, tracks } = pattern
   const totalSlots = beats * subdivisions
@@ -272,9 +385,13 @@ function schedulePattern(
   // Small lookahead so first note doesn't collide with scheduling overhead
   const startTime = c.currentTime + 0.05
 
-  // Schedule all audio using Web Audio API timing (sample-accurate)
-  for (let step = 0; step < totalSteps; step++) {
-    const when = startTime + step * secPerSlot
+  // Start backing track synced — with offset if seeking
+  const backingOffsetSec = startFromStep * 60 / (_backingBpm * subdivisions)
+  startBackingTrack(c, startTime, bpm, backingOffsetSec)
+
+  // Schedule audio from startFromStep onward
+  for (let step = startFromStep; step < totalSteps; step++) {
+    const when = startTime + (step - startFromStep) * secPerSlot
     const slotIdx = step % totalSlots
 
     // Schedule drum sounds at precise audio time
@@ -299,16 +416,19 @@ function schedulePattern(
     const delayMs = (when - c.currentTime) * 1000
     _playbackTimers.push(setTimeout(() => {
       if (!_isPlaying) return
+      _lastReportedSlot = slotIdx
       _stepCallback?.(slotIdx)
     }, Math.max(0, delayMs)))
   }
 
   // Finish callback
-  const finishDelay = ((startTime + totalSteps * secPerSlot) - c.currentTime) * 1000 + 50
+  const remainingSteps = totalSteps - startFromStep
+  const finishDelay = ((startTime + remainingSteps * secPerSlot) - c.currentTime) * 1000 + 50
   _playbackTimers.push(setTimeout(() => {
     if (!_isPlaying) return
     _isPlaying = false
     _stepCallback = null
+    _lastReportedSlot = -1
     onFinish?.()
   }, Math.max(0, finishDelay)))
 }

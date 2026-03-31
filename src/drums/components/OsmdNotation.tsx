@@ -14,6 +14,8 @@ export interface OsmdNotationHandle {
   cursorNext: () => void
   cursorReset: () => void
   cursorHide: () => void
+  /** Absolute slot indices where each MusicXML note starts */
+  noteSlots: number[]
 }
 
 interface Props {
@@ -27,29 +29,34 @@ const OsmdNotation = forwardRef<OsmdNotationHandle, Props>(
   ({ pattern, beatsPerBar, title, width }, ref) => {
   const containerRef = useRef<HTMLDivElement>(null)
   const osmdRef = useRef<OpenSheetMusicDisplay | null>(null)
+  const noteSlotsRef = useRef<number[]>([])
   const cursorRef = useRef<HTMLDivElement>(null)
-  const notePositionsRef = useRef<{ x: number; y: number; staffH: number }[]>([])
+  const barHighlightRef = useRef<HTMLDivElement>(null)
+  const notePositionsRef = useRef<{ x: number; y: number; staffH: number; measureX: number; measureW: number }[]>([])
   const cursorIdxRef = useRef(-1)
   const [error, setError] = useState<string | null>(null)
 
-  // Build a map of note X/Y positions from OSMD's graphical data
+  // Build a map of note X/Y positions + measure bounds from OSMD's graphical data
   function buildNotePositions() {
     const osmd = osmdRef.current
     if (!osmd?.GraphicSheet) return
 
-    const positions: { x: number; y: number; staffH: number }[] = []
+    const positions: { x: number; y: number; staffH: number; measureX: number; measureW: number }[] = []
 
     try {
       for (const musicSystem of osmd.GraphicSheet.MusicPages[0]?.MusicSystems ?? []) {
         for (const staffLine of musicSystem.StaffLines) {
-          const staffY = staffLine.PositionAndShape.AbsolutePosition.y * 10 // OSMD units to px
+          const staffY = staffLine.PositionAndShape.AbsolutePosition.y * 10
           const staffH = staffLine.PositionAndShape.Size.height * 10
 
           for (const measure of staffLine.Measures) {
+            const measureX = measure.PositionAndShape.AbsolutePosition.x * 10
+            const measureW = measure.PositionAndShape.Size.width * 10
+
             for (const entry of measure.staffEntries) {
               const x = entry.PositionAndShape.AbsolutePosition.x * 10
               const y = staffY
-              positions.push({ x, y, staffH })
+              positions.push({ x, y, staffH, measureX, measureW })
             }
           }
         }
@@ -61,18 +68,30 @@ const OsmdNotation = forwardRef<OsmdNotationHandle, Props>(
 
   function updateCursorPosition(idx: number) {
     const cursor = cursorRef.current
+    const barHL = barHighlightRef.current
     if (!cursor) return
 
     const pos = notePositionsRef.current[idx]
     if (!pos) {
       cursor.style.display = 'none'
+      if (barHL) barHL.style.display = 'none'
       return
     }
 
+    // Beat cursor (narrow)
     cursor.style.display = 'block'
     cursor.style.left = `${pos.x - 10}px`
     cursor.style.top = `${pos.y - 8}px`
     cursor.style.height = `${pos.staffH + 16}px`
+
+    // Bar highlight (wide, covers entire measure)
+    if (barHL) {
+      barHL.style.display = 'block'
+      barHL.style.left = `${pos.measureX - 2}px`
+      barHL.style.top = `${pos.y - 10}px`
+      barHL.style.width = `${pos.measureW + 4}px`
+      barHL.style.height = `${pos.staffH + 20}px`
+    }
   }
 
   useImperativeHandle(ref, () => ({
@@ -91,7 +110,9 @@ const OsmdNotation = forwardRef<OsmdNotationHandle, Props>(
     cursorHide: () => {
       cursorIdxRef.current = -1
       if (cursorRef.current) cursorRef.current.style.display = 'none'
+      if (barHighlightRef.current) barHighlightRef.current.style.display = 'none'
     },
+    get noteSlots() { return noteSlotsRef.current },
   }), [])
 
   const render = useCallback(async () => {
@@ -99,7 +120,8 @@ const OsmdNotation = forwardRef<OsmdNotationHandle, Props>(
 
     try {
       setError(null)
-      const xml = patternToMusicXml(pattern, beatsPerBar, title)
+      const result = patternToMusicXml(pattern, beatsPerBar, title)
+      noteSlotsRef.current = result.noteSlots
 
       if (!osmdRef.current) {
         const osmd = new OpenSheetMusicDisplay(containerRef.current, {
@@ -126,7 +148,7 @@ const OsmdNotation = forwardRef<OsmdNotationHandle, Props>(
         osmdRef.current = osmd
       }
 
-      await osmdRef.current.load(xml)
+      await osmdRef.current.load(result.xml)
       osmdRef.current.render()
 
       // Build note position map for our custom cursor
@@ -167,19 +189,33 @@ const OsmdNotation = forwardRef<OsmdNotationHandle, Props>(
       }}
     >
       <div ref={containerRef} />
-      {/* Custom cursor — glowing highlight band */}
+      {/* Bar highlight — wide, covers entire current measure */}
+      <div
+        ref={barHighlightRef}
+        style={{
+          display: 'none',
+          position: 'absolute',
+          background: 'rgba(245,158,11,0.08)',
+          border: '1px solid rgba(245,158,11,0.12)',
+          borderRadius: 6,
+          pointerEvents: 'none',
+          zIndex: 5,
+          transition: 'left 0.12s ease-out, top 0.12s ease-out, width 0.12s ease-out',
+        }}
+      />
+      {/* Beat cursor — narrow, highlights specific note position */}
       <div
         ref={cursorRef}
         style={{
           display: 'none',
           position: 'absolute',
-          width: 20,
-          background: 'linear-gradient(90deg, rgba(245,158,11,0.0) 0%, rgba(245,158,11,0.25) 30%, rgba(245,158,11,0.35) 50%, rgba(245,158,11,0.25) 70%, rgba(245,158,11,0.0) 100%)',
+          width: 22,
+          background: 'linear-gradient(90deg, rgba(245,158,11,0.0) 0%, rgba(245,158,11,0.3) 30%, rgba(245,158,11,0.45) 50%, rgba(245,158,11,0.3) 70%, rgba(245,158,11,0.0) 100%)',
           borderRadius: 4,
           pointerEvents: 'none',
           zIndex: 10,
           transition: 'left 0.06s ease-out, top 0.06s ease-out',
-          boxShadow: '0 0 12px 2px rgba(245,158,11,0.15)',
+          boxShadow: '0 0 14px 3px rgba(245,158,11,0.2)',
         }}
       />
     </div>

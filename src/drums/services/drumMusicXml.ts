@@ -42,11 +42,17 @@ function noteTypeForSub(sub: number): string {
 
 // ── Main converter ───────────────────────────────────────────────────────────
 
+export interface MusicXmlResult {
+  xml: string
+  /** Absolute slot index where each MusicXML note starts (in order). Length = total MusicXML notes. */
+  noteSlots: number[]
+}
+
 export function patternToMusicXml(
   pattern: PatternData,
   beatsPerBar?: number,
   title?: string,
-): string {
+): MusicXmlResult {
   const { beats, subdivisions, tracks } = pattern
   const bpb = beatsPerBar ?? beats
   const slotsPerBar = bpb * subdivisions
@@ -55,6 +61,9 @@ export function patternToMusicXml(
   const divisions = subdivisions
   const noteType = noteTypeForSub(subdivisions)
   const isTriplet = subdivisions === 3
+
+  // Track which absolute slot each MusicXML note corresponds to
+  const noteSlots: number[] = []
 
   // Which pads are used?
   const usedPads = (Object.keys(tracks) as DrumPad[]).filter(
@@ -101,9 +110,14 @@ export function patternToMusicXml(
       if (hits.length > 0) hasAnyHit = true
     }
 
-    // Empty bar → whole rest
+    // Empty bar → one quarter rest per beat
+    // Add invisible direction to prevent OSMD from consolidating consecutive rest bars
     if (!hasAnyHit) {
-      xml += `\n      <note><rest measure="yes"/><duration>${slotsPerBar}</duration><voice>1</voice><type>whole</type></note>`
+      xml += `\n      <direction><direction-type><words font-size="0"> </words></direction-type></direction>`
+      for (let b = 0; b < bpb; b++) {
+        noteSlots.push(barStart + b * subdivisions)
+        xml += `\n      <note><rest/><duration>${subdivisions}</duration><voice>1</voice><type>quarter</type></note>`
+      }
     } else {
       // Per-beat adaptive: check if each beat has off-beat hits
       function beatHasOffBeats(beatStart: number): boolean {
@@ -113,39 +127,57 @@ export function patternToMusicXml(
         return false
       }
 
-      // Pre-compute beam assignments per slot (only for beats that need sub-beat resolution)
+      // Pre-compute beam assignments per slot
       const beamMap = buildBeamMap(slotHits, subdivisions, slotsPerBar)
 
       let restAccum = 0
+      let restStartSlot = 0
 
       for (let beatIdx = 0; beatIdx < slotsPerBar / subdivisions; beatIdx++) {
         const beatStart = beatIdx * subdivisions
         const hasOff = beatHasOffBeats(beatStart)
 
         if (hasOff) {
-          // This beat needs sub-beat resolution — emit each slot individually
+          // Sub-beat resolution — each slot is a note
           for (let s = beatStart; s < beatStart + subdivisions; s++) {
             const hits = slotHits[s]
             if (hits.length === 0) {
+              if (restAccum === 0) restStartSlot = barStart + s
               restAccum += 1
               continue
             }
-            if (restAccum > 0) { xml += writeRests(restAccum, subdivisions, noteType); restAccum = 0 }
+            if (restAccum > 0) {
+              // Each rest unit is one note for cursor tracking
+              for (let r = 0; r < restAccum; r++) noteSlots.push(restStartSlot + r)
+              xml += writeRests(restAccum, subdivisions, noteType)
+              restAccum = 0
+            }
+            noteSlots.push(barStart + s)
             xml += writeHits(hits, 1, noteType, isTriplet, beamMap[s] ?? '')
           }
         } else {
-          // This beat only has a downbeat hit (or is empty) — use quarter note
+          // Quarter note — one note for the whole beat
           const hits = slotHits[beatStart]
           if (hits.length === 0) {
-            restAccum += subdivisions // one full beat of rest
+            if (restAccum === 0) restStartSlot = barStart + beatStart
+            restAccum += subdivisions
           } else {
-            if (restAccum > 0) { xml += writeRests(restAccum, subdivisions, noteType); restAccum = 0 }
+            if (restAccum > 0) {
+              // Rests: track each rest as a note slot (at subdivision or quarter level)
+              const restNotes = Math.ceil(restAccum / subdivisions)
+              for (let r = 0; r < restNotes; r++) noteSlots.push(restStartSlot + r * subdivisions)
+              xml += writeRests(restAccum, subdivisions, noteType)
+              restAccum = 0
+            }
+            noteSlots.push(barStart + beatStart)
             xml += writeHits(hits, subdivisions, 'quarter', false, '')
           }
         }
       }
 
       if (restAccum > 0) {
+        const restNotes = Math.ceil(restAccum / subdivisions)
+        for (let r = 0; r < restNotes; r++) noteSlots.push(restStartSlot + r * subdivisions)
         xml += writeRests(restAccum, subdivisions, noteType)
       }
     }
@@ -158,7 +190,7 @@ export function patternToMusicXml(
     measures.push(`    <measure number="${bar + 1}">${xml}\n    </measure>`)
   }
 
-  return `<?xml version="1.0" encoding="UTF-8"?>
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE score-partwise PUBLIC "-//Recordare//DTD MusicXML 4.0 Partwise//EN" "http://www.musicxml.org/dtds/partwise.dtd">
 <score-partwise version="4.0">
   ${title ? `<work><work-title>${esc(title)}</work-title></work>` : ''}
@@ -173,6 +205,8 @@ ${midiInstruments}
 ${measures.join('\n')}
   </part>
 </score-partwise>`
+
+  return { xml, noteSlots }
 }
 
 // ── Beam map builder ─────────────────────────────────────────────────────────

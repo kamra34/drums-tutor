@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react'
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { PatternData, HitValue } from '@drums/types/curriculum'
 import { DrumPad } from '@drums/types/midi'
-import { playPattern, stopPatternPlayback } from '@drums/services/drumSounds'
+import { playPattern, playPatternFromSlot, stopPatternPlayback, pausePatternPlayback, resumePatternPlayback, isPatternPaused, ensureAudioReady } from '@drums/services/drumSounds'
+import { patternToMusicXml } from '@drums/services/drumMusicXml'
 import { subdivisionLabel, isDownbeat } from '@drums/utils/beatLabels'
 import OsmdNotation, { type OsmdNotationHandle } from '@drums/components/OsmdNotation'
 import {
@@ -373,8 +374,8 @@ const GRID_PAD_COLOR: Partial<Record<DrumPad, string>> = {
 const ROW_H = 28
 const LABEL_W = 60
 
-function GridView({ pattern, highlightSlot = -1 }: {
-  pattern: PatternData; highlightSlot?: number
+function GridView({ pattern, highlightSlot = -1, onSlotClick }: {
+  pattern: PatternData; highlightSlot?: number; onSlotClick?: (slot: number) => void
 }) {
   const { beats, subdivisions, tracks } = pattern
   const totalSlots = beats * subdivisions
@@ -410,14 +411,15 @@ function GridView({ pattern, highlightSlot = -1 }: {
 
   return (
     <div className="w-full">
-      {/* Beat labels */}
+      {/* Beat labels (clickable for seek) */}
       <div className="flex" style={{ paddingLeft: LABEL_W }}>
         {visibleSlots.map(si => {
           const span = slotSpan[si]
           return (
             <div
               key={si}
-              className={`text-center text-xs ${
+              onClick={onSlotClick ? () => onSlotClick(si) : undefined}
+              className={`text-center text-xs ${onSlotClick ? 'cursor-pointer hover:text-amber-400' : ''} ${
                 si % subdivisions === 0 ? 'text-[#4b5a6a] font-medium' : 'text-[#2d3748]'
               }`}
               style={{ flex: span }}
@@ -454,7 +456,8 @@ function GridView({ pattern, highlightSlot = -1 }: {
                 return (
                   <div
                     key={si}
-                    className="rounded-[3px] transition-all duration-75"
+                    className={`rounded-[3px] transition-all duration-75 ${onSlotClick ? 'cursor-pointer hover:brightness-125' : ''}`}
+                    onClick={onSlotClick ? () => onSlotClick(si) : undefined}
                     style={{
                       flex: span,
                       height: ROW_H - 4,
@@ -477,20 +480,31 @@ function GridView({ pattern, highlightSlot = -1 }: {
 
 // ── Play controls (PULSE theme) ─────────────────────────────────────────────
 
-function PlayBar({ playing, bpm, loops, onToggle, onBpmChange, onLoopsChange }: {
-  playing: boolean; bpm: number; loops: number
-  onToggle: () => void; onBpmChange: (b: number) => void; onLoopsChange: (l: number) => void
+function PlayBar({ playing, paused, bpm, loops, onPlay, onPause, onStop, onBpmChange, onLoopsChange }: {
+  playing: boolean; paused: boolean; bpm: number; loops: number
+  onPlay: () => void; onPause: () => void; onStop: () => void
+  onBpmChange: (b: number) => void; onLoopsChange: (l: number) => void
 }) {
-  return <div className="flex items-center gap-4 flex-wrap">
-    <button onClick={onToggle}
+  return <div className="flex items-center gap-2 sm:gap-4 flex-wrap">
+    {/* Play / Pause */}
+    <button onClick={playing ? onPause : onPlay}
       className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all cursor-pointer ${
         playing
-          ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20 hover:bg-rose-500/15'
-          : 'text-white hover:brightness-110'
+          ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20 hover:bg-amber-500/15'
+          : paused
+            ? 'text-white hover:brightness-110'
+            : 'text-white hover:brightness-110'
       }`}
       style={playing ? undefined : { background: 'linear-gradient(135deg, #f59e0b, #ea580c)' }}>
-      {playing ? '■  Stop' : '▶  Listen'}
+      {playing ? '⏸ Pause' : paused ? '▶ Resume' : '▶ Listen'}
     </button>
+    {/* Stop (only when playing or paused) */}
+    {(playing || paused) && (
+      <button onClick={onStop}
+        className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium bg-rose-500/10 text-rose-400 border border-rose-500/20 hover:bg-rose-500/15 transition-all cursor-pointer">
+        ■ Stop
+      </button>
+    )}
     <div className="flex items-center gap-2 text-xs">
       <button onClick={() => onBpmChange(Math.max(40, bpm - 5))} className="w-7 h-7 rounded-lg bg-white/[0.04] border border-white/[0.06] text-[#94a3b8] hover:text-white flex items-center justify-center cursor-pointer transition-colors">−</button>
       <span className="font-mono text-white w-8 text-center">{bpm}</span>
@@ -547,12 +561,14 @@ export default function StaffNotationDisplay({ pattern, currentStep, bpm = 90, b
   const [localBpm, setLocalBpm] = useState(bpm)
   const [loops, setLoops] = useState(bars)
   const [playing, setPlaying] = useState(false)
+  const [paused, setPaused] = useState(false)
   const [demoSlot, setDemoSlot] = useState(-1)
   const [demoLoop, setDemoLoop] = useState(0)
   const [containerWidth, setContainerWidth] = useState(800)
   const [fullscreen, setFullscreen] = useState(false)
   const wrapperRef = useRef<HTMLDivElement>(null)
   const prevSlotRef = useRef(-1)
+  const cursorAtFirstNoteRef = useRef(false)
   const osmdRef = useRef<OsmdNotationHandle>(null)
 
   // Sync localBpm when parent bpm prop changes
@@ -562,6 +578,9 @@ export default function StaffNotationDisplay({ pattern, currentStep, bpm = 90, b
     setLocalBpm(newBpm)
     onBpmChange?.(newBpm)
   }
+
+  // Preload audio samples on mount so first play has no delay
+  useEffect(() => { ensureAudioReady() }, [])
 
   // Measure container width
   useEffect(() => {
@@ -575,33 +594,78 @@ export default function StaffNotationDisplay({ pattern, currentStep, bpm = 90, b
     return () => observer.disconnect()
   }, [])
 
-  function toggle() {
-    if (playing) {
-      stopPatternPlayback()
-      osmdRef.current?.cursorHide()
-      setPlaying(false); setDemoSlot(-1); setDemoLoop(0)
+  // Authoritative set of slots where each MusicXML note starts.
+  // Computed synchronously from the same function that generates the MusicXML,
+  // so it's always in perfect sync — no async timing issues.
+  const cursorSlotSet = useMemo(() => {
+    const { noteSlots } = patternToMusicXml(pattern, beatsPerBar)
+    return new Set(noteSlots)
+  }, [pattern, beatsPerBar])
+
+  const stepCb = useCallback((s: number) => {
+    setDemoSlot(s)
+    if (s === 0 && prevSlotRef.current > 0) {
+      // Loop restart
+      osmdRef.current?.cursorReset()
+      osmdRef.current?.cursorShow()
+      cursorAtFirstNoteRef.current = true
+    } else if (cursorSlotSet.has(s)) {
+      if (cursorAtFirstNoteRef.current) {
+        // Cursor was just positioned at note 0 by cursorShow — skip this advance
+        cursorAtFirstNoteRef.current = false
+      } else {
+        osmdRef.current?.cursorNext()
+      }
+    }
+  }, [cursorSlotSet])
+
+  const finishCb = useCallback(() => {
+    setPlaying(false); setPaused(false); setDemoSlot(-1); setDemoLoop(0)
+    osmdRef.current?.cursorHide()
+  }, [])
+
+  function handlePlay() {
+    if (paused) {
+      // Resume from paused position — cursor is already positioned
+      setPlaying(true); setPaused(false)
+      cursorAtFirstNoteRef.current = true
+      resumePatternPlayback()
       return
     }
-    setPlaying(true); setDemoLoop(0); setDemoSlot(0)
+    // Fresh play from start
+    setPlaying(true); setPaused(false); setDemoLoop(0); setDemoSlot(0)
     osmdRef.current?.cursorShow()
+    cursorAtFirstNoteRef.current = true
     const effectiveLoops = loops === 0 ? 99 : loops
-    playPattern(pattern, localBpm, effectiveLoops,
-      (s) => {
-        setDemoSlot(s)
-        // Advance cursor on each step
-        if (s === 0 && prevSlotRef.current > 0) {
-          // Loop restart — reset cursor
-          osmdRef.current?.cursorReset()
-          osmdRef.current?.cursorShow()
-        } else {
-          osmdRef.current?.cursorNext()
-        }
-      },
-      () => {
-        setPlaying(false); setDemoSlot(-1); setDemoLoop(0)
-        osmdRef.current?.cursorHide()
-      }
-    )
+    playPattern(pattern, localBpm, effectiveLoops, stepCb, finishCb)
+  }
+
+  function handlePause() {
+    pausePatternPlayback()
+    setPlaying(false); setPaused(true)
+  }
+
+  function handleStop() {
+    stopPatternPlayback()
+    osmdRef.current?.cursorHide()
+    setPlaying(false); setPaused(false); setDemoSlot(-1); setDemoLoop(0)
+  }
+
+  function handleSeek(slot: number) {
+    // Start playing from the clicked slot
+    setPlaying(true); setPaused(false); setDemoSlot(slot)
+
+    // Position cursor at the correct note for this slot
+    osmdRef.current?.cursorReset()
+    osmdRef.current?.cursorShow()
+    // Advance cursor to the note matching this slot
+    const sortedNoteSlots = [...cursorSlotSet].sort((a, b) => a - b)
+    const advances = sortedNoteSlots.filter(ns => ns < slot).length
+    for (let i = 0; i < advances; i++) osmdRef.current?.cursorNext()
+    cursorAtFirstNoteRef.current = true
+
+    const effectiveLoops = loops === 0 ? 99 : loops
+    playPatternFromSlot(pattern, localBpm, effectiveLoops, slot, stepCb, finishCb)
   }
 
   useEffect(() => {
@@ -609,7 +673,7 @@ export default function StaffNotationDisplay({ pattern, currentStep, bpm = 90, b
     prevSlotRef.current = demoSlot
   }, [demoSlot, playing])
 
-  useEffect(() => () => { stopPatternPlayback(); osmdRef.current?.cursorHide() }, [])
+  useEffect(() => () => { stopPatternPlayback(); osmdRef.current?.cursorHide() }, []) // eslint-disable-line
 
   const activeSlot = currentStep !== undefined ? currentStep : playing ? demoSlot : -1
 
@@ -621,7 +685,7 @@ export default function StaffNotationDisplay({ pattern, currentStep, bpm = 90, b
 
       {/* Controls + Fullscreen button row */}
       <div className="flex items-center justify-between gap-4 flex-wrap">
-        <PlayBar playing={playing} bpm={localBpm} loops={loops} onToggle={toggle} onBpmChange={handleBpmChange} onLoopsChange={setLoops} />
+        <PlayBar playing={playing} paused={paused} bpm={localBpm} loops={loops} onPlay={handlePlay} onPause={handlePause} onStop={handleStop} onBpmChange={handleBpmChange} onLoopsChange={setLoops} />
         {!isFullscreen && (
           <button
             onClick={() => setFullscreen(true)}
@@ -655,7 +719,7 @@ export default function StaffNotationDisplay({ pattern, currentStep, bpm = 90, b
         <div className="mb-3">
           <span className="text-[10px] font-semibold text-[#3d4d5d] uppercase tracking-widest">Grid</span>
         </div>
-        <GridView pattern={pattern} highlightSlot={activeSlot} />
+        <GridView pattern={pattern} highlightSlot={activeSlot} onSlotClick={handleSeek} />
       </div>
 
       {/* Legend */}
@@ -669,12 +733,12 @@ export default function StaffNotationDisplay({ pattern, currentStep, bpm = 90, b
 
       {/* Fullscreen modal */}
       {fullscreen && (
-        <div className="fixed inset-0 z-50 bg-[#06080d]/95 backdrop-blur-md flex flex-col overflow-y-auto" onClick={() => { stopPatternPlayback(); osmdRef.current?.cursorHide(); setPlaying(false); setDemoSlot(-1); setFullscreen(false) }}>
+        <div className="fixed inset-0 z-50 bg-[#06080d]/95 backdrop-blur-md flex flex-col overflow-y-auto" onClick={() => { handleStop(); setFullscreen(false) }}>
           <div className="w-full px-8 py-6 space-y-4" onClick={e => e.stopPropagation()}>
             {/* Close button */}
             <div className="flex justify-end">
               <button
-                onClick={() => { stopPatternPlayback(); osmdRef.current?.cursorHide(); setPlaying(false); setDemoSlot(-1); setFullscreen(false) }}
+                onClick={() => { handleStop(); setFullscreen(false) }}
                 className="text-[#4b5a6a] hover:text-white transition-colors cursor-pointer p-2"
               >
                 <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
