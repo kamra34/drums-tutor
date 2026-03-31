@@ -55,6 +55,10 @@ async function loadSample(name: string, file: string): Promise<void> {
 
 /** Preload all samples. Safe to call multiple times. */
 export async function loadDrumSamples(): Promise<void> {
+  // Create AudioContext synchronously during the user gesture callstack.
+  // This MUST happen before any await — iOS WebKit only allows context
+  // creation + silent buffer playback during a direct user interaction.
+  ctx()
   if (_loadingPromise) return _loadingPromise
   _loadingPromise = Promise.all(
     Object.entries(SAMPLE_FILES).map(([name, file]) => loadSample(name, file))
